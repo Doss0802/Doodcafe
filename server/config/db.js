@@ -21,12 +21,12 @@ const connectDB = async () => {
   const options = {
     maxPoolSize: 10,
     minPoolSize: 2,
-    serverSelectionTimeoutMS: 5000,
+    serverSelectionTimeoutMS: 4000,
     socketTimeoutMS: 45000,
-    connectTimeoutMS: 10000,
+    connectTimeoutMS: 5000,
   };
 
-  const MAX_RETRIES = 5;
+  const MAX_RETRIES = process.env.NODE_ENV === 'production' ? 5 : 2;
   const INITIAL_DELAY_MS = 1000;
 
   // Bind connection runtime lifecycle listeners if not already attached
@@ -53,13 +53,16 @@ const connectDB = async () => {
       logger.info(`✅ MongoDB Connected: ${conn.connection.host} [DB: ${conn.connection.name}]`);
       return conn;
     } catch (error) {
-      const isLastAttempt = attempt === MAX_RETRIES;
-      const backoffDelay = Math.min(INITIAL_DELAY_MS * Math.pow(2, attempt - 1), 10000);
-      const jitter = Math.floor(Math.random() * 500);
-      const delay = backoffDelay + jitter;
+      const isSslOrWhitelist = error.message.includes('SSL') || 
+                               error.message.includes('whitelist') || 
+                               error.message.includes('ENOTFOUND');
+      
+      const isLastAttempt = attempt === MAX_RETRIES || (isSslOrWhitelist && process.env.NODE_ENV !== 'production');
+      const backoffDelay = Math.min(INITIAL_DELAY_MS * Math.pow(2, attempt - 1), 5000);
+      const delay = backoffDelay + Math.floor(Math.random() * 300);
 
       logger.error(
-        `❌ MongoDB connection attempt ${attempt}/${MAX_RETRIES} failed: ${error.message}. ${isLastAttempt ? 'Exhausted retries on primary URI.' : `Retrying in ${Math.round(delay)}ms...`}`
+        `❌ MongoDB connection attempt ${attempt}/${MAX_RETRIES} failed: ${error.message}. ${isLastAttempt ? 'Switching/Exhausting primary URI.' : `Retrying in ${Math.round(delay)}ms...`}`
       );
 
       if (isLastAttempt) {

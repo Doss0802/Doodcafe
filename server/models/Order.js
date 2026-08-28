@@ -63,7 +63,7 @@ const orderSchema = new mongoose.Schema(
 );
 
 // Auto-set takeaway orders to 'delivered' status and assign sequential orderNumber
-orderSchema.pre('save', async function (next) {
+orderSchema.pre('save', async function () {
   if (this.orderType === 'takeaway' && (!this.status || this.status === 'pending')) {
     this.status = 'delivered';
   }
@@ -75,7 +75,6 @@ orderSchema.pre('save', async function (next) {
       // fallback
     }
   }
-  if (typeof next === 'function') next();
 });
 
 // High-performance compound indexes for user history and admin dashboard queries

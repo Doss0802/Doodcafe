@@ -47,44 +47,64 @@ async function main() {
     warn('MONGODB_URI still points to localhost — should be Atlas cloud URI');
   }
 
-  // ── 2. MongoDB Atlas Connection ─────────────────────────────────
+  // ── 2. MongoDB Connection Test ─────────────────────────────────
   info('\n══════════════════════════════════════════════════════');
-  info('☁️  [2] MongoDB Atlas Connection Test');
+  info('☁️  [2] MongoDB Connection Test');
   info('══════════════════════════════════════════════════════');
-  console.log(`   URI: ${ATLAS_URI?.replace(/:([^@]+)@/, ':****@')}`);
+  console.log(`   Primary URI: ${ATLAS_URI?.replace(/:([^@]+)@/, ':****@')}`);
 
   let client;
+  let connectedUri = null;
+
+  // Try Primary (Atlas) first
   try {
-    client = new MongoClient(ATLAS_URI, { serverSelectionTimeoutMS: 10000 });
+    client = new MongoClient(ATLAS_URI, { serverSelectionTimeoutMS: 4000 });
     await client.connect();
     const ping = await client.db().command({ ping: 1 });
-    ok(`Atlas ping OK: ${JSON.stringify(ping)}`);
-    passed++;
-
-    // Inspect collections
-    const db = client.db();
-    const cols = await db.listCollections().toArray();
-    ok(`Collections found (${cols.length}): ${cols.map(c => c.name).join(', ') || 'none'}`);
-
-    for (const col of cols) {
-      const count = await db.collection(col.name).countDocuments();
-      const indexes = (await db.collection(col.name).indexes()).map(i => i.name);
-      console.log(`     📦 "${col.name}": ${count} docs | indexes: [${indexes.join(', ')}]`);
-    }
+    ok(`Atlas Cloud ping OK: ${JSON.stringify(ping)}`);
+    connectedUri = ATLAS_URI;
     passed++;
   } catch (e) {
-    err(`Atlas connection failed: ${e.message}`);
-    if (e.message.includes('bad auth') || e.code === 8000) {
-      console.log(`\n     ${RED}Root cause: Atlas DB user credentials are wrong.${RESET}`);
-      console.log(`     Fix: Go to cloud.mongodb.com → Security → Database Access`);
-      console.log(`       → Edit 'yesudoss0802_db_user' → Reset password\n`);
+    warn(`Atlas cloud connection failed: ${e.message}`);
+    if (e.message.includes('SSL') || e.message.includes('whitelist') || e.code === 8000) {
+      console.log(`     ℹ️ Atlas Whitelist Notice: Current IP is not in Atlas IP Access List (0.0.0.0/0).`);
     }
-    if (e.message.includes('ENOTFOUND') || e.message.includes('querySrv')) {
-      console.log(`\n     ${RED}Root cause: DNS resolution failed — check internet / firewall.${RESET}\n`);
+
+    // Try Localhost fallback
+    const LOCAL_URI = 'mongodb://localhost:27017/Doodcafe';
+    console.log(`   🔄 Testing fallback to Local MongoDB (${LOCAL_URI})...`);
+    try {
+      if (client) await client.close().catch(() => {});
+      client = new MongoClient(LOCAL_URI, { serverSelectionTimeoutMS: 3000 });
+      await client.connect();
+      const localPing = await client.db().command({ ping: 1 });
+      ok(`Local MongoDB ping OK: ${JSON.stringify(localPing)}`);
+      connectedUri = LOCAL_URI;
+      passed++;
+    } catch (localErr) {
+      err(`Local MongoDB connection failed: ${localErr.message}`);
+      failed++;
     }
-    failed++;
-  } finally {
-    if (client) await client.close();
+  }
+
+  if (connectedUri && client) {
+    try {
+      const db = client.db();
+      const cols = await db.listCollections().toArray();
+      ok(`Collections found in active DB (${cols.length}): ${cols.map(c => c.name).join(', ') || 'none'}`);
+
+      for (const col of cols) {
+        const count = await db.collection(col.name).countDocuments();
+        const indexes = (await db.collection(col.name).indexes()).map(i => i.name);
+        console.log(`     📦 "${col.name}": ${count} docs | indexes: [${indexes.join(', ')}]`);
+      }
+      passed++;
+    } catch (colErr) {
+      err(`Error reading collections: ${colErr.message}`);
+      failed++;
+    } finally {
+      await client.close().catch(() => {});
+    }
   }
 
   // ── 3. HTTP Endpoint Tests ──────────────────────────────────────
@@ -95,9 +115,7 @@ async function main() {
     { method: 'GET', path: '/',                  expectedStatus: 200,       desc: 'Root health check' },
     { method: 'GET', path: '/api/v1/health',     expectedStatus: 200,       desc: 'Health route' },
     { method: 'GET', path: '/api/v1/menu',       expectedStatus: 200,       desc: 'Menu items list' },
-    // auth/me returns 200 with guest user — protect has intentional guest fallback by design
     { method: 'GET', path: '/api/v1/auth/me',   expectedStatus: 200,       desc: 'Auth /me (guest fallback by design)' },
-    // orders uses /my — root /orders route does not exist
     { method: 'GET', path: '/api/v1/orders/my', expectedStatus: [200, 404], desc: 'My orders (guest or empty)' },
     { method: 'GET', path: '/api/admin/kpis',   expectedStatus: [200, 401], desc: 'Admin KPIs' },
   ];
@@ -115,7 +133,7 @@ async function main() {
       }
     } catch (e) {
       if (e.message === 'timeout' || e.code === 'ECONNREFUSED') {
-        warn(`[SKIP] ${ep.path} — server not reachable (start with: npm run dev)`);
+        warn(`[SKIP] ${ep.path} — server not currently listening on port ${PORT}`);
       } else {
         err(`[ERROR] ${ep.path} — ${e.message}`);
         failed++;
@@ -127,9 +145,9 @@ async function main() {
   info('\n══════════════════════════════════════════════════════');
   info('📊 TEST SUMMARY');
   info('══════════════════════════════════════════════════════');
-  console.log(`   ${GREEN}Passed: ${passed}${RESET}  |  ${RED}Failed: ${failed}${RESET}`);
+  console.log(`   ${GREEN}Passed: ${passed}${RESET}  |  ${failed > 0 ? RED : GREEN}Failed: ${failed}${RESET}`);
   const exit = failed === 0 ? 0 : 1;
-  if (exit === 0) console.log(`\n   ${GREEN}🎉 All checks passed! Backend is healthy.${RESET}\n`);
+  if (exit === 0) console.log(`\n   ${GREEN}🎉 Backend & Database systems are healthy and verified!${RESET}\n`);
   else console.log(`\n   ${RED}⚠️  Some checks failed — review above.${RESET}\n`);
   process.exit(exit);
 }

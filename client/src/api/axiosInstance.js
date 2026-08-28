@@ -1,8 +1,7 @@
 import axios from 'axios';
 
-// Use relative path so requests go through the Vite dev proxy (/api -> localhost:5000/api)
-// In production, set VITE_API_URL to the full API base URL (e.g. https://api.example.com/api)
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
+// Connect React client build variables to live backend on Render
+const API_BASE = import.meta.env.VITE_API_URL || 'https://onrender.com';
 
 const axiosInstance = axios.create({
   baseURL: API_BASE,
