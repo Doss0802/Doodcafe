@@ -44,11 +44,12 @@ const connectDB = async () => {
     });
   }
 
+  const primaryUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/Doodcafe';
+  const fallbackUri = 'mongodb://localhost:27017/Doodcafe';
+
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/Doodcafe';
-      const conn = await mongoose.connect(uri, options);
-
+      const conn = await mongoose.connect(primaryUri, options);
       logger.info(`✅ MongoDB Connected: ${conn.connection.host} [DB: ${conn.connection.name}]`);
       return conn;
     } catch (error) {
@@ -58,11 +59,22 @@ const connectDB = async () => {
       const delay = backoffDelay + jitter;
 
       logger.error(
-        `❌ MongoDB connection attempt ${attempt}/${MAX_RETRIES} failed: ${error.message}. ${isLastAttempt ? 'Exhausted all retries.' : `Retrying in ${Math.round(delay)}ms...`
-        }`
+        `❌ MongoDB connection attempt ${attempt}/${MAX_RETRIES} failed: ${error.message}. ${isLastAttempt ? 'Exhausted retries on primary URI.' : `Retrying in ${Math.round(delay)}ms...`}`
       );
 
       if (isLastAttempt) {
+        // In development mode, fallback to local MongoDB so the dev server does not crash
+        if (process.env.NODE_ENV !== 'production' && primaryUri !== fallbackUri) {
+          logger.warn(`⚠️ Cloud MongoDB connection failed. Attempting fallback to local MongoDB (${fallbackUri})...`);
+          try {
+            const fallbackConn = await mongoose.connect(fallbackUri, options);
+            logger.info(`✅ Fallback to Local MongoDB Connected: ${fallbackConn.connection.host} [DB: ${fallbackConn.connection.name}]`);
+            return fallbackConn;
+          } catch (localErr) {
+            logger.error(`💥 Local MongoDB fallback also failed: ${localErr.message}`);
+          }
+        }
+
         logger.error('💥 Fatal: Could not establish MongoDB database connection after max retries.');
         process.exit(1);
       }
