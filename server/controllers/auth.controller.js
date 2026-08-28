@@ -245,7 +245,7 @@ const getMe = async (req, res, next) => {
   try {
     // Use lean() for a plain JS object — Mongoose documents silently drop
     // undefined fields during JSON serialization (e.g. phone if not stored).
-    const user = await User.findById(req.user._id).select('name email phone').lean();
+    const user = await User.findById(req.user._id).select('name email phone role').lean();
     if (!user) {
       return ApiResponse.error(res, { statusCode: 404, message: 'User not found.' });
     }
@@ -257,6 +257,7 @@ const getMe = async (req, res, next) => {
           name: user.name,
           email: user.email,
           phone: user.phone ?? null,
+          role: user.role || 'customer',
         },
       },
     });

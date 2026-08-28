@@ -24,7 +24,7 @@ const STATUS_CONFIG = {
 function TrendChart({ points = [], period = 'daily' }) {
   const [hoveredPoint, setHoveredPoint] = useState(null);
 
-  if (!points || points.length === 0) {
+  if (!points || !Array.isArray(points) || points.length === 0) {
     return (
       <div className="adm-chart-empty">
         <Sparkles size={28} className="adm-empty-icon" />
@@ -33,7 +33,15 @@ function TrendChart({ points = [], period = 'daily' }) {
     );
   }
 
-  const maxVal = Math.max(...points.map((p) => Math.max(p.revenue, p.profit, 100)), 500);
+  const safePoints = points.map((p) => ({
+    ...p,
+    revenue: Number(p.revenue) || 0,
+    profit: Number(p.profit) || 0,
+    orders: Number(p.orders) || 0,
+    label: p.label || 'Date',
+  }));
+
+  const maxVal = Math.max(...safePoints.map((p) => Math.max(p.revenue, p.profit, 100)), 500);
 
   return (
     <div className="adm-chart-container">
@@ -42,11 +50,11 @@ function TrendChart({ points = [], period = 'daily' }) {
         {hoveredPoint ? (
           <div className="adm-hover-pill">
             <span className="adm-hover-label">{hoveredPoint.label}:</span>
-            <span className="adm-hover-rev">₹{hoveredPoint.revenue.toLocaleString('en-IN')} Revenue</span>
+            <span className="adm-hover-rev">₹{(hoveredPoint.revenue || 0).toLocaleString('en-IN')} Revenue</span>
             <span className="adm-hover-sep">·</span>
-            <span className="adm-hover-profit">₹{hoveredPoint.profit.toLocaleString('en-IN')} Est. Profit</span>
+            <span className="adm-hover-profit">₹{(hoveredPoint.profit || 0).toLocaleString('en-IN')} Est. Profit</span>
             <span className="adm-hover-sep">·</span>
-            <span className="adm-hover-orders">{hoveredPoint.orders} orders</span>
+            <span className="adm-hover-orders">{hoveredPoint.orders || 0} orders</span>
           </div>
         ) : (
           <span className="adm-hover-hint">✦ Hover over bars to view detailed revenue & profit breakdown</span>
@@ -55,9 +63,9 @@ function TrendChart({ points = [], period = 'daily' }) {
 
       {/* Visual Bar Chart */}
       <div className="adm-bar-chart">
-        {points.map((pt, idx) => {
-          const revHeight = Math.max(8, Math.round((pt.revenue / maxVal) * 100));
-          const profitHeight = Math.max(4, Math.round((pt.profit / maxVal) * 100));
+        {safePoints.map((pt, idx) => {
+          const revHeight = Math.max(8, Math.min(100, Math.round((pt.revenue / maxVal) * 100)));
+          const profitHeight = Math.max(4, Math.min(100, Math.round((pt.profit / maxVal) * 100)));
 
           return (
             <div
@@ -103,7 +111,7 @@ function TrendChart({ points = [], period = 'daily' }) {
 
 /* ── Top Selling Items Leaderboard ────────────────────────────── */
 function TopItemsLeaderboard({ items = [] }) {
-  if (!items || items.length === 0) {
+  if (!items || !Array.isArray(items) || items.length === 0) {
     return (
       <div className="adm-top-empty">
         <Flame size={24} />
@@ -114,27 +122,34 @@ function TopItemsLeaderboard({ items = [] }) {
 
   return (
     <div className="adm-top-list">
-      {items.map((item, idx) => (
-        <div key={idx} className="adm-top-card">
-          <div className="adm-top-rank">#{item.rank}</div>
-          <div className="adm-top-body">
-            <div className="adm-top-header">
-              <span className="adm-top-name">{item.name}</span>
-              <span className="adm-top-rev">₹{item.totalRevenue.toLocaleString('en-IN')}</span>
-            </div>
-            <div className="adm-top-bar-bg">
-              <div
-                className="adm-top-bar-fill"
-                style={{ width: `${Math.max(8, item.popularityPercent)}%` }}
-              />
-            </div>
-            <div className="adm-top-meta">
-              <span>{item.quantitySold} units sold</span>
-              <span>Avg ₹{item.averagePrice}/unit</span>
+      {items.map((item, idx) => {
+        const rev = Number(item.totalRevenue) || 0;
+        const avg = Number(item.averagePrice) || 0;
+        const pop = Math.min(100, Math.max(8, Number(item.popularityPercent) || 8));
+        const qty = Number(item.quantitySold) || 0;
+
+        return (
+          <div key={idx} className="adm-top-card">
+            <div className="adm-top-rank">#{item.rank || idx + 1}</div>
+            <div className="adm-top-body">
+              <div className="adm-top-header">
+                <span className="adm-top-name">{item.name || 'Menu Item'}</span>
+                <span className="adm-top-rev">₹{rev.toLocaleString('en-IN')}</span>
+              </div>
+              <div className="adm-top-bar-bg">
+                <div
+                  className="adm-top-bar-fill"
+                  style={{ width: `${pop}%` }}
+                />
+              </div>
+              <div className="adm-top-meta">
+                <span>{qty} units sold</span>
+                <span>Avg ₹{avg}/unit</span>
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -162,20 +177,32 @@ export default function AdminDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
 
-  // ── Fetch all dashboard data via axios ──────────────────────────
+  // ── Fetch all dashboard data via axios with allSettled resilience ──────────────────────────
   const fetchDashboardData = useCallback(async (showToast = false) => {
     try {
       setRefreshing(true);
-      const [kpisRes, trendsRes, topRes, ordersRes] = await Promise.all([
+      const results = await Promise.allSettled([
         axiosInstance.get('/admin/kpis'),
         axiosInstance.get(`/admin/trends?period=${trendPeriod}`),
         axiosInstance.get('/admin/top-items?limit=8'),
         axiosInstance.get(`/admin/live-orders?status=${orderFilter}`),
       ]);
-      setKpis(kpisRes.data?.data || {});
-      setTrends(trendsRes.data?.data || { summary: {}, points: [] });
-      setTopItems(topRes.data?.data || []);
-      setLiveOrders(ordersRes.data?.data || []);
+
+      const [kpisRes, trendsRes, topRes, ordersRes] = results;
+
+      if (kpisRes.status === 'fulfilled' && kpisRes.value?.data?.data) {
+        setKpis(kpisRes.value.data.data);
+      }
+      if (trendsRes.status === 'fulfilled' && trendsRes.value?.data?.data) {
+        setTrends(trendsRes.value.data.data);
+      }
+      if (topRes.status === 'fulfilled' && Array.isArray(topRes.value?.data?.data)) {
+        setTopItems(topRes.value.data.data);
+      }
+      if (ordersRes.status === 'fulfilled' && Array.isArray(ordersRes.value?.data?.data)) {
+        setLiveOrders(ordersRes.value.data.data);
+      }
+
       setLastUpdated(new Date());
       if (showToast) toast.success('Dashboard data refreshed');
     } catch (err) {

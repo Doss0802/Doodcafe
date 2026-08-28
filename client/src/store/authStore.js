@@ -57,15 +57,16 @@ const useAuthStore = create(
           const { data } = await axiosInstance.get('/auth/me');
           const u = data.data?.user ?? data.user;
           if (u) {
-            set({
+            set((state) => ({
               user: {
                 id: u._id ?? u.id,
                 name: u.name,
                 email: u.email,
                 phone: u.phone ?? null,
+                role: u.role ?? state.user?.role ?? 'customer',
               },
               isAuthenticated: true,
-            });
+            }));
           }
         } catch (err) {
           // Only invalidate session on explicit 401 — ignore transient errors

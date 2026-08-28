@@ -17,16 +17,29 @@ export default function Login() {
   useEffect(() => {
     document.title = 'Login — Dood Cafe';
     if (isAuthenticated && user) {
-      navigate(redirect, { replace: true });
+      if (redirect && redirect !== '/') {
+        navigate(redirect, { replace: true });
+      } else if (user.role === 'admin' || user.role === 'manager') {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, redirect, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await login(email, password);
+      const res = await login(email, password);
       toast.success('Welcome back! ☕');
-      navigate(redirect, { replace: true });
+      const loggedUser = res?.data?.user || res?.user;
+      if (redirect && redirect !== '/') {
+        navigate(redirect, { replace: true });
+      } else if (loggedUser?.role === 'admin' || loggedUser?.role === 'manager') {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Login failed. Please try again.');
     }

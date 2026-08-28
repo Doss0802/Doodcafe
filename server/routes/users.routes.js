@@ -13,7 +13,7 @@ router.use(protect);
 // @access Private
 router.get('/profile', async (req, res, next) => {
   try {
-    const user = await User.findById(req.user._id).select('name email phone').lean();
+    const user = await User.findById(req.user._id).select('name email phone role').lean();
     if (!user) {
       return ApiResponse.error(res, { statusCode: 404, message: 'User not found.' });
     }
@@ -24,6 +24,7 @@ router.get('/profile', async (req, res, next) => {
         name: user.name,
         email: user.email,
         phone: user.phone || null,
+        role: user.role || 'customer',
       },
     });
   } catch (error) {
