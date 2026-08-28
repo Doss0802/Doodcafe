@@ -1,5 +1,13 @@
 const mongoose = require('mongoose');
+const dns = require('dns');
 const logger = require('../utils/logger');
+
+// Configure reliable DNS servers to prevent SRV/TXT EREFUSED resolution issues on Windows/ISP resolvers
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {
+  // Ignore in restricted environments
+}
 
 /**
  * Connects to MongoDB database using Mongoose with exponential backoff retry loop.
