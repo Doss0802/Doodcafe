@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Connect React client build variables to live backend on Render
-const API_BASE = import.meta.env.VITE_API_URL || 'https://onrender.com';
+// Connect React client to live backend on Render
+const API_BASE = import.meta.env.VITE_API_URL || 'https://doodcafe.onrender.com/api';
 
 const axiosInstance = axios.create({
   baseURL: API_BASE,
