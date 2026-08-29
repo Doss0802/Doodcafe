@@ -1,0 +1,238 @@
+/* ═══════════════════════════════════════════════════════════════
+   ContactWidget — Floating Sticky Communication Overlay
+   Anchored: bottom-right corner, above fold
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Stack container ──────────────────────────────────────────── */
+.cw-stack {
+  position: fixed;
+  bottom: 28px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  /* Ensure pointer events only on the buttons, not dead space */
+  pointer-events: none;
+}
+
+/* ── Shared button base ───────────────────────────────────────── */
+.cw-btn {
+  pointer-events: auto;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px 0 14px;
+  height: 50px;
+  border-radius: 100px;
+  text-decoration: none;
+  font-family: 'Outfit', system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  overflow: hidden;
+  white-space: nowrap;
+  /* Collapse label by default — pill expands on hover */
+  max-width: 52px;
+  transition:
+    max-width 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.2s ease,
+    transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow:
+    0 4px 18px rgba(0, 0, 0, 0.18),
+    0 1px 4px rgba(0, 0, 0, 0.08);
+  /* Prevent text selection during interaction */
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cw-btn:hover,
+.cw-btn:focus-visible {
+  max-width: 180px;
+  transform: translateY(-2px) scale(1.03);
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.22),
+    0 2px 8px rgba(0, 0, 0, 0.10);
+  outline: none;
+}
+
+.cw-btn:active {
+  transform: translateY(0) scale(0.97);
+  box-shadow:
+    0 3px 10px rgba(0, 0, 0, 0.16),
+    0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Focus ring for keyboard navigation */
+.cw-btn:focus-visible::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 100px;
+  border: 2.5px solid currentColor;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* ── Icon ─────────────────────────────────────────────────────── */
+.cw-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  /* Keep icon perfectly centered when pill is collapsed */
+  margin-left: -2px;
+}
+
+.cw-icon svg {
+  width: 22px;
+  height: 22px;
+  transition: transform 0.2s ease;
+}
+
+.cw-btn:hover .cw-icon svg {
+  transform: scale(1.12);
+}
+
+/* ── Label ────────────────────────────────────────────────────── */
+.cw-label {
+  opacity: 0;
+  transform: translateX(-6px);
+  transition:
+    opacity 0.22s ease 0.08s,
+    transform 0.22s ease 0.08s;
+  /* Prevent label from causing layout shift when hidden */
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.cw-btn:hover .cw-label,
+.cw-btn:focus-visible .cw-label {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ── Ripple ───────────────────────────────────────────────────── */
+.cw-ripple {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.cw-btn:active .cw-ripple::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: inherit;
+  animation: cw-ripple-burst 0.38s ease forwards;
+}
+
+@keyframes cw-ripple-burst {
+  from { opacity: 1; transform: scale(0.85); }
+  to   { opacity: 0; transform: scale(1.08); }
+}
+
+/* ── Pulse ring (idle attraction) ────────────────────────────── */
+.cw-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  animation: cw-pulse 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes cw-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 currentColor; opacity: 0; }
+  50%       { box-shadow: 0 0 0 8px transparent; opacity: 0.15; }
+}
+
+/* ── WhatsApp variant ─────────────────────────────────────────── */
+.cw-btn--wa {
+  background: #25D366;
+  color: #fff;
+}
+
+.cw-btn--wa:hover,
+.cw-btn--wa:focus-visible {
+  background: #1fbd5a;
+}
+
+.cw-btn--wa::before {
+  color: #25D366;
+  animation-delay: 0s;
+}
+
+/* ── Call variant ─────────────────────────────────────────────── */
+.cw-btn--call {
+  /* Uses the site's gold design token palette */
+  background: #D4A017;
+  color: #fff;
+}
+
+.cw-btn--call:hover,
+.cw-btn--call:focus-visible {
+  background: #B8870D;
+}
+
+.cw-btn--call::before {
+  color: #D4A017;
+  animation-delay: 1.5s;
+}
+
+/* ── Entrance animation ───────────────────────────────────────── */
+.cw-btn {
+  animation: cw-slide-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.cw-btn--wa  { animation-delay: 0.1s; }
+.cw-btn--call { animation-delay: 0.22s; }
+
+@keyframes cw-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(28px) scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+/* ── Responsive adjustments ───────────────────────────────────── */
+@media (max-width: 480px) {
+  .cw-stack {
+    bottom: 18px;
+    right: 14px;
+    gap: 10px;
+  }
+
+  .cw-btn {
+    height: 46px;
+    padding: 0 16px 0 12px;
+    max-width: 48px;
+    font-size: 13px;
+  }
+
+  .cw-btn:hover,
+  .cw-btn:focus-visible {
+    max-width: 160px;
+  }
+
+  .cw-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .cw-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+}

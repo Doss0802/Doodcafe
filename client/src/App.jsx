@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import CartDrawer from './components/CartDrawer';
+import ContactWidget from './components/ContactWidget';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import useAuthStore from './store/authStore';
 
@@ -59,6 +60,7 @@ function App() {
             } />
           </Routes>
         </div>
+        <ContactWidget />
         <Footer />
       </div>
       <Toaster
