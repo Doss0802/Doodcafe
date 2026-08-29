@@ -60,11 +60,14 @@ export const categoryImages = {
     '/roll-and-wrap/BBQ Chicken Wrap.jpeg',
     '/roll-and-wrap/Dynamite Chicken Wrap.jpeg',
   ],
-  'korean-ramen': [
-    'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=600&q=80',
-    'https://images.unsplash.com/photo-1591814468924-caf88d1232e1?auto=format&fit=crop&w=600&q=80',
-    'https://images.unsplash.com/photo-1617093727343-374698b1b08d?auto=format&fit=crop&w=600&q=80',
-    'https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&w=600&q=80',
+  korean: [
+    '/korean/Korean Chicken Fries.jpeg',
+    '/korean/Korean Chicken Burger.jpeg',
+    '/korean/Korean Chicken Sandwich.jpeg',
+    '/korean/Korean Chicken Wrap.jpeg',
+    '/korean/Korean Ramen veg noodles.jpeg',
+    '/korean/Korean Ramen panner noodles.jpeg',
+    '/korean/Korean Ramen chicken noodles.jpeg',
   ],
   mojitos: [
     'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=600&q=80',

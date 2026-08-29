@@ -50,7 +50,7 @@ export default function Footer() {
             <li><Link to="/menu?category=burger">• Burger</Link></li>
             <li><Link to="/menu?category=sandwich">• Sandwich</Link></li>
             <li><Link to="/menu?category=roll-and-wrap">• Roll &amp; Wrap</Link></li>
-            <li><Link to="/menu?category=korean-ramen">• Korean Ramen</Link></li>
+            <li><Link to="/menu?category=korean">• Korean</Link></li>
             <li><Link to="/menu?category=mojitos">• Mojitos</Link></li>
             <li><Link to="/menu?category=milkshakes">• Milkshakes</Link></li>
           </ul>
