@@ -11,11 +11,10 @@ export const categoryImages = {
     '/quick-bites/Chicken nuggets.jpeg',
     '/quick-bites/Popcorn.jpeg',
   ],
-  tea: [
-    'https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=600&q=80',
-    'https://images.unsplash.com/photo-1597481499750-3e6b22637e12?auto=format&fit=crop&w=600&q=80',
-    'https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=600&q=80',
-    'https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?auto=format&fit=crop&w=600&q=80',
+  'loaded-fries': [
+    '/loaded-fries/Corn cheese Fries.jpeg',
+    '/loaded-fries/Chicken loaded fries.jpeg',
+    '/loaded-fries/Peri peri chicken Loaded fries.jpeg',
   ],
   burgers: [
     'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=80',

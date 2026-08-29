@@ -8,7 +8,7 @@ import cafeLogo from '../images/cafe_logo.png';
 
 /* ── Per-item hero images (fast web-optimized URLs) ───────────── */
 const quickBitesImg = '/quick-bites/French fries.jpeg';
-const teaImg = 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=600&q=80';
+const loadedFriesImg = '/loaded-fries/Corn cheese Fries.jpeg';
 const burgerImg = 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=80';
 const pastaImg = 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=600&q=80';
 const ramenImg = 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=600&q=80';
@@ -20,7 +20,7 @@ const mojitoImg = 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?aut
 /* ── Static dining room strip data ─────────────────────────── */
 const DINING_ITEMS = [
   { slug: 'quick-bites', label: 'Quick Bites', emoji: '🍟', img: quickBitesImg },
-  { slug: 'tea', label: 'Tea & Chai', emoji: '🍵', img: teaImg },
+  { slug: 'loaded-fries', label: 'Loaded Fries', emoji: '🧀', img: loadedFriesImg },
   { slug: 'burgers', label: 'Burgers', emoji: '🍔', img: burgerImg },
   { slug: 'pasta', label: 'Pasta', emoji: '🍝', img: pastaImg },
   { slug: 'korean-ramen', label: 'Korean Ramen', emoji: '🍜', img: ramenImg },
