@@ -47,7 +47,7 @@ export default function Footer() {
             <li><Link to="/menu?category=quick-bites">• Quick Bites</Link></li>
             <li><Link to="/menu?category=loaded-fries">• Loaded Fries</Link></li>
             <li><Link to="/menu?category=crispy-chicken">• Crispy Chicken</Link></li>
-            <li><Link to="/menu?category=sandwiches">• Sandwiches</Link></li>
+            <li><Link to="/menu?category=burger">• Burger</Link></li>
             <li><Link to="/menu?category=wraps">• Wraps</Link></li>
             <li><Link to="/menu?category=pasta">• Pasta</Link></li>
             <li><Link to="/menu?category=korean-ramen">• Korean Ramen</Link></li>

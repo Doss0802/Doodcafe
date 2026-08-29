@@ -10,10 +10,10 @@ import cafeLogo from '../images/cafe_logo.png';
 const quickBitesImg = '/quick-bites/French fries.jpeg';
 const loadedFriesImg = '/loaded-fries/Corn cheese Fries.jpeg';
 const crispyChickenImg = '/crispy-chicken/Crispy chicken strips.jpeg';
+const burgerImg = '/burger/Crispy Chicken Burger.jpeg';
 const pastaImg = 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=600&q=80';
 const ramenImg = 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=600&q=80';
 const shakeImg = 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=600&q=80';
-const sandwichImg = 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=600&q=80';
 const wrapImg = 'https://images.unsplash.com/photo-1626700051175-6818013e1d4f?auto=format&fit=crop&w=600&q=80';
 const mojitoImg = 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=600&q=80';
 
@@ -22,10 +22,10 @@ const DINING_ITEMS = [
   { slug: 'quick-bites', label: 'Quick Bites', emoji: '🍟', img: quickBitesImg },
   { slug: 'loaded-fries', label: 'Loaded Fries', emoji: '🧀', img: loadedFriesImg },
   { slug: 'crispy-chicken', label: 'Crispy Chicken', emoji: '🍗', img: crispyChickenImg },
+  { slug: 'burger', label: 'Burger', emoji: '🍔', img: burgerImg },
   { slug: 'pasta', label: 'Pasta', emoji: '🍝', img: pastaImg },
   { slug: 'korean-ramen', label: 'Korean Ramen', emoji: '🍜', img: ramenImg },
   { slug: 'milkshakes', label: 'Milkshakes', emoji: '🥤', img: shakeImg },
-  { slug: 'sandwiches', label: 'Sandwiches', emoji: '🥪', img: sandwichImg },
   { slug: 'wraps', label: 'Wraps', emoji: '🌯', img: wrapImg },
   { slug: 'mojitos', label: 'Mojitos', emoji: '🍹', img: mojitoImg },
 ];

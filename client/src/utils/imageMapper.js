@@ -25,11 +25,14 @@ export const categoryImages = {
     '/crispy-chicken/Peri peri chicken wings.jpeg',
     '/crispy-chicken/Dynamite chicken.jpeg',
   ],
-  sandwiches: [
-    'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=600&q=80',
-    'https://images.unsplash.com/photo-1509722747041-616f39b57569?auto=format&fit=crop&w=600&q=80',
-    'https://images.unsplash.com/photo-1553909489-cd47e0907980?auto=format&fit=crop&w=600&q=80',
-    'https://images.unsplash.com/photo-1539252554453-80ab65ce3586?auto=format&fit=crop&w=600&q=80',
+  burger: [
+    '/burger/Classic veg burger.jpeg',
+    '/burger/Panner burger.jpeg',
+    '/burger/Crispy Chicken Burger.jpeg',
+    '/burger/Peri peri Crispy Chicken Burger.jpeg',
+    '/burger/Crispy Chicken Cheese Burger-.jpeg',
+    '/burger/Dynamite chicken Burger.jpeg',
+    '/burger/Grilled Chicken Burger.jpeg',
   ],
   wraps: [
     'https://images.unsplash.com/photo-1626700051175-6818013e1d4f?auto=format&fit=crop&w=600&q=80',
