@@ -14,6 +14,7 @@ const burgerImg = '/burger/Crispy Chicken Burger.jpeg';
 const sandwichImg = '/sandwich/Veg Grilled Sandwich.jpeg';
 const rollAndWrapImg = '/roll-and-wrap/Veg Roll.jpeg';
 const koreanImg = '/korean/Korean Ramen veg noodles.jpeg';
+const pastaPulaoImg = '/pasta-and-pulao/Alfredo veg Pasta.jpeg';
 const shakeImg = 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=600&q=80';
 const mojitoImg = 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=600&q=80';
 
@@ -26,6 +27,7 @@ const DINING_ITEMS = [
   { slug: 'sandwich', label: 'Sandwich', emoji: '🥪', img: sandwichImg },
   { slug: 'roll-and-wrap', label: 'Roll & Wrap', emoji: '🌯', img: rollAndWrapImg },
   { slug: 'korean', label: 'Korean', emoji: '🍜', img: koreanImg },
+  { slug: 'pasta-and-pulao', label: 'Pasta & Pulao', emoji: '🍝', img: pastaPulaoImg },
   { slug: 'milkshakes', label: 'Milkshakes', emoji: '🥤', img: shakeImg },
   { slug: 'mojitos', label: 'Mojitos', emoji: '🍹', img: mojitoImg },
 ];

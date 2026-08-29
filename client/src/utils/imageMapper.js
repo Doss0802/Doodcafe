@@ -69,6 +69,16 @@ export const categoryImages = {
     '/korean/Korean Ramen panner noodles.jpeg',
     '/korean/Korean Ramen chicken noodles.jpeg',
   ],
+  'pasta-and-pulao': [
+    '/pasta-and-pulao/Alfredo veg Pasta.jpeg',
+    '/pasta-and-pulao/Alfredo Egg pasta.jpeg',
+    '/pasta-and-pulao/Alfredo Panner pasta.jpeg',
+    '/pasta-and-pulao/Alfredo chicken pasta.jpeg',
+    '/pasta-and-pulao/Veg pulao.jpeg',
+    '/pasta-and-pulao/Egg pulao.jpeg',
+    '/pasta-and-pulao/Panner pulao.jpeg',
+    '/pasta-and-pulao/Chicken pulao.jpeg',
+  ],
   mojitos: [
     'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=600&q=80',
     'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=600&q=80',
