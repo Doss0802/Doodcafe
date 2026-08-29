@@ -92,10 +92,14 @@ export const categoryImages = {
     '/mojitos/Cranberry.jpeg',
   ],
   milkshakes: [
-    'https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=600&q=80',
-    'https://images.unsplash.com/photo-1579954115545-a95591f28bfc?auto=format&fit=crop&w=600&q=80',
-    'https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?auto=format&fit=crop&w=600&q=80',
-    'https://images.unsplash.com/photo-1586985289688-ca3cf47d3e6e?auto=format&fit=crop&w=600&q=80',
+    '/milkshakes/Lotus Biscoff.jpeg',
+    '/milkshakes/Oreo Thick Shake.jpeg',
+    '/milkshakes/Kitkat Blast.jpeg',
+    '/milkshakes/Belgian Chocolate.jpeg',
+    '/milkshakes/Mixed Berry.jpeg',
+    '/milkshakes/Orange Citrus.jpeg',
+    '/milkshakes/Starberry.jpeg',
+    '/milkshakes/Mango.jpeg',
   ],
 };
 
