@@ -101,6 +101,13 @@ export const categoryImages = {
     '/milkshakes/Starberry.jpeg',
     '/milkshakes/Mango.jpeg',
   ],
+  'desserts-and-beverages': [
+    '/desserts-and-beverages/Ice scoop.jpeg',
+    '/desserts-and-beverages/Choco Brownie.jpeg',
+    '/desserts-and-beverages/Brownie with ice cream.jpeg',
+    '/desserts-and-beverages/Hot Chocolate.jpeg',
+    '/desserts-and-beverages/Cold coffee.jpeg',
+  ],
 };
 
 export const getItemImage = (item) => {

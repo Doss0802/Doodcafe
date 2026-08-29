@@ -54,6 +54,7 @@ export default function Footer() {
             <li><Link to="/menu?category=pasta-and-pulao">• Pasta &amp; Pulao</Link></li>
             <li><Link to="/menu?category=mojitos">• Mojitos</Link></li>
             <li><Link to="/menu?category=milkshakes">• Milkshakes</Link></li>
+            <li><Link to="/menu?category=desserts-and-beverages">• Desserts &amp; Beverages</Link></li>
           </ul>
         </div>
 

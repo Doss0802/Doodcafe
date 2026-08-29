@@ -17,6 +17,7 @@ const koreanImg = '/korean/Korean Ramen veg noodles.jpeg';
 const pastaPulaoImg = '/pasta-and-pulao/Alfredo veg Pasta.jpeg';
 const shakeImg = '/milkshakes/Lotus Biscoff.jpeg';
 const mojitoImg = '/mojitos/Lime & Mint.jpeg';
+const dessertsImg = '/desserts-and-beverages/Ice scoop.jpeg';
 
 /* ── Static dining room strip data ─────────────────────────── */
 const DINING_ITEMS = [
@@ -29,6 +30,7 @@ const DINING_ITEMS = [
   { slug: 'korean', label: 'Korean', emoji: '🍜', img: koreanImg },
   { slug: 'pasta-and-pulao', label: 'Pasta & Pulao', emoji: '🍝', img: pastaPulaoImg },
   { slug: 'milkshakes', label: 'Milkshakes', emoji: '🥤', img: shakeImg },
+  { slug: 'desserts-and-beverages', label: 'Desserts & Beverages', emoji: '🍨', img: dessertsImg },
   { slug: 'mojitos', label: 'Mojitos', emoji: '🍹', img: mojitoImg },
 ];
 

@@ -17,6 +17,7 @@ const DEFAULT_CATEGORIES = [
   { _id: 'c-pasta-and-pulao', name: 'Pasta & Pulao', slug: 'pasta-and-pulao', icon: '🍝' },
   { _id: 'c-mojitos', name: 'Mojitos', slug: 'mojitos', icon: '🍹' },
   { _id: 'c-milkshakes', name: 'Milkshakes', slug: 'milkshakes', icon: '🥤' },
+  { _id: 'c-desserts-and-beverages', name: 'Desserts & Beverages', slug: 'desserts-and-beverages', icon: '🍨' },
 ];
 
 /* ── Fallback Menu Items Dataset ──────────────────────────── */
@@ -100,6 +101,11 @@ const DEFAULT_ITEMS = [
   { _id: 'item-ms6', name: 'Orange Citrus', price: 229, category: { name: 'Milkshakes', slug: 'milkshakes', icon: '🥤' }, description: 'Zesty fresh orange citrus blended with creamy yogurt and a hint of vanilla', isVeg: true, isBestseller: false, preparationTime: 8, tags: ['milkshake', 'orange', 'citrus'], imageUrl: '/milkshakes/Orange Citrus.jpeg' },
   { _id: 'item-ms7', name: 'Starberry', price: 229, category: { name: 'Milkshakes', slug: 'milkshakes', icon: '🥤' }, description: 'Exotic starfruit and strawberry fusion milkshake with a tropical creamy finish', isVeg: true, isBestseller: false, preparationTime: 8, tags: ['milkshake', 'starberry', 'tropical'], imageUrl: '/milkshakes/Starberry.jpeg' },
   { _id: 'item-ms8', name: 'Mango', price: 229, category: { name: 'Milkshakes', slug: 'milkshakes', icon: '🥤' }, description: 'Thick luscious Alphonso mango blended with chilled milk for the ultimate summer shake', isVeg: true, isBestseller: true, preparationTime: 7, tags: ['milkshake', 'mango', 'tropical'], imageUrl: '/milkshakes/Mango.jpeg' },
+  { _id: 'item-db1', name: 'Ice scoop', price: 120, category: { name: 'Desserts & Beverages', slug: 'desserts-and-beverages', icon: '🍨' }, description: 'Creamy premium ice cream scoop served chilled — pick your favourite flavour', isVeg: true, isBestseller: true, preparationTime: 3, tags: ['dessert', 'ice cream', 'sweet'], imageUrl: '/desserts-and-beverages/Ice scoop.jpeg' },
+  { _id: 'item-db2', name: 'Choco Brownie', price: 129, category: { name: 'Desserts & Beverages', slug: 'desserts-and-beverages', icon: '🍨' }, description: 'Rich fudgy chocolate brownie baked to perfection with a gooey molten centre', isVeg: true, isBestseller: true, preparationTime: 5, tags: ['dessert', 'brownie', 'chocolate'], imageUrl: '/desserts-and-beverages/Choco Brownie.jpeg' },
+  { _id: 'item-db3', name: 'Brownie with ice cream', price: 199, category: { name: 'Desserts & Beverages', slug: 'desserts-and-beverages', icon: '🍨' }, description: 'Warm gooey chocolate brownie served with a scoop of chilled vanilla ice cream', isVeg: true, isBestseller: true, preparationTime: 5, tags: ['dessert', 'brownie', 'ice cream'], imageUrl: '/desserts-and-beverages/Brownie with ice cream.jpeg' },
+  { _id: 'item-db4', name: 'Hot Chocolate', price: 199, category: { name: 'Desserts & Beverages', slug: 'desserts-and-beverages', icon: '🍨' }, description: 'Velvety rich hot chocolate made with premium cocoa and steamed full-cream milk', isVeg: true, isBestseller: false, preparationTime: 5, tags: ['beverage', 'hot', 'chocolate'], imageUrl: '/desserts-and-beverages/Hot Chocolate.jpeg' },
+  { _id: 'item-db5', name: 'Cold coffee', price: 229, category: { name: 'Desserts & Beverages', slug: 'desserts-and-beverages', icon: '🍨' }, description: 'Chilled blended cold coffee made with strong espresso, milk and a hint of vanilla', isVeg: true, isBestseller: false, preparationTime: 5, tags: ['beverage', 'coffee', 'cold'], imageUrl: '/desserts-and-beverages/Cold coffee.jpeg' },
 ];
 
 const filterAndSortLocal = (category, search, veg, sortBy) => {
