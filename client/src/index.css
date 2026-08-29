@@ -1866,40 +1866,189 @@ select {
   color: var(--gold-dark) !important;
 }
 
+/* ── Category Carousel & Pills (Desktop >= 1024px) ────────────── */
+.category-carousel-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 2rem;
+  width: 100%;
+}
+
 .category-tabs {
   display: flex;
-  gap: 0.4rem;
+  align-items: center;
+  gap: 0.55rem;
   overflow-x: auto;
-  padding-bottom: 0.5rem;
-  margin-bottom: 2rem;
+  scroll-behavior: smooth;
   scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 0.35rem 0.25rem;
+  width: 100%;
+  -webkit-overflow-scrolling: touch;
 }
 
 .category-tabs::-webkit-scrollbar {
   display: none;
 }
 
+.carousel-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 50%;
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  color: var(--charcoal);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  z-index: 5;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+}
+
+.carousel-arrow:hover:not(.carousel-arrow-hidden) {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--charcoal);
+  transform: scale(1.08);
+  box-shadow: 0 6px 16px rgba(212, 160, 23, 0.3);
+}
+
+.carousel-arrow:active:not(.carousel-arrow-hidden) {
+  transform: scale(0.95);
+}
+
+.carousel-arrow-left {
+  margin-right: 0.5rem;
+}
+
+.carousel-arrow-right {
+  margin-left: 0.5rem;
+}
+
+.carousel-arrow-hidden {
+  opacity: 0.25;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+/* Category item on Desktop (Pill shape) */
 .cat-tab {
-  padding: 0.5rem 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1.15rem;
   border-radius: 50px;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   font-weight: 600;
   white-space: nowrap;
   border: 1.5px solid var(--border);
   background: var(--white);
   color: var(--gray-700);
   cursor: pointer;
-  transition: var(--transition);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.cat-tab .cat-icon {
+  font-size: 1rem;
+  line-height: 1;
+  display: inline-block;
+}
+
+.cat-tab .cat-name {
+  font-weight: 600;
+  font-size: 0.84rem;
 }
 
 .cat-tab:hover {
-  border-color: var(--gold-muted);
+  border-color: var(--gold-dark);
+  background: var(--cream-2);
+  color: var(--charcoal);
+  transform: translateY(-1px);
 }
 
 .cat-tab-active {
   background: var(--gold) !important;
   color: var(--charcoal) !important;
   border-color: var(--gold) !important;
+  box-shadow: 0 4px 14px rgba(212, 160, 23, 0.3);
+  transform: translateY(-1px);
+}
+
+/* ── Mobile & Tablet Adaptability (< 1024px) ─────────────────── */
+@media (max-width: 1023px) {
+  .category-carousel-wrapper {
+    margin-bottom: 1.75rem;
+  }
+
+  .carousel-arrow {
+    display: none !important;
+  }
+
+  .category-tabs {
+    gap: 0.75rem;
+    padding: 0.5rem 0.25rem 0.85rem;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Render categories as circular badges */
+  .cat-tab {
+    width: 78px;
+    height: 78px;
+    min-width: 78px;
+    min-height: 78px;
+    max-width: 78px;
+    max-height: 78px;
+    border-radius: 50% !important;
+    padding: 0.4rem !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    scroll-snap-align: start;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    white-space: normal;
+    gap: 2px;
+  }
+
+  .cat-tab .cat-icon {
+    font-size: 1.35rem;
+    line-height: 1;
+    margin-bottom: 2px;
+    display: block;
+  }
+
+  .cat-tab .cat-name {
+    font-size: 0.65rem;
+    font-weight: 600;
+    line-height: 1.1;
+    max-width: 66px;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .cat-tab-active {
+    background: var(--gold) !important;
+    color: var(--charcoal) !important;
+    border-color: var(--gold) !important;
+    box-shadow: 0 4px 16px rgba(212, 160, 23, 0.45) !important;
+    transform: scale(1.04) !important;
+  }
 }
 
 .search-indicator {

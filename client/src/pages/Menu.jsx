@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, SlidersHorizontal, ArrowUpDown, X, Zap } from 'lucide-react';
+import { Search, SlidersHorizontal, ArrowUpDown, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import axiosInstance from '../api/axiosInstance';
 import MenuCard from '../components/MenuCard';
 import ItemModal from '../components/ItemModal';
@@ -198,6 +198,37 @@ export default function Menu() {
     setSearchParams(p);
   };
 
+  const categoryTabsRef = useRef(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkScrollability = useCallback(() => {
+    if (categoryTabsRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = categoryTabsRef.current;
+      setCanScrollLeft(scrollLeft > 10);
+      setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 10);
+    }
+  }, []);
+
+  useEffect(() => {
+    const el = categoryTabsRef.current;
+    if (!el) return;
+    checkScrollability();
+    el.addEventListener('scroll', checkScrollability, { passive: true });
+    window.addEventListener('resize', checkScrollability);
+    return () => {
+      el.removeEventListener('scroll', checkScrollability);
+      window.removeEventListener('resize', checkScrollability);
+    };
+  }, [checkScrollability, categories]);
+
+  const scrollCategories = (direction) => {
+    if (categoryTabsRef.current) {
+      const scrollAmount = direction === 'left' ? -280 : 280;
+      categoryTabsRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
+
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     const p = new URLSearchParams(searchParams);
@@ -241,11 +272,6 @@ export default function Menu() {
       <div className="container">
         {/* Page Header */}
         <div className="page-header">
-          <div className="flex items-center gap-2 justify-center mb-1">
-            <span className="dsa-badge flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20">
-              <Zap size={13} className="text-amber-400" /> Active DSA Engine: MenuTrie &amp; QuickSort
-            </span>
-          </div>
           <h1 className="page-title">Our Menu</h1>
           <p className="page-sub">Explore our wide range of premium food &amp; beverages</p>
         </div>
@@ -259,7 +285,7 @@ export default function Menu() {
               id="menu-search-input"
               type="search"
               className="search-input"
-              placeholder="Search by Trie prefix (e.g. fries, crispy chicken, ramen)..."
+              placeholder="Search menu items (e.g. fries, burger, roll)..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               aria-label="Search menu items"
@@ -305,28 +331,57 @@ export default function Menu() {
           </button>
         </div>
 
-        {/* Category Tabs */}
-        <div className="category-tabs" role="tablist" aria-label="Menu categories">
+        {/* Category Carousel / Sliding Tabs */}
+        <div className="category-carousel-wrapper">
           <button
-            role="tab"
-            aria-selected={selectedCategory === 'all'}
-            className={`cat-tab ${selectedCategory === 'all' ? 'cat-tab-active' : ''}`}
-            onClick={() => handleCategoryChange('all')}
+            type="button"
+            className={`carousel-arrow carousel-arrow-left ${!canScrollLeft ? 'carousel-arrow-hidden' : ''}`}
+            onClick={() => scrollCategories('left')}
+            aria-label="Scroll categories left"
+            tabIndex={canScrollLeft ? 0 : -1}
           >
-            🍽️ All
+            <ChevronLeft size={20} />
           </button>
-          {categories.map((cat) => (
+
+          <div
+            className="category-tabs"
+            ref={categoryTabsRef}
+            role="tablist"
+            aria-label="Menu categories"
+          >
             <button
-              key={cat._id}
               role="tab"
-              aria-selected={selectedCategory === cat.slug}
-              className={`cat-tab ${selectedCategory === cat.slug ? 'cat-tab-active' : ''}`}
-              id={`tab-${cat.slug}`}
-              onClick={() => handleCategoryChange(cat.slug)}
+              aria-selected={selectedCategory === 'all'}
+              className={`cat-tab ${selectedCategory === 'all' ? 'cat-tab-active' : ''}`}
+              onClick={() => handleCategoryChange('all')}
             >
-              {cat.icon} {cat.name}
+              <span className="cat-icon">🍽️</span>
+              <span className="cat-name">All</span>
             </button>
-          ))}
+            {categories.map((cat) => (
+              <button
+                key={cat._id}
+                role="tab"
+                aria-selected={selectedCategory === cat.slug}
+                className={`cat-tab ${selectedCategory === cat.slug ? 'cat-tab-active' : ''}`}
+                id={`tab-${cat.slug}`}
+                onClick={() => handleCategoryChange(cat.slug)}
+              >
+                <span className="cat-icon">{cat.icon}</span>
+                <span className="cat-name">{cat.name}</span>
+              </button>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            className={`carousel-arrow carousel-arrow-right ${!canScrollRight ? 'carousel-arrow-hidden' : ''}`}
+            onClick={() => scrollCategories('right')}
+            aria-label="Scroll categories right"
+            tabIndex={canScrollRight ? 0 : -1}
+          >
+            <ChevronRight size={20} />
+          </button>
         </div>
 
         {/* Active Search & DSA Info Bar */}
