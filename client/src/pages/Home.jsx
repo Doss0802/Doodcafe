@@ -16,7 +16,7 @@ const rollAndWrapImg = '/roll-and-wrap/Veg Roll.jpeg';
 const koreanImg = '/korean/Korean Ramen veg noodles.jpeg';
 const pastaPulaoImg = '/pasta-and-pulao/Alfredo veg Pasta.jpeg';
 const shakeImg = 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=600&q=80';
-const mojitoImg = 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=600&q=80';
+const mojitoImg = '/mojitos/Lime & Mint.jpeg';
 
 /* ── Static dining room strip data ─────────────────────────── */
 const DINING_ITEMS = [
