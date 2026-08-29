@@ -19,8 +19,8 @@ export default function Checkout() {
   }, []);
 
   const dummyItems = [
-    { _id: 'dummy1', name: 'Classic Cappuccino', price: 149, quantity: 1 },
-    { _id: 'dummy2', name: 'Classic Chicken Burger', price: 249, quantity: 1 },
+    { _id: 'dummy1', name: 'French Fries', price: 99, quantity: 1 },
+    { _id: 'dummy2', name: 'Crispy chicken strips 4pcs', price: 199, quantity: 1 },
   ];
 
   const displayItems = items.length > 0 ? items : dummyItems;

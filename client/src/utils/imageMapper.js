@@ -16,11 +16,14 @@ export const categoryImages = {
     '/loaded-fries/Chicken loaded fries.jpeg',
     '/loaded-fries/Peri peri chicken Loaded fries.jpeg',
   ],
-  burgers: [
-    'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=80',
-    'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?auto=format&fit=crop&w=600&q=80',
-    'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=600&q=80',
-    'https://images.unsplash.com/photo-1571091718767-18b5b1457add?auto=format&fit=crop&w=600&q=80',
+  'crispy-chicken': [
+    '/crispy-chicken/Crispy chicken strips.jpeg',
+    '/crispy-chicken/Peri peri chicken strips.jpeg',
+    '/crispy-chicken/Crispy chicken lollipop.jpeg',
+    '/crispy-chicken/Peri peri chicken lollipop.jpeg',
+    '/crispy-chicken/Crispy chicken wings.jpeg',
+    '/crispy-chicken/Peri peri chicken wings.jpeg',
+    '/crispy-chicken/Dynamite chicken.jpeg',
   ],
   sandwiches: [
     'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=600&q=80',
