@@ -303,7 +303,7 @@ export default function Menu() {
       <div className="container">
         {/* Page Header */}
         <div className="page-header">
-          <h1 className="page-title">Our Menu</h1>
+          <h1 className="page-title cursive-title">Our Menu</h1>
           <p className="page-sub">Explore our wide range of premium food &amp; beverages</p>
         </div>
 
