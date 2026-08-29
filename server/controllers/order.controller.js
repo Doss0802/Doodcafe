@@ -55,13 +55,13 @@ const placeOrder = async (req, res, next) => {
       if (!menuItem) {
         let category = await Category.findOne().lean();
         if (!category) {
-          category = await Category.create({ name: 'Coffee', slug: 'coffee', icon: '☕', displayOrder: 1 });
+          category = await Category.create({ name: 'Quick Bites', slug: 'quick-bites', icon: '🍟', displayOrder: 1 });
         }
         menuItem = await MenuItem.create({
-          name: item.name || 'Classic Cappuccino',
-          price: item.price !== undefined ? Number(item.price) : 149,
+          name: item.name || 'French Fries',
+          price: item.price !== undefined ? Number(item.price) : 99,
           category: category._id,
-          description: 'Delicious coffee brewed to perfection',
+          description: 'Crispy golden fries seasoned with classic salt',
           available: true,
         });
         menuItem = menuItem.toObject();

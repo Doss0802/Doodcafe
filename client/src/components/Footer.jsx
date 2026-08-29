@@ -44,7 +44,7 @@ export default function Footer() {
         <div className="footer-col">
           <h4 className="footer-heading">Our Menu</h4>
           <ul className="footer-links">
-            <li><Link to="/menu?category=coffee">• Coffee</Link></li>
+            <li><Link to="/menu?category=quick-bites">• Quick Bites</Link></li>
             <li><Link to="/menu?category=tea">• Tea</Link></li>
             <li><Link to="/menu?category=burgers">• Burgers</Link></li>
             <li><Link to="/menu?category=sandwiches">• Sandwiches</Link></li>

@@ -7,7 +7,7 @@ import { categoryImages } from '../utils/imageMapper';
 import cafeLogo from '../images/cafe_logo.png';
 
 /* ── Per-item hero images (fast web-optimized URLs) ───────────── */
-const coffeeImg = 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=600&q=80';
+const quickBitesImg = '/quick-bites/French fries.jpeg';
 const teaImg = 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=600&q=80';
 const burgerImg = 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=80';
 const pastaImg = 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=600&q=80';
@@ -19,7 +19,8 @@ const mojitoImg = 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?aut
 
 /* ── Static dining room strip data ─────────────────────────── */
 const DINING_ITEMS = [
-  { slug: 'coffee', label: 'Coffee & Tea', emoji: '☕', img: coffeeImg },
+  { slug: 'quick-bites', label: 'Quick Bites', emoji: '🍟', img: quickBitesImg },
+  { slug: 'tea', label: 'Tea & Chai', emoji: '🍵', img: teaImg },
   { slug: 'burgers', label: 'Burgers', emoji: '🍔', img: burgerImg },
   { slug: 'pasta', label: 'Pasta', emoji: '🍝', img: pastaImg },
   { slug: 'korean-ramen', label: 'Korean Ramen', emoji: '🍜', img: ramenImg },
@@ -46,7 +47,7 @@ export default function Home() {
   /* ── Backend state (keep all API calls intact) ── */
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeCategorySlug, setActiveCategorySlug] = useState('coffee');
+  const [activeCategorySlug, setActiveCategorySlug] = useState('quick-bites');
   const navigate = useNavigate();
   const scrollRef = useRef(null);   // ref for the scroll track
 
@@ -81,7 +82,7 @@ export default function Home() {
   };
 
   /* Kept: activeCategoryImages still available for future use */
-  const activeCategoryImages = categoryImages[activeCategorySlug] || categoryImages['coffee'];
+  const activeCategoryImages = categoryImages[activeCategorySlug] || categoryImages['quick-bites'];
 
   /* ─────────────────────────────────────────────────────────── */
   return (

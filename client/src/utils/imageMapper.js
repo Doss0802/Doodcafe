@@ -2,11 +2,14 @@
 // Replaces multi-megabyte local raw images with fast 600px compressed assets
 
 export const categoryImages = {
-  coffee: [
-    'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=600&q=80',
-    'https://images.unsplash.com/photo-1534778101976-62847782c213?auto=format&fit=crop&w=600&q=80',
-    'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&w=600&q=80',
-    'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=600&q=80',
+  'quick-bites': [
+    '/quick-bites/French fries.jpeg',
+    '/quick-bites/Peri peri fries.jpeg',
+    '/quick-bites/Veg Nuggets.jpeg',
+    '/quick-bites/Cheese Triangles.jpeg',
+    '/quick-bites/Ring Onion.jpeg',
+    '/quick-bites/Chicken nuggets.jpeg',
+    '/quick-bites/Popcorn.jpeg',
   ],
   tea: [
     'https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=600&q=80',
@@ -59,15 +62,18 @@ export const categoryImages = {
 };
 
 export const getItemImage = (item) => {
-  if (item.imageUrl && item.imageUrl.startsWith('http')) {
+  if (item.imageUrl && (item.imageUrl.startsWith('http') || item.imageUrl.startsWith('/'))) {
     return item.imageUrl;
+  }
+  if (item.image && (item.image.startsWith('http') || item.image.startsWith('/'))) {
+    return item.image;
   }
 
   const categorySlug = item.category?.slug || item.category;
   const images = categoryImages[categorySlug];
 
   if (!images || images.length === 0) {
-    return 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=600&q=80';
+    return '/quick-bites/French fries.jpeg';
   }
 
   // Deterministic pick based on item ID or name string hash
@@ -79,3 +85,4 @@ export const getItemImage = (item) => {
   const index = Math.abs(hash) % images.length;
   return images[index];
 };
+
