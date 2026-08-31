@@ -22,14 +22,26 @@ const STATUS_CONFIG = {
 
 /* ── Customer Detail Modal ────────────────────────────────────── */
 function CustomerDetailModal({ order, onClose }) {
+  useEffect(() => {
+    if (!order) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'unset';
+    };
+  }, [order, onClose]);
+
   if (!order) return null;
 
   const customerName  = order.user?.name  || 'Unknown Customer';
   const customerPhone = order.user?.phone || null;
   const customerEmail = order.user?.email || null;
-  const orderType     = order.orderType === 'takeaway' ? 'Takeaway — Counter Pickup' : order.orderType || 'Takeaway';
+  const orderLocation = order.deliveryAddress || (order.orderType === 'takeaway' ? 'Dood Cafe Counter — Takeaway / Self Pickup' : order.orderType || 'Takeaway Pickup');
   const statusMeta    = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
-  const itemSubtotal  = order.items?.reduce((s, it) => s + it.price * it.quantity, 0) || 0;
 
   // Close on backdrop click
   const handleBackdrop = (e) => {
@@ -53,7 +65,7 @@ function CustomerDetailModal({ order, onClose }) {
               {statusMeta.label}
             </span>
           </div>
-          <button className="adm-modal-close" onClick={onClose} aria-label="Close modal">
+          <button className="adm-modal-close" onClick={onClose} aria-label="Close customer details modal">
             <X size={18} />
           </button>
         </div>
@@ -68,27 +80,43 @@ function CustomerDetailModal({ order, onClose }) {
               {customerName.charAt(0).toUpperCase()}
             </div>
             <div className="adm-modal-profile-info">
-              <span className="adm-modal-cust-name">{customerName}</span>
+              <h3 className="adm-modal-cust-name">{customerName}</h3>
               {customerPhone ? (
-                <a href={`tel:${customerPhone}`} className="adm-modal-phone-link">
-                  📞 {customerPhone}
-                </a>
+                <div className="adm-modal-contact-line">
+                  <span className="adm-modal-contact-lbl">Phone:</span>
+                  <a href={`tel:${customerPhone}`} className="adm-modal-phone-link" title={`Call ${customerName}`}>
+                    📞 {customerPhone}
+                  </a>
+                </div>
               ) : (
-                <span className="adm-modal-no-phone">No phone number on file</span>
+                <span className="adm-modal-no-phone">📞 No phone number provided</span>
               )}
               {customerEmail && (
-                <span className="adm-modal-email">✉ {customerEmail}</span>
+                <div className="adm-modal-contact-line">
+                  <span className="adm-modal-contact-lbl">Email:</span>
+                  <span className="adm-modal-email">✉ {customerEmail}</span>
+                </div>
               )}
-              <span className="adm-modal-location">📍 {orderType}</span>
             </div>
+          </div>
+        </div>
+
+        {/* ── Customer Order Location / Delivery Address ── */}
+        <div className="adm-modal-section">
+          <h4 className="adm-modal-section-title">📍 Order Location / Delivery Address</h4>
+          <div className="adm-modal-location-box">
+            <p className="adm-modal-location-text">{orderLocation}</p>
+            <span className="adm-modal-location-sub">
+              Order Type: {order.orderType === 'takeaway' ? 'Takeaway' : order.orderType || 'Takeaway'}
+            </span>
           </div>
         </div>
 
         {/* ── Order Meta ── */}
         <div className="adm-modal-section">
-          <h4 className="adm-modal-section-title">🗓 Order Details</h4>
+          <h4 className="adm-modal-section-title">🗓 Order Info</h4>
           <div className="adm-modal-meta-row">
-            <span className="adm-modal-meta-label">Placed</span>
+            <span className="adm-modal-meta-label">Placed At</span>
             <span>{new Date(order.createdAt).toLocaleString('en-IN', {
               day: '2-digit', month: 'short', year: 'numeric',
               hour: '2-digit', minute: '2-digit', hour12: true,
@@ -100,36 +128,37 @@ function CustomerDetailModal({ order, onClose }) {
           </div>
         </div>
 
-        {/* ── Itemized Breakdown ── */}
+        {/* ── Detailed Cafe Items Breakdown with Prices ── */}
         <div className="adm-modal-section">
-          <h4 className="adm-modal-section-title">🧾 Items Ordered</h4>
+          <h4 className="adm-modal-section-title">🧾 Itemized Cafe Items Breakdown</h4>
           <div className="adm-modal-items-head">
-            <span>Item</span>
+            <span>Item Name & Details</span>
             <span>Qty</span>
-            <span>Unit ₹</span>
-            <span>Total</span>
+            <span>Unit Price</span>
+            <span>Line Total</span>
           </div>
           {order.items?.map((it, i) => (
             <div key={i} className="adm-modal-item-row">
               <span className="adm-modal-item-name">{it.name}</span>
               <span className="adm-modal-item-qty">×{it.quantity}</span>
-              <span className="adm-modal-item-unit">₹{it.price?.toLocaleString('en-IN')}</span>
-              <span className="adm-modal-item-total">₹{(it.price * it.quantity).toLocaleString('en-IN')}</span>
+              <span className="adm-modal-item-unit">₹{Number(it.price || 0).toLocaleString('en-IN')}</span>
+              <span className="adm-modal-item-total">₹{(Number(it.price || 0) * Number(it.quantity || 1)).toLocaleString('en-IN')}</span>
             </div>
           ))}
           <div className="adm-modal-order-total">
-            <span>Order Total</span>
+            <span>Total Payable Amount</span>
             <span />
             <span />
-            <span className="adm-modal-total-amount">₹{order.totalAmount?.toLocaleString('en-IN')}</span>
+            <span className="adm-modal-total-amount">₹{Number(order.totalAmount || 0).toLocaleString('en-IN')}</span>
           </div>
         </div>
 
         {/* ── Special Instructions ── */}
         {order.specialInstructions && (
           <div className="adm-modal-section">
+            <h4 className="adm-modal-section-title">💬 Special Notes</h4>
             <div className="adm-modal-special-note">
-              💬 <em>{order.specialInstructions}</em>
+              <em>{order.specialInstructions}</em>
             </div>
           </div>
         )}
@@ -601,22 +630,22 @@ export default function AdminDashboard() {
                       <tr key={ord._id} className="adm-order-row">
                         <td className="adm-ord-id-col">
                           <div className="adm-ord-id-row">
-                            <div>
-                              <strong>Order #{ord.orderNumber || 1}</strong>
-                              <span className="adm-ord-time">
-                                {new Date(ord.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                              </span>
+                            <div className="adm-ord-header-line">
+                              <strong className="adm-ord-num-lbl">Order #{ord.orderNumber || 1}</strong>
+                              <button
+                                id={`view-details-btn-${ord._id}`}
+                                className="adm-view-details-btn"
+                                onClick={() => setSelectedOrder(ord)}
+                                title="View customer details"
+                                aria-label={`View details for Order #${ord.orderNumber || 1}`}
+                              >
+                                <UserRound size={13} />
+                                <span>View Details</span>
+                              </button>
                             </div>
-                            <button
-                              id={`view-details-btn-${ord._id}`}
-                              className="adm-view-details-btn"
-                              onClick={() => setSelectedOrder(ord)}
-                              title="View customer details"
-                              aria-label={`View details for Order #${ord.orderNumber}`}
-                            >
-                              <UserRound size={13} />
-                              Details
-                            </button>
+                            <span className="adm-ord-time">
+                              {new Date(ord.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
                           </div>
                         </td>
                         <td className="adm-cust-col">

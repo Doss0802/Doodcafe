@@ -53,10 +53,10 @@ const connectDB = async () => {
       logger.info(`✅ MongoDB Connected: ${conn.connection.host} [DB: ${conn.connection.name}]`);
       return conn;
     } catch (error) {
-      const isSslOrWhitelist = error.message.includes('SSL') || 
-                               error.message.includes('whitelist') || 
-                               error.message.includes('ENOTFOUND');
-      
+      const isSslOrWhitelist = error.message.includes('SSL') ||
+        error.message.includes('whitelist') ||
+        error.message.includes('ENOTFOUND');
+
       const isLastAttempt = attempt === MAX_RETRIES || (isSslOrWhitelist && process.env.NODE_ENV !== 'production');
       const backoffDelay = Math.min(INITIAL_DELAY_MS * Math.pow(2, attempt - 1), 5000);
       const delay = backoffDelay + Math.floor(Math.random() * 300);

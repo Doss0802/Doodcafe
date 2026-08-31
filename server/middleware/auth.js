@@ -6,7 +6,7 @@ const protect = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
-    // No token — reject with 401; user must authenticate via the login form.
+    // No token provided — reject with 401
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return ApiResponse.error(res, {
         statusCode: 401,
@@ -14,7 +14,8 @@ const protect = async (req, res, next) => {
       });
     }
 
-    // Token present — verify strictly.
+    // Token is present — verify strictly. Do NOT fall back to guest on failure;
+    // return 401 so the client's refresh interceptor can attempt a token refresh.
     const token = authHeader.split(' ')[1];
     let decoded;
     try {
