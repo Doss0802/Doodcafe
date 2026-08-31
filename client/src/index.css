@@ -6239,3 +6239,253 @@ select {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* ── Order Stream Card Layout ────────────────────────────────────── */
+.adm-orders-stream {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  margin-top: 1rem;
+}
+
+.adm-order-card {
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  animation: admFade 0.2s ease;
+  transition: box-shadow 0.15s ease;
+}
+
+.adm-order-card:hover {
+  box-shadow: 0 4px 18px rgba(0,0,0,0.07);
+}
+
+/* ── Card Header ── */
+.adm-ocard-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--cream-2);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.adm-ocard-badge-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 90px;
+}
+
+.adm-ocard-num {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--charcoal);
+  letter-spacing: -0.01em;
+}
+
+.adm-ocard-time {
+  font-size: 0.72rem;
+  color: var(--text-sec);
+  font-weight: 500;
+}
+
+/* ── Customer Profile Block ── */
+.adm-ocard-customer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 220px;
+}
+
+.adm-cust-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #D97706, #B45309);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(217,119,6,0.25);
+}
+
+.adm-cust-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.adm-cust-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--charcoal);
+  font-family: 'Outfit', sans-serif;
+}
+
+.adm-cust-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.adm-cust-phone-link {
+  font-size: 0.78rem;
+  color: #2563EB;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.15s;
+}
+
+.adm-cust-phone-link:hover {
+  color: #1D4ED8;
+  text-decoration: underline;
+}
+
+.adm-cust-no-phone {
+  font-size: 0.72rem;
+  color: var(--text-sec);
+  font-style: italic;
+}
+
+.adm-cust-email {
+  font-size: 0.72rem;
+  color: var(--text-sec);
+}
+
+.adm-cust-order-type {
+  font-size: 0.72rem;
+  color: var(--text-sec);
+  margin-top: 0.05rem;
+}
+
+/* ── Right: Status + Action ── */
+.adm-ocard-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+/* ── Items Breakdown Table ── */
+.adm-ocard-items {
+  padding: 0.85rem 1.25rem 1rem;
+}
+
+.adm-items-breakdown-head,
+.adm-items-breakdown-row,
+.adm-items-totals-row {
+  display: grid;
+  grid-template-columns: 1fr 60px 110px 110px;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.adm-items-breakdown-head {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-sec);
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.4rem;
+}
+
+.adm-items-breakdown-row {
+  padding: 0.3rem 0;
+  font-size: 0.84rem;
+  border-bottom: 1px dashed var(--border);
+}
+
+.adm-items-breakdown-row:last-of-type {
+  border-bottom: none;
+}
+
+.adm-item-name {
+  font-weight: 600;
+  color: var(--charcoal);
+}
+
+.adm-item-qty {
+  color: var(--gold-dark);
+  font-weight: 700;
+  text-align: center;
+}
+
+.adm-item-unit-price {
+  color: var(--text-sec);
+  font-size: 0.82rem;
+  text-align: right;
+}
+
+.adm-item-line-total {
+  font-weight: 600;
+  color: var(--charcoal);
+  text-align: right;
+}
+
+/* ── Totals Row ── */
+.adm-items-totals-row {
+  margin-top: 0.55rem;
+  padding-top: 0.55rem;
+  border-top: 2px solid var(--border);
+}
+
+.adm-totals-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--charcoal);
+}
+
+.adm-totals-payment {
+  text-align: center;
+}
+
+.adm-totals-amount {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--gold-dark);
+  text-align: right;
+  letter-spacing: -0.01em;
+}
+
+/* ── Special Instructions Note ── */
+.adm-special-note {
+  margin-top: 0.6rem;
+  padding: 0.45rem 0.75rem;
+  background: #FFFBEB;
+  border-left: 3px solid #F59E0B;
+  border-radius: 0 6px 6px 0;
+  font-size: 0.78rem;
+  color: #92400E;
+}
+
+/* ── Responsive: collapse grid columns on small screens ── */
+@media (max-width: 600px) {
+  .adm-ocard-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .adm-ocard-right {
+    align-items: flex-start;
+    margin-left: 0;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .adm-items-breakdown-head,
+  .adm-items-breakdown-row,
+  .adm-items-totals-row {
+    grid-template-columns: 1fr 48px 90px 90px;
+  }
+}
