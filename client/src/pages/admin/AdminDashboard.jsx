@@ -633,14 +633,14 @@ export default function AdminDashboard() {
                             <div className="adm-ord-header-line">
                               <strong className="adm-ord-num-lbl">Order #{ord.orderNumber || 1}</strong>
                               <button
-                                id={`view-details-btn-${ord._id}`}
+                                id={`customer-info-btn-${ord._id}`}
                                 className="adm-view-details-btn"
                                 onClick={() => setSelectedOrder(ord)}
-                                title="View customer details"
-                                aria-label={`View details for Order #${ord.orderNumber || 1}`}
+                                title="View Customer Information & Order Details"
+                                aria-label={`View Customer Info for Order #${ord.orderNumber || 1}`}
                               >
                                 <UserRound size={13} />
-                                <span>View Details</span>
+                                <span>Customer Info</span>
                               </button>
                             </div>
                             <span className="adm-ord-time">
