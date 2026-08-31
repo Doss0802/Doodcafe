@@ -20,8 +20,8 @@ const placeOrder = async (req, res, next) => {
       });
     }
 
-    let { items, paymentMode, specialInstructions } = req.body;
-    const resolvedOrderType = 'takeaway';
+    let { items, paymentMode, specialInstructions, orderType, customer_location, deliveryAddress, coordinates } = req.body;
+    const resolvedOrderType = ['takeaway', 'delivery'].includes(orderType) ? orderType : 'takeaway';
     const initialStatus = 'delivered';
     const resolvedPaymentMode = (paymentMode && ['cash', 'upi'].includes(paymentMode)) ? paymentMode : 'cash';
 
@@ -91,6 +91,9 @@ const placeOrder = async (req, res, next) => {
       totalAmount,
       orderType: resolvedOrderType,
       paymentMode: resolvedPaymentMode,
+      customer_location: customer_location || deliveryAddress || '',
+      deliveryAddress: deliveryAddress || customer_location || '',
+      coordinates: coordinates && typeof coordinates.lat === 'number' && typeof coordinates.lng === 'number' ? coordinates : undefined,
       specialInstructions,
       status: initialStatus,
     });

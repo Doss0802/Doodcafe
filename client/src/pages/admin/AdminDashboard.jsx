@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   TrendingUp, DollarSign, ShoppingBag, Flame, CheckCircle2,
-  RefreshCw, Radio, Sparkles, X, UserRound
+  RefreshCw, Radio, Sparkles, X, UserRound, MapPin, ExternalLink, Navigation, Compass
 } from 'lucide-react';
 import axiosInstance from '../../api/axiosInstance';
 // Socket.io disabled — using axios polling instead
@@ -37,11 +37,32 @@ function CustomerDetailModal({ order, onClose }) {
 
   if (!order) return null;
 
-  const customerName  = order.user?.name  || 'Unknown Customer';
+  const customerName = order.user?.name || 'Unknown Customer';
   const customerPhone = order.user?.phone || null;
   const customerEmail = order.user?.email || null;
-  const orderLocation = order.deliveryAddress || (order.orderType === 'takeaway' ? 'Dood Cafe Counter — Takeaway / Self Pickup' : order.orderType || 'Takeaway Pickup');
-  const statusMeta    = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
+  const statusMeta = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
+
+  // Extract raw location and map link
+  const rawLocation = order.customer_location || order.deliveryAddress || '';
+  let textAddress = rawLocation;
+  let mapsLink = null;
+
+  if (rawLocation.includes('Maps:')) {
+    const parts = rawLocation.split('Maps:');
+    textAddress = parts[0].replace(/\|$/, '').trim();
+    mapsLink = parts[1]?.trim();
+  } else if (order.coordinates?.lat && order.coordinates?.lng) {
+    mapsLink = `https://www.google.com/maps?q=${order.coordinates.lat},${order.coordinates.lng}`;
+  }
+
+  // Fallback map embed
+  const embedUrl = order.coordinates?.lat && order.coordinates?.lng
+    ? `https://maps.google.com/maps?q=${order.coordinates.lat},${order.coordinates.lng}&hl=en&z=15&output=embed`
+    : (textAddress && textAddress !== 'Dood Cafe Counter — Takeaway / Self Pickup'
+      ? `https://maps.google.com/maps?q=${encodeURIComponent(textAddress)}&hl=en&z=15&output=embed`
+      : null);
+
+  const displayLocation = textAddress || (order.orderType === 'takeaway' ? 'Dood Cafe Counter — Takeaway / Self Pickup' : order.orderType || 'Takeaway Pickup');
 
   // Close on backdrop click
   const handleBackdrop = (e) => {
@@ -63,6 +84,9 @@ function CustomerDetailModal({ order, onClose }) {
               style={{ color: statusMeta.color, background: statusMeta.bg }}
             >
               {statusMeta.label}
+            </span>
+            <span className="adm-order-type-tag">
+              {order.orderType === 'delivery' ? '🛵 Live Delivery' : '📦 Takeaway'}
             </span>
           </div>
           <button className="adm-modal-close" onClick={onClose} aria-label="Close customer details modal">
@@ -101,20 +125,53 @@ function CustomerDetailModal({ order, onClose }) {
           </div>
         </div>
 
-        {/* ── Customer Order Location / Delivery Address ── */}
+        {/* ── Detailed Reverse-Geocoded Order Location & Map Link ── */}
         <div className="adm-modal-section">
-          <h4 className="adm-modal-section-title">📍 Order Location / Delivery Address</h4>
+          <div className="adm-modal-section-head-row">
+            <h4 className="adm-modal-section-title">
+              <MapPin size={15} /> Detailed Order Location & GPS Coordinates
+            </h4>
+            {mapsLink && (
+              <a
+                href={mapsLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="adm-modal-ext-gps-link"
+                title="Open live coordinates in Google Maps"
+              >
+                <span>Live GPS Map</span>
+                <ExternalLink size={12} />
+              </a>
+            )}
+          </div>
           <div className="adm-modal-location-box">
-            <p className="adm-modal-location-text">{orderLocation}</p>
+            <p className="adm-modal-location-text">{displayLocation}</p>
+            {order.coordinates?.lat && order.coordinates?.lng && (
+              <span className="adm-modal-coords-pill">
+                <Navigation size={11} /> Coordinates: {order.coordinates.lat.toFixed(5)}, {order.coordinates.lng.toFixed(5)}
+              </span>
+            )}
             <span className="adm-modal-location-sub">
-              Order Type: {order.orderType === 'takeaway' ? 'Takeaway' : order.orderType || 'Takeaway'}
+              Order Dispatch Type: {order.orderType === 'delivery' ? '🛵 Live Delivery Destination' : '📦 Counter Pickup (Takeaway)'}
             </span>
           </div>
+
+          {/* Embedded Map Visual for Admin */}
+          {embedUrl && (
+            <div className="adm-modal-map-preview">
+              <iframe
+                title="Customer Order Location Map"
+                src={embedUrl}
+                className="adm-modal-map-iframe"
+                loading="lazy"
+              />
+            </div>
+          )}
         </div>
 
         {/* ── Order Meta ── */}
         <div className="adm-modal-section">
-          <h4 className="adm-modal-section-title">🗓 Order Info</h4>
+          <h4 className="adm-modal-section-title">🗓 Order Metadata</h4>
           <div className="adm-modal-meta-row">
             <span className="adm-modal-meta-label">Placed At</span>
             <span>{new Date(order.createdAt).toLocaleString('en-IN', {
@@ -130,9 +187,9 @@ function CustomerDetailModal({ order, onClose }) {
 
         {/* ── Detailed Cafe Items Breakdown with Prices ── */}
         <div className="adm-modal-section">
-          <h4 className="adm-modal-section-title">🧾 Itemized Cafe Items Breakdown</h4>
+          <h4 className="adm-modal-section-title">🧾 Itemized Cafe Items & Pricing</h4>
           <div className="adm-modal-items-head">
-            <span>Item Name & Details</span>
+            <span>Item Name</span>
             <span>Qty</span>
             <span>Unit Price</span>
             <span>Line Total</span>
@@ -156,7 +213,7 @@ function CustomerDetailModal({ order, onClose }) {
         {/* ── Special Instructions ── */}
         {order.specialInstructions && (
           <div className="adm-modal-section">
-            <h4 className="adm-modal-section-title">💬 Special Notes</h4>
+            <h4 className="adm-modal-section-title">💬 Customer Note / Special Instructions</h4>
             <div className="adm-modal-special-note">
               <em>{order.specialInstructions}</em>
             </div>

@@ -19,8 +19,11 @@ const orderValidation = [
       return true;
     }),
   body('items.*.quantity').optional().isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
-  body('orderType').optional().isIn(['takeaway']).withMessage('Invalid order type. Only takeaway is supported.'),
+  body('orderType').optional().isIn(['takeaway', 'delivery']).withMessage('Invalid order type. Only takeaway and delivery are supported.'),
   body('paymentMode').optional().isIn(['cash', 'upi']).withMessage('Invalid payment mode. Only cash and upi are supported.'),
+  body('customer_location').optional().isString(),
+  body('deliveryAddress').optional().isString(),
+  body('coordinates').optional().isObject(),
 ];
 
 const idValidation = [

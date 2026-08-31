@@ -33,7 +33,7 @@ const orderSchema = new mongoose.Schema(
     },
     orderType: {
       type: String,
-      enum: ['takeaway'],
+      enum: ['takeaway', 'delivery'],
       default: 'takeaway',
     },
     status: {
@@ -45,6 +45,18 @@ const orderSchema = new mongoose.Schema(
       type: String,
       enum: ['cash', 'upi'],
       default: 'cash',
+    },
+    customer_location: {
+      type: String,
+      trim: true,
+    },
+    deliveryAddress: {
+      type: String,
+      trim: true,
+    },
+    coordinates: {
+      lat: { type: Number },
+      lng: { type: Number },
     },
     specialInstructions: {
       type: String,
