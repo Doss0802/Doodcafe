@@ -2,32 +2,19 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const ApiResponse = require('../utils/ApiResponse');
 
-// Helper — finds or creates the guest fallback user
-const getOrCreateGuest = async () => {
-  let guest = await User.findOne({ email: 'guest@doodcafe.com' });
-  if (!guest) {
-    guest = await User.create({
-      name: 'Guest Customer',
-      email: 'guest@doodcafe.com',
-      passwordHash: 'GuestPassword123!',
-      role: 'customer',
-    });
-  }
-  return guest;
-};
-
 const protect = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
-    // No token provided — fall back to guest user so order flow works without login
+    // No token — reject with 401; user must authenticate via the login form.
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      req.user = await getOrCreateGuest();
-      return next();
+      return ApiResponse.error(res, {
+        statusCode: 401,
+        message: 'Authentication required. Please log in to continue.',
+      });
     }
 
-    // Token is present — verify it strictly. Do NOT fall back to guest on failure;
-    // return 401 so the client's refresh interceptor can attempt a token refresh.
+    // Token present — verify strictly.
     const token = authHeader.split(' ')[1];
     let decoded;
     try {
