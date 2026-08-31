@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   TrendingUp, DollarSign, ShoppingBag, Flame, CheckCircle2,
-  RefreshCw, Radio, Sparkles
+  RefreshCw, Radio, Sparkles, X, UserRound
 } from 'lucide-react';
 import axiosInstance from '../../api/axiosInstance';
 // Socket.io disabled — using axios polling instead
@@ -12,13 +12,139 @@ const POLL_INTERVAL_MS = 30_000; // auto-refresh every 30 seconds
 
 /* ── Status Meta Helper ───────────────────────────────────────── */
 const STATUS_CONFIG = {
-  pending:   { label: 'Placed',           color: '#D97706', bg: '#FEF3C7', next: 'preparing' },
-  confirmed: { label: 'Placed',           color: '#D97706', bg: '#FEF3C7', next: 'preparing' },
-  preparing: { label: 'Preparing',        color: '#2563EB', bg: '#EFF6FF', next: 'ready'     },
-  ready:     { label: 'Ready for Pickup', color: '#059669', bg: '#ECFDF5', next: 'delivered' },
-  delivered: { label: 'Completed',        color: '#10B981', bg: '#ECFDF5', next: null        },
-  cancelled: { label: 'Cancelled',        color: '#EF4444', bg: '#FEF2F2', next: null        },
+  pending: { label: 'Placed', color: '#D97706', bg: '#FEF3C7', next: 'preparing' },
+  confirmed: { label: 'Placed', color: '#D97706', bg: '#FEF3C7', next: 'preparing' },
+  preparing: { label: 'Preparing', color: '#2563EB', bg: '#EFF6FF', next: 'ready' },
+  ready: { label: 'Ready for Pickup', color: '#059669', bg: '#ECFDF5', next: 'delivered' },
+  delivered: { label: 'Completed', color: '#10B981', bg: '#ECFDF5', next: null },
+  cancelled: { label: 'Cancelled', color: '#EF4444', bg: '#FEF2F2', next: null },
 };
+
+/* ── Customer Detail Modal ────────────────────────────────────── */
+function CustomerDetailModal({ order, onClose }) {
+  if (!order) return null;
+
+  const customerName  = order.user?.name  || 'Unknown Customer';
+  const customerPhone = order.user?.phone || null;
+  const customerEmail = order.user?.email || null;
+  const orderType     = order.orderType === 'takeaway' ? 'Takeaway — Counter Pickup' : order.orderType || 'Takeaway';
+  const statusMeta    = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
+  const itemSubtotal  = order.items?.reduce((s, it) => s + it.price * it.quantity, 0) || 0;
+
+  // Close on backdrop click
+  const handleBackdrop = (e) => {
+    if (e.target === e.currentTarget) onClose();
+  };
+
+  return (
+    <div className="adm-modal-backdrop" onClick={handleBackdrop} role="dialog" aria-modal="true">
+      <div className="adm-modal-panel">
+
+        {/* ── Modal Header ── */}
+        <div className="adm-modal-header">
+          <div className="adm-modal-title-group">
+            <span className="adm-modal-order-badge">
+              Order #{order.orderNumber || order._id?.slice(-5)}
+            </span>
+            <span
+              className="adm-status-badge"
+              style={{ color: statusMeta.color, background: statusMeta.bg }}
+            >
+              {statusMeta.label}
+            </span>
+          </div>
+          <button className="adm-modal-close" onClick={onClose} aria-label="Close modal">
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* ── Customer Profile ── */}
+        <div className="adm-modal-section">
+          <h4 className="adm-modal-section-title">
+            <UserRound size={15} /> Customer Profile
+          </h4>
+          <div className="adm-modal-profile-card">
+            <div className="adm-modal-avatar">
+              {customerName.charAt(0).toUpperCase()}
+            </div>
+            <div className="adm-modal-profile-info">
+              <span className="adm-modal-cust-name">{customerName}</span>
+              {customerPhone ? (
+                <a href={`tel:${customerPhone}`} className="adm-modal-phone-link">
+                  📞 {customerPhone}
+                </a>
+              ) : (
+                <span className="adm-modal-no-phone">No phone number on file</span>
+              )}
+              {customerEmail && (
+                <span className="adm-modal-email">✉ {customerEmail}</span>
+              )}
+              <span className="adm-modal-location">📍 {orderType}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Order Meta ── */}
+        <div className="adm-modal-section">
+          <h4 className="adm-modal-section-title">🗓 Order Details</h4>
+          <div className="adm-modal-meta-row">
+            <span className="adm-modal-meta-label">Placed</span>
+            <span>{new Date(order.createdAt).toLocaleString('en-IN', {
+              day: '2-digit', month: 'short', year: 'numeric',
+              hour: '2-digit', minute: '2-digit', hour12: true,
+            })}</span>
+          </div>
+          <div className="adm-modal-meta-row">
+            <span className="adm-modal-meta-label">Payment Mode</span>
+            <span className="adm-pay-badge">{(order.paymentMode || 'cash').toUpperCase()}</span>
+          </div>
+        </div>
+
+        {/* ── Itemized Breakdown ── */}
+        <div className="adm-modal-section">
+          <h4 className="adm-modal-section-title">🧾 Items Ordered</h4>
+          <div className="adm-modal-items-head">
+            <span>Item</span>
+            <span>Qty</span>
+            <span>Unit ₹</span>
+            <span>Total</span>
+          </div>
+          {order.items?.map((it, i) => (
+            <div key={i} className="adm-modal-item-row">
+              <span className="adm-modal-item-name">{it.name}</span>
+              <span className="adm-modal-item-qty">×{it.quantity}</span>
+              <span className="adm-modal-item-unit">₹{it.price?.toLocaleString('en-IN')}</span>
+              <span className="adm-modal-item-total">₹{(it.price * it.quantity).toLocaleString('en-IN')}</span>
+            </div>
+          ))}
+          <div className="adm-modal-order-total">
+            <span>Order Total</span>
+            <span />
+            <span />
+            <span className="adm-modal-total-amount">₹{order.totalAmount?.toLocaleString('en-IN')}</span>
+          </div>
+        </div>
+
+        {/* ── Special Instructions ── */}
+        {order.specialInstructions && (
+          <div className="adm-modal-section">
+            <div className="adm-modal-special-note">
+              💬 <em>{order.specialInstructions}</em>
+            </div>
+          </div>
+        )}
+
+        {/* ── Footer close ── */}
+        <div className="adm-modal-footer">
+          <button className="btn btn-secondary adm-modal-close-btn" onClick={onClose}>
+            Close
+          </button>
+        </div>
+
+      </div>
+    </div>
+  );
+}
 
 /* ── Interactive Trend Chart Component ────────────────────────── */
 function TrendChart({ points = [], period = 'daily' }) {
@@ -176,6 +302,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState(null); // modal target
 
   // ── Fetch all dashboard data via axios with allSettled resilience ──────────────────────────
   const fetchDashboardData = useCallback(async (showToast = false) => {
@@ -245,32 +372,35 @@ export default function AdminDashboard() {
     salesPeriod === 'weekly'
       ? kpis.weeklySales || 0
       : salesPeriod === 'monthly'
-      ? kpis.monthlySales || 0
-      : kpis.todaySales || 0;
+        ? kpis.monthlySales || 0
+        : kpis.todaySales || 0;
 
   const currentOrdersCount =
     salesPeriod === 'weekly'
       ? kpis.weeklyOrdersCount || 0
       : salesPeriod === 'monthly'
-      ? kpis.monthlyOrdersCount || 0
-      : kpis.todayOrdersCount || 0;
+        ? kpis.monthlyOrdersCount || 0
+        : kpis.todayOrdersCount || 0;
 
   const currentPeriodLabel =
     salesPeriod === 'weekly'
       ? 'Past 7 Days Sales'
       : salesPeriod === 'monthly'
-      ? 'Past 30 Days Sales'
-      : "Today's Sales";
+        ? 'Past 30 Days Sales'
+        : "Today's Sales";
 
   const currentPeriodHint =
     salesPeriod === 'weekly'
       ? `${currentOrdersCount} orders this week`
       : salesPeriod === 'monthly'
-      ? `${currentOrdersCount} orders this month`
-      : `${currentOrdersCount} orders placed today`;
+        ? `${currentOrdersCount} orders this month`
+        : `${currentOrdersCount} orders placed today`;
 
   return (
     <main className="adm-page">
+      {/* ── Customer Detail Modal ── */}
+      <CustomerDetailModal order={selectedOrder} onClose={() => setSelectedOrder(null)} />
+
       <div className="container">
 
         {/* ── Top Bar / Header ── */}
@@ -448,123 +578,100 @@ export default function AdminDashboard() {
               <p>No active orders found for this filter.</p>
             </div>
           ) : (
-            <div className="adm-orders-stream">
-              {liveOrders.map((ord) => {
-                const statusMeta = STATUS_CONFIG[ord.status] || STATUS_CONFIG.pending;
-                const customerName  = ord.user?.name  || 'Unknown Customer';
-                const customerPhone = ord.user?.phone || null;
-                const customerEmail = ord.user?.email || null;
-                const itemSubtotal  = ord.items?.reduce((s, it) => s + (it.price * it.quantity), 0) || 0;
+            <div className="adm-orders-table-wrap">
+              <table className="adm-orders-table">
+                <thead>
+                  <tr>
+                    <th>Order</th>
+                    <th>Customer</th>
+                    <th>Items</th>
+                    <th>Payment</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {liveOrders.map((ord) => {
+                    const statusMeta = STATUS_CONFIG[ord.status] || STATUS_CONFIG.pending;
+                    const customerName = ord.user?.name || 'Customer';
+                    const customerPhone = ord.user?.phone || 'No phone';
 
-                return (
-                  <div key={ord._id} className="adm-order-card">
-
-                    {/* ── Card Header: Order Badge + Customer Profile ── */}
-                    <div className="adm-ocard-header">
-                      <div className="adm-ocard-badge-block">
-                        <span className="adm-ocard-num">#{ord.orderNumber || ord._id?.slice(-4)}</span>
-                        <span className="adm-ocard-time">
-                          {new Date(ord.createdAt).toLocaleTimeString('en-IN', {
-                            hour: '2-digit', minute: '2-digit', hour12: true,
-                          })}
-                          {' · '}
-                          {new Date(ord.createdAt).toLocaleDateString('en-IN', {
-                            day: '2-digit', month: 'short',
-                          })}
-                        </span>
-                      </div>
-
-                      {/* Customer Profile Metadata Block */}
-                      <div className="adm-ocard-customer">
-                        <div className="adm-cust-avatar">
-                          {customerName.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="adm-cust-details">
-                          <span className="adm-cust-name">{customerName}</span>
-                          <div className="adm-cust-meta-row">
-                            {customerPhone ? (
-                              <a
-                                href={`tel:${customerPhone}`}
-                                className="adm-cust-phone-link"
-                                title={`Call ${customerName}`}
-                              >
-                                📞 {customerPhone}
-                              </a>
-                            ) : (
-                              <span className="adm-cust-no-phone">No phone on file</span>
-                            )}
-                            {customerEmail && (
-                              <span className="adm-cust-email">✉ {customerEmail}</span>
-                            )}
+                    return (
+                      <tr key={ord._id} className="adm-order-row">
+                        <td className="adm-ord-id-col">
+                          <div className="adm-ord-id-row">
+                            <div>
+                              <strong>Order #{ord.orderNumber || 1}</strong>
+                              <span className="adm-ord-time">
+                                {new Date(ord.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            <button
+                              id={`view-details-btn-${ord._id}`}
+                              className="adm-view-details-btn"
+                              onClick={() => setSelectedOrder(ord)}
+                              title="View customer details"
+                              aria-label={`View details for Order #${ord.orderNumber}`}
+                            >
+                              <UserRound size={13} />
+                              Details
+                            </button>
                           </div>
-                          <span className="adm-cust-order-type">
-                            🥡 {ord.orderType === 'takeaway' ? 'Takeaway / Counter Pickup' : ord.orderType}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Status + Action */}
-                      <div className="adm-ocard-right">
-                        <span
-                          className="adm-status-badge"
-                          style={{ color: statusMeta.color, background: statusMeta.bg }}
-                        >
-                          {statusMeta.label}
-                        </span>
-                        {statusMeta.next ? (
-                          <button
-                            className="btn btn-primary-sm adm-next-btn"
-                            onClick={() => handleStatusChange(ord._id, statusMeta.next)}
-                          >
-                            Mark {STATUS_CONFIG[statusMeta.next]?.label}
-                          </button>
-                        ) : (
-                          <span className="adm-done-tag">
-                            <CheckCircle2 size={14} /> Done
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* ── Items Breakdown with Prices ── */}
-                    <div className="adm-ocard-items">
-                      <div className="adm-items-breakdown-head">
-                        <span>Item</span>
-                        <span>Qty</span>
-                        <span>Unit Price</span>
-                        <span>Subtotal</span>
-                      </div>
-                      {ord.items?.map((it, i) => (
-                        <div key={i} className="adm-items-breakdown-row">
-                          <span className="adm-item-name">{it.name}</span>
-                          <span className="adm-item-qty">×{it.quantity}</span>
-                          <span className="adm-item-unit-price">₹{it.price?.toLocaleString('en-IN')}</span>
-                          <span className="adm-item-line-total">
-                            ₹{(it.price * it.quantity).toLocaleString('en-IN')}
-                          </span>
-                        </div>
-                      ))}
-                      {/* Totals Row */}
-                      <div className="adm-items-totals-row">
-                        <span className="adm-totals-label">Order Total</span>
-                        <span className="adm-totals-payment">
+                        </td>
+                        <td className="adm-cust-col">
+                          <div className="adm-cust-info">
+                            <span className="adm-cust-name">{customerName}</span>
+                            <span className="adm-cust-contact">{customerPhone}</span>
+                          </div>
+                        </td>
+                        <td className="adm-items-col">
+                          <div className="adm-items-list">
+                            {ord.items?.map((it, i) => (
+                              <span key={i} className="adm-item-tag">
+                                {it.name} <strong className="adm-qty">×{it.quantity}</strong>
+                              </span>
+                            ))}
+                          </div>
+                          {ord.specialInstructions && (
+                            <p className="adm-inst-note">💬 {ord.specialInstructions}</p>
+                          )}
+                        </td>
+                        <td>
                           <span className="adm-pay-badge">
                             {(ord.paymentMode || 'cash').toUpperCase()}
                           </span>
-                        </span>
-                        <span />
-                        <span className="adm-totals-amount">₹{ord.totalAmount?.toLocaleString('en-IN')}</span>
-                      </div>
-                      {ord.specialInstructions && (
-                        <div className="adm-special-note">
-                          💬 <em>{ord.specialInstructions}</em>
-                        </div>
-                      )}
-                    </div>
-
-                  </div>
-                );
-              })}
+                        </td>
+                        <td className="adm-total-col">
+                          <strong>₹{ord.totalAmount}</strong>
+                        </td>
+                        <td>
+                          <span
+                            className="adm-status-badge"
+                            style={{ color: statusMeta.color, background: statusMeta.bg }}
+                          >
+                            {statusMeta.label}
+                          </span>
+                        </td>
+                        <td className="adm-action-col">
+                          {statusMeta.next ? (
+                            <button
+                              className="btn btn-primary-sm adm-next-btn"
+                              onClick={() => handleStatusChange(ord._id, statusMeta.next)}
+                            >
+                              Mark {STATUS_CONFIG[statusMeta.next]?.label}
+                            </button>
+                          ) : (
+                            <span className="adm-done-tag">
+                              <CheckCircle2 size={15} /> Completed
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
