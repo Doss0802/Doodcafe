@@ -204,7 +204,7 @@ export default function Checkout() {
                 >
                   <Navigation size={17} className={locating ? 'adm-spin' : 'gps-pulse-icon'} />
                   <span>
-                    {locating ? 'Detecting GPS Coordinates...' : 'Live Place Order to Live Location'}
+                    {locating ? 'Detecting GPS Coordinates...' : 'Order to Live Location'}
                   </span>
                 </button>
                 {hasLiveCoords && (
