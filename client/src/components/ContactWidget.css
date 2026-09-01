@@ -6,7 +6,7 @@
 /* ── Stack container ──────────────────────────────────────────── */
 .cw-stack {
   position: fixed;
-  bottom: 28px;
+  bottom: 90px;
   right: 24px;
   z-index: 9999;
   display: flex;
@@ -207,9 +207,16 @@
 }
 
 /* ── Responsive adjustments ───────────────────────────────────── */
+@media (max-width: 768px) {
+  .cw-stack {
+    bottom: 90px;
+    right: 16px;
+  }
+}
+
 @media (max-width: 480px) {
   .cw-stack {
-    bottom: 18px;
+    bottom: 90px;
     right: 14px;
     gap: 10px;
   }

@@ -1482,6 +1482,24 @@ select {
   background: var(--cream);
 }
 
+@media (max-width: 768px) {
+  .cart-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: #ffffff;
+    z-index: 100;
+    box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.1);
+    padding: 1rem 1.25rem;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+
+  .cart-items {
+    padding-bottom: calc(150px + env(safe-area-inset-bottom));
+  }
+}
+
 .cart-subtotal {
   display: flex;
   justify-content: space-between;
