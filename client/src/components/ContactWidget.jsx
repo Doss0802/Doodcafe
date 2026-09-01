@@ -1,13 +1,24 @@
 /**
- * ContactWidget — Floating sticky communication actions
+ * ContactWidget — Draggable floating sticky communication actions
  * WhatsApp: https://wa.me/917010034800
  * Call:     tel:+917010034800
+ *
+ * Fully draggable via pointer events (touch + mouse).
+ * Snaps to nearest horizontal edge on release.
+ * Viewport-bounded so buttons never leave the screen.
  */
+import { useRef, useState, useCallback, useEffect } from 'react';
 import './ContactWidget.css';
 
 const PHONE = '+917010034800';
 const WA_LINK = `https://wa.me/${PHONE.replace('+', '')}`;
 const CALL_LINK = `tel:${PHONE}`;
+
+/* ── Drag threshold — any movement below this is treated as a tap/click ── */
+const DRAG_THRESHOLD = 8;
+
+/* ── Viewport edge margin (px) ── */
+const EDGE_MARGIN = 14;
 
 /* ── SVG Icons ────────────────────────────────────────────────── */
 const WhatsAppIcon = () => (
@@ -41,8 +52,160 @@ const PhoneIcon = () => (
 
 /* ── Component ────────────────────────────────────────────────── */
 export default function ContactWidget() {
+  const stackRef = useRef(null);
+  const dragState = useRef({
+    isDragging: false,
+    startX: 0,
+    startY: 0,
+    offsetX: 0,
+    offsetY: 0,
+    totalDistance: 0,
+  });
+
+  /* Position is stored as { x, y } offset from the CSS default (bottom-right).
+     We use translate3d to move the widget — GPU-accelerated, no layout thrashing. */
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const [didDrag, setDidDrag] = useState(false);
+
+  /* ── Clamp position to viewport bounds ── */
+  const clampToViewport = useCallback((x, y) => {
+    const el = stackRef.current;
+    if (!el) return { x, y };
+
+    const rect = el.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    /* Current "natural" position (where CSS would place it without transform) */
+    const naturalLeft = rect.left - x;
+    const naturalTop = rect.top - y;
+
+    /* Compute bounds for the translate offset */
+    const minX = -(naturalLeft - EDGE_MARGIN);
+    const maxX = vw - naturalLeft - rect.width - EDGE_MARGIN;
+    const minY = -(naturalTop - EDGE_MARGIN);
+    const maxY = vh - naturalTop - rect.height - EDGE_MARGIN;
+
+    return {
+      x: Math.round(Math.max(minX, Math.min(maxX, x))),
+      y: Math.round(Math.max(minY, Math.min(maxY, y))),
+    };
+  }, []);
+
+  /* ── Snap to nearest horizontal edge on release ── */
+  const snapToEdge = useCallback((x, y) => {
+    const el = stackRef.current;
+    if (!el) return { x, y };
+
+    const rect = el.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const centerX = rect.left + rect.width / 2;
+
+    /* Determine which horizontal edge is closer */
+    const distLeft = centerX;
+    const distRight = vw - centerX;
+
+    const naturalLeft = rect.left - x;
+
+    let snappedX;
+    if (distLeft < distRight) {
+      /* Snap to left edge */
+      snappedX = -(naturalLeft - EDGE_MARGIN);
+    } else {
+      /* Snap to right edge */
+      snappedX = vw - naturalLeft - rect.width - EDGE_MARGIN;
+    }
+
+    return clampToViewport(snappedX, y);
+  }, [clampToViewport]);
+
+  /* ── Pointer Down ── */
+  const handlePointerDown = useCallback((e) => {
+    /* Only respond to primary button / single touch */
+    if (e.button !== 0) return;
+
+    const ds = dragState.current;
+    ds.isDragging = true;
+    ds.startX = e.clientX;
+    ds.startY = e.clientY;
+    ds.offsetX = pos.x;
+    ds.offsetY = pos.y;
+    ds.totalDistance = 0;
+
+    setDragging(true);
+    setDidDrag(false);
+
+    /* Capture pointer so moves outside the element still track */
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }, [pos]);
+
+  /* ── Pointer Move ── */
+  const handlePointerMove = useCallback((e) => {
+    const ds = dragState.current;
+    if (!ds.isDragging) return;
+
+    const dx = e.clientX - ds.startX;
+    const dy = e.clientY - ds.startY;
+    ds.totalDistance = Math.sqrt(dx * dx + dy * dy);
+
+    if (ds.totalDistance > DRAG_THRESHOLD) {
+      setDidDrag(true);
+    }
+
+    const newX = ds.offsetX + dx;
+    const newY = ds.offsetY + dy;
+    const clamped = clampToViewport(newX, newY);
+    setPos(clamped);
+  }, [clampToViewport]);
+
+  /* ── Pointer Up ── */
+  const handlePointerUp = useCallback(() => {
+    const ds = dragState.current;
+    if (!ds.isDragging) return;
+    ds.isDragging = false;
+    setDragging(false);
+
+    /* If we actually dragged, snap to nearest edge */
+    if (ds.totalDistance > DRAG_THRESHOLD) {
+      setPos((prev) => snapToEdge(prev.x, prev.y));
+    }
+  }, [snapToEdge]);
+
+  /* ── Block link navigation when drag occurred ── */
+  const handleLinkClick = useCallback((e) => {
+    if (didDrag) {
+      e.preventDefault();
+      e.stopPropagation();
+      /* Reset flag after blocking one click */
+      setDidDrag(false);
+    }
+  }, [didDrag]);
+
+  /* ── Re-clamp on window resize (e.g. rotate phone) ── */
+  useEffect(() => {
+    const onResize = () => {
+      setPos((prev) => clampToViewport(prev.x, prev.y));
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [clampToViewport]);
+
   return (
-    <div className="cw-stack" role="region" aria-label="Quick contact">
+    <div
+      ref={stackRef}
+      className={`cw-stack ${dragging ? 'cw-stack--dragging' : ''}`}
+      role="region"
+      aria-label="Quick contact"
+      style={{
+        transform: `translate3d(${pos.x}px, ${pos.y}px, 0)`,
+        cursor: dragging ? 'grabbing' : 'grab',
+      }}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+    >
 
       {/* WhatsApp */}
       <a
@@ -53,6 +216,8 @@ export default function ContactWidget() {
         className="cw-btn cw-btn--wa"
         aria-label="Chat with us on WhatsApp"
         title="WhatsApp us"
+        onClick={handleLinkClick}
+        draggable={false}
       >
         <span className="cw-icon"><WhatsAppIcon /></span>
         <span className="cw-label">WhatsApp</span>
@@ -66,6 +231,8 @@ export default function ContactWidget() {
         className="cw-btn cw-btn--call"
         aria-label="Call us at +917010034800"
         title="Call us"
+        onClick={handleLinkClick}
+        draggable={false}
       >
         <span className="cw-icon"><PhoneIcon /></span>
         <span className="cw-label">Call Us</span>
