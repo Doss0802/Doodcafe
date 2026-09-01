@@ -720,124 +720,18 @@ select {
 .hero {
   position: relative;
   overflow: hidden;
-  padding: 5rem 0 4rem;
-  background: linear-gradient(135deg, var(--cream) 0%, var(--cream-2) 50%, var(--cream-3) 100%);
-  min-height: 85vh;
   display: flex;
   align-items: center;
 }
 
-.hero-bg-pattern {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    radial-gradient(circle at 20% 50%, rgba(212, 160, 23, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(212, 160, 23, 0.06) 0%, transparent 40%),
-    radial-gradient(circle at 60% 80%, rgba(212, 160, 23, 0.04) 0%, transparent 35%);
-  z-index: 0;
-}
-
-.hero-container {
-  display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
-  gap: 3.5rem;
-  align-items: center;
-  position: relative;
-  z-index: 1;
-  width: 100%;
-}
-
-.hero-left {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
-  position: relative;
-  z-index: 2;
-}
-
-.hero-title {
-  font-family: 'Playfair Display', serif;
-  font-size: clamp(2.4rem, 6vw, 4.2rem);
-  line-height: 1.15;
-  font-weight: 700;
-  color: var(--charcoal);
-  max-width: 650px;
-  margin-bottom: 1.5rem;
-  text-align: left;
-  letter-spacing: -0.01em;
-}
-
-.hero-title-accent {
-  color: var(--gold-dark);
-  font-style: italic;
-}
-
-.hero-actions {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  margin-bottom: 1rem;
-  justify-content: flex-start;
-  width: 100%;
-}
-
-.hero-right {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.hero-logo-badge {
-  position: relative;
-  width: 230px;
-  height: 230px;
-  border-radius: 50%;
-  padding: 8px;
-  background: linear-gradient(145deg, #ffffff, #f0ede6);
-  box-shadow:
-    0 20px 45px rgba(0, 0, 0, 0.12),
-    0 8px 24px rgba(212, 160, 23, 0.22),
-    inset 0 0 15px rgba(212, 160, 23, 0.12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.4s ease, box-shadow 0.4s ease;
-  animation: floatSlow 6s ease-in-out infinite;
-}
-
-@media (min-width: 900px) {
-  .hero-logo-badge {
-    width: 200px;
-    height: 200px;
-  }
-}
-
-.hero-logo-badge:hover {
-  transform: translateY(-6px) scale(1.025);
-  box-shadow:
-    0 28px 60px rgba(0, 0, 0, 0.16),
-    0 12px 32px rgba(212, 160, 23, 0.32);
-}
-
-.hero-logo-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
-  border: 3px solid var(--white);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
-}
-
-/* ── Mobile Layout Refactor Strictly Under 768px ──────────────── */
-@media (max-width: 768px) {
+/* ── Mobile & Tablet Only (<1024px) — Deep Black Logo Watermark Backdrop ── */
+@media (max-width: 1023px) {
   .hero {
     background-color: #000000;
     background-image: url('/logo-bg.png');
     background-position: center 40%;
     background-repeat: no-repeat;
-    background-size: min(65vw, 290px) auto;
+    background-size: min(65vw, 320px) auto;
     padding: 1.75rem 1.25rem 2rem;
     min-height: 80vh;
     display: flex;
@@ -931,6 +825,89 @@ select {
   }
 }
 
+/* ── Desktop Viewports (>=1024px) — Clean Unaltered Cream Layout & Explicit No-Image Override ── */
+@media (min-width: 1024px) {
+  .hero {
+    background-image: none !important;
+    background-color: transparent;
+    background: linear-gradient(135deg, var(--cream) 0%, var(--cream-2) 50%, var(--cream-3) 100%);
+    padding: 5rem 0 4rem;
+    min-height: 85vh;
+    display: flex;
+    align-items: center;
+  }
+
+  .hero-bg-pattern {
+    display: block;
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(circle at 20% 50%, rgba(212, 160, 23, 0.08) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(212, 160, 23, 0.06) 0%, transparent 40%),
+      radial-gradient(circle at 60% 80%, rgba(212, 160, 23, 0.04) 0%, transparent 35%);
+    z-index: 0;
+  }
+
+  .hero-container {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 3.5rem;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+    width: 100%;
+  }
+
+  .hero-left {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    position: relative;
+    z-index: 2;
+  }
+
+  .hero-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.4rem, 6vw, 4.2rem);
+    line-height: 1.15;
+    font-weight: 700;
+    color: var(--charcoal) !important;
+    text-shadow: none !important;
+    max-width: 650px;
+    margin-bottom: 1.5rem;
+    text-align: left;
+    letter-spacing: -0.01em;
+    text-transform: none;
+  }
+
+  .hero-title-accent {
+    color: var(--gold-dark) !important;
+    font-style: italic;
+    font-weight: 700;
+    text-shadow: none !important;
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+    margin-top: 0;
+    max-width: 100%;
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .hero-right {
+    display: flex !important;
+    justify-content: center;
+    align-items: center;
+  }
+}
+
 .hero-logo-badge {
   position: relative;
   width: 230px;
@@ -962,15 +939,6 @@ select {
     0 28px 60px rgba(0, 0, 0, 0.16),
     0 12px 32px rgba(212, 160, 23, 0.32);
 }
-
-/* .hero-logo-ring {
-  position: absolute;
-  inset: -6px;
-  border-radius: 50%;
-  border: 1.5px dashed rgba(212, 160, 23, 0.45);
-  animation: spin 35s linear infinite;
-  pointer-events: none;
-} */
 
 .hero-logo-img {
   width: 100%;
