@@ -96,27 +96,16 @@ export default function Home() {
       <section className="hero">
         <div className="hero-bg-pattern" aria-hidden="true" />
         <div className="container hero-container">
-          <div className="hero-left animate-fade-up">
+          {/* Top-Left Header Brand Text */}
+          <div className="hero-top-header animate-fade-up">
             <h1 className="hero-title">
               Open Door Cafe
               <span className="hero-title-accent"> — Welcome Always</span>
             </h1>
-            <div className="hero-actions">
-              <a
-                href="#dining-room"
-                id="hero-order-btn"
-                className="btn btn-primary btn-lg"
-                onClick={handleOrderNowClick}
-              >
-                Order Now <ArrowRight size={18} />
-              </a>
-              <Link to="/menu" className="btn btn-outline btn-lg" id="hero-view-menu-btn">
-                View Menu
-              </Link>
-            </div>
           </div>
 
-          <div className="hero-right animate-fade-up delay-1">
+          {/* Center Logo Space */}
+          <div className="hero-center-space animate-fade-up delay-1">
             <div className="hero-logo-badge">
               <div className="hero-logo-ring" aria-hidden="true" />
               <img
@@ -125,6 +114,21 @@ export default function Home() {
                 className="hero-logo-img"
               />
             </div>
+          </div>
+
+          {/* Action Buttons Directly Beneath Logo */}
+          <div className="hero-actions animate-fade-up delay-2">
+            <a
+              href="#dining-room"
+              id="hero-order-btn"
+              className="btn btn-primary btn-lg"
+              onClick={handleOrderNowClick}
+            >
+              Order Now <ArrowRight size={18} />
+            </a>
+            <Link to="/menu" className="btn btn-outline btn-lg" id="hero-view-menu-btn">
+              View Menu
+            </Link>
           </div>
         </div>
       </section>
