@@ -19,11 +19,6 @@ export default function MenuCard({ item, onItemClick }) {
     const cardEl = e.currentTarget.closest('.menu-card');
     const imgEl = cardEl ? cardEl.querySelector('.menu-card-img') : e.currentTarget;
     flyToCart(imgEl || e.currentTarget, imageSrc, item.category?.icon || '🍽️');
-
-    toast.success(`${item.name} added to cart`, {
-      icon: '🛒',
-      style: { fontFamily: 'Outfit, sans-serif', fontSize: '14px' },
-    });
   };
 
   const handleIncrement = (e) => {

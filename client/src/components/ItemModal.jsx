@@ -20,9 +20,6 @@ export default function ItemModal({ item, onClose }) {
     const imageSrc = item.imageUrl || item.image || getItemImage(item);
     flyToCart(modalImg || e?.currentTarget, imageSrc, item.category?.icon || '🍽️');
 
-    toast.success(`${quantity}× ${item.name} added to cart!`, {
-      icon: '🛒',
-    });
     onClose();
   };
 
