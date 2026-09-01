@@ -112,18 +112,20 @@ export default function CartDrawer() {
         {/* Footer */}
         {items.length > 0 && (
           <div className="cart-footer">
-            <div className="cart-subtotal">
-              <span>Subtotal</span>
-              <span className="subtotal-amount">₹{totalAmount}</span>
-            </div>
             <p className="cart-note">Taxes & charges may apply</p>
-            <button
-              id="checkout-btn"
-              className="btn btn-checkout"
-              onClick={handleCheckout}
-            >
-              Proceed to Checkout · ₹{totalAmount}
-            </button>
+            <div className="cart-footer-row">
+              <div className="cart-subtotal">
+                <span>Subtotal:</span>
+                <span className="subtotal-amount"> ₹{totalAmount}</span>
+              </div>
+              <button
+                id="checkout-btn"
+                className="btn btn-checkout"
+                onClick={handleCheckout}
+              >
+                Proceed to Checkout
+              </button>
+            </div>
           </div>
         )}
       </aside>
