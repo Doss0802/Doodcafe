@@ -1,23 +1,29 @@
 import { X, Plus, Minus, Leaf, Star, Clock, ShoppingBag, Check } from 'lucide-react';
 import { useState } from 'react';
 import useCartStore from '../store/cartStore';
+import { getItemImage } from '../utils/imageMapper';
+import { flyToCart } from '../utils/flyToCart';
 import toast from 'react-hot-toast';
 
 export default function ItemModal({ item, onClose }) {
   const [quantity, setQuantity] = useState(1);
-  const { addItem, openCart } = useCartStore();
+  const { addItem } = useCartStore();
 
   if (!item) return null;
 
-  const handleAddToCart = () => {
+  const handleAddToCart = (e) => {
     for (let i = 0; i < quantity; i++) {
       addItem(item);
     }
+
+    const modalImg = document.querySelector('.modal-img');
+    const imageSrc = item.imageUrl || item.image || getItemImage(item);
+    flyToCart(modalImg || e?.currentTarget, imageSrc, item.category?.icon || '🍽️');
+
     toast.success(`${quantity}× ${item.name} added to cart!`, {
       icon: '🛒',
     });
     onClose();
-    openCart();
   };
 
   return (

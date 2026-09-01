@@ -1,10 +1,11 @@
 import { Plus, Minus, Trash2, Leaf, Star, Clock } from 'lucide-react';
 import useCartStore from '../store/cartStore';
 import { getItemImage } from '../utils/imageMapper';
+import { flyToCart } from '../utils/flyToCart';
 import toast from 'react-hot-toast';
 
 export default function MenuCard({ item, onItemClick }) {
-  const { items, addItem, updateQuantity, removeItem, openCart } = useCartStore();
+  const { items, addItem, updateQuantity, removeItem } = useCartStore();
 
   const cartItem = items.find((i) => i._id === item._id);
   // Prefer DB-served image (item.image or item.imageUrl), fall back to local mapper
@@ -13,11 +14,16 @@ export default function MenuCard({ item, onItemClick }) {
   const handleAdd = (e) => {
     e.stopPropagation();
     addItem(item);
+
+    // Trigger visual flying cart animation
+    const cardEl = e.currentTarget.closest('.menu-card');
+    const imgEl = cardEl ? cardEl.querySelector('.menu-card-img') : e.currentTarget;
+    flyToCart(imgEl || e.currentTarget, imageSrc, item.category?.icon || '🍽️');
+
     toast.success(`${item.name} added to cart`, {
       icon: '🛒',
       style: { fontFamily: 'Outfit, sans-serif', fontSize: '14px' },
     });
-    openCart();
   };
 
   const handleIncrement = (e) => {

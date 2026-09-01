@@ -461,6 +461,84 @@ select {
   align-items: center;
   justify-content: center;
   border: 2px solid var(--cream);
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+/* ── Flying Cart Item Clone Animation ────────────────────────── */
+.fly-to-cart-element {
+  position: fixed;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  overflow: hidden;
+  z-index: 99999;
+  pointer-events: none;
+  background: #ffffff;
+  border: 2.5px solid var(--gold);
+  box-shadow: 0 10px 30px rgba(212, 160, 23, 0.45), 0 4px 14px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.65s cubic-bezier(0.2, 0.8, 0.25, 1), opacity 0.65s ease-in;
+  will-change: transform, opacity;
+}
+
+.fly-to-cart-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
+.fly-to-cart-icon {
+  font-size: 26px;
+  line-height: 1;
+}
+
+/* ── Cart Icon Bounce & Hydration Micro-Interaction ──────────── */
+@keyframes cartBumpBounce {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.32) rotate(-8deg);
+  }
+  55% {
+    transform: scale(1.18) rotate(8deg);
+  }
+  75% {
+    transform: scale(1.08) rotate(-3deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes badgePopGlow {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.5);
+    background: #10b981;
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.8);
+  }
+  100% {
+    transform: scale(1);
+    background: var(--gold);
+    color: var(--charcoal);
+  }
+}
+
+.cart-btn.cart-bump {
+  animation: cartBumpBounce 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  background: var(--gold-muted);
+}
+
+.cart-btn.cart-bump .cart-badge {
+  animation: badgePopGlow 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 .auth-btns {
