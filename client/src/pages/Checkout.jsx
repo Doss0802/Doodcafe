@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CreditCard, MessageSquare, CheckCircle, Package, MapPin, Navigation, Compass, ExternalLink } from 'lucide-react';
+import { CreditCard, MessageSquare, CheckCircle, Package, MapPin, Navigation, ExternalLink } from 'lucide-react';
 import useCartStore from '../store/cartStore';
+import useAuthStore from '../store/authStore';
 import axiosInstance from '../api/axiosInstance';
+import InvoiceModal from '../components/InvoiceModal';
 import toast from 'react-hot-toast';
 
 export default function Checkout() {
@@ -11,6 +13,7 @@ export default function Checkout() {
     specialInstructions, setSpecialInstructions,
     clearCart,
   } = useCartStore();
+  const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
   const [placing, setPlacing] = useState(false);
   const [locating, setLocating] = useState(false);
@@ -23,6 +26,10 @@ export default function Checkout() {
   const [coordinates, setCoordinates] = useState({ lat: 13.0827, lng: 80.2707 }); // Default: Chennai/Cafe default
   const [hasLiveCoords, setHasLiveCoords] = useState(false);
   const [selectedOrderType, setSelectedOrderType] = useState('takeaway');
+
+  // Post-order Invoice Modal State
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [invoiceData, setInvoiceData] = useState(null);
 
   useEffect(() => {
     document.title = 'Checkout & Live Location — Dood Cafe';
@@ -77,12 +84,12 @@ export default function Checkout() {
 
             toast.success('📍 Live address extracted and auto-filled!', { id: toastId });
           } else {
-            setStreet(`GPS Coordinates: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+            setStreet(`Live Location: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
             toast.success('📍 GPS location locked!', { id: toastId });
           }
         } catch (apiErr) {
           console.warn('[Geolocation] Reverse geocoding failed:', apiErr);
-          setStreet(`Lat: ${latitude.toFixed(5)}, Lng: ${longitude.toFixed(5)}`);
+          setStreet(`Live Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`);
           toast.success('📍 GPS Coordinates captured!', { id: toastId });
         } finally {
           setLocating(false);
@@ -133,10 +140,33 @@ export default function Checkout() {
         specialInstructions,
       };
 
-      await axiosInstance.post('/orders', payload);
+      const response = await axiosInstance.post('/orders', payload);
+      const createdOrder = response?.data?.data || response?.data || {};
+
+      // Prepare complete Invoice Payload for the popup modal
+      const invoicePayload = {
+        _id: createdOrder._id,
+        orderNumber: createdOrder.orderNumber,
+        customerName: user?.name || 'Valued Customer',
+        customerPhone: user?.phone || 'Not Provided',
+        customerEmail: user?.email || '',
+        customerLocation: textAddress,
+        orderTimestamp: createdOrder.createdAt ? new Date(createdOrder.createdAt) : new Date(),
+        formattedDate: new Date().toLocaleString('en-IN', {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        }),
+        items: (createdOrder.items && createdOrder.items.length > 0 ? createdOrder.items : orderItems),
+        totalAmount: createdOrder.totalAmount || totalAmount,
+        paymentMode: payload.paymentMode,
+        orderType: payload.orderType,
+        specialInstructions,
+      };
+
+      setInvoiceData(invoicePayload);
+      setShowInvoiceModal(true);
       clearCart();
       toast.success('🎉 Order placed and saved to database!');
-      navigate('/orders');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to place order');
     } finally {
@@ -207,11 +237,6 @@ export default function Checkout() {
                     {locating ? 'Detecting GPS Coordinates...' : 'Order to Live Location'}
                   </span>
                 </button>
-                {hasLiveCoords && (
-                  <span className="live-coords-badge">
-                    <Compass size={13} /> {coordinates.lat.toFixed(4)}, {coordinates.lng.toFixed(4)}
-                  </span>
-                )}
               </div>
 
               {/* Address Form Inputs */}
@@ -396,7 +421,13 @@ export default function Checkout() {
           </button>
         </div>
       </div>
+
+      {/* Invoice Popup Modal */}
+      <InvoiceModal
+        isOpen={showInvoiceModal}
+        onClose={() => setShowInvoiceModal(false)}
+        invoiceData={invoiceData}
+      />
     </main>
   );
 }
-
