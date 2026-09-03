@@ -3150,6 +3150,13 @@ select {
   padding: 1rem 1.1rem;
 }
 
+.mo-bill-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
 .mo-bill-title {
   display: flex;
   align-items: center;
@@ -3159,7 +3166,43 @@ select {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--gray-700);
-  margin-bottom: 0.75rem;
+  margin-bottom: 0;
+}
+
+.mo-bill-brand-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.mo-bill-mini-logo {
+  height: 20px;
+  width: auto;
+  object-fit: contain;
+}
+
+.mo-bill-brand-text {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--gold-dark);
+  letter-spacing: 0.05em;
+}
+
+.mo-bill-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.72rem;
+  color: var(--text-sec);
+  margin-bottom: 0.65rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px dashed var(--border);
+}
+
+.mo-bill-meta-id {
+  font-weight: 700;
+  color: var(--charcoal);
+  font-family: monospace;
 }
 
 .mo-bill-rows {
@@ -3225,6 +3268,36 @@ select {
   font-size: 0.74rem;
   color: var(--text-sec);
   text-align: right;
+}
+
+.mo-bill-btn-wrap {
+  margin-top: 0.75rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.mo-bill-download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: #0f172a;
+  color: #ffffff;
+  border: 1px solid #0f172a;
+  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.mo-bill-download-btn:hover:not(:disabled) {
+  background: #1e293b;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* ── Card actions ── */
