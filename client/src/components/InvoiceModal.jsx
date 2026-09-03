@@ -11,18 +11,19 @@ import {
   Phone, 
   CreditCard, 
   Package, 
-  Coffee, 
   ArrowRight,
-  FileText
+  ImageIcon
 } from 'lucide-react';
-import html2pdf from 'html2pdf.js';
+import { toPng, toBlob } from 'html-to-image';
 import toast from 'react-hot-toast';
+import cafeLogo from '../images/cafe_logo.png';
 import './InvoiceModal.css';
 
 export default function InvoiceModal({ isOpen, onClose, invoiceData }) {
   const invoiceRef = useRef(null);
   const navigate = useNavigate();
   const [downloading, setDownloading] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   if (!isOpen || !invoiceData) return null;
 
@@ -44,46 +45,79 @@ export default function InvoiceModal({ isOpen, onClose, invoiceData }) {
     ? `#ORD-${String(orderNumber).padStart(4, '0')}` 
     : `#${String(_id || '').slice(-6).toUpperCase() || 'DOOD-001'}`;
 
-  // ── Download Invoice as PDF ───────────────────────────────────────────────
-  const handleDownloadPdf = async () => {
+  // ── Download Invoice as PNG Image ─────────────────────────────────────────
+  const handleDownloadImage = async () => {
     if (!invoiceRef.current) return;
 
     setDownloading(true);
-    const toastId = toast.loading('📄 Generating your crisp PDF invoice...');
+    const toastId = toast.loading('🖼️ Capturing crisp bill receipt image...');
 
     try {
-      const opt = {
-        margin: [8, 8, 8, 8],
-        filename: 'DoodCafe_Invoice.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { 
-          scale: 2, 
-          useCORS: true, 
-          logging: false,
-          scrollY: 0
-        },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
+      // Generate crisp 2x high-resolution PNG image
+      const dataUrl = await toPng(invoiceRef.current, {
+        quality: 0.98,
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+        cacheBust: true,
+      });
 
-      await html2pdf().set(opt).from(invoiceRef.current).save();
-      toast.success('📥 DoodCafe_Invoice.pdf downloaded successfully!', { id: toastId });
+      const link = document.createElement('a');
+      link.download = 'DoodCafe_Bill_Receipt.png';
+      link.href = dataUrl;
+      link.click();
+
+      toast.success('📥 DoodCafe_Bill_Receipt.png downloaded successfully!', { id: toastId });
     } catch (err) {
-      console.error('[Invoice Download Error]:', err);
-      toast.error('Failed to generate PDF. Please try again.', { id: toastId });
+      console.error('[Invoice Image Export Error]:', err);
+      toast.error('Failed to export receipt image. Please try again.', { id: toastId });
     } finally {
       setDownloading(false);
     }
   };
 
-  // ── Share Bill via WhatsApp Web Bridge ─────────────────────────────────────
-  const handleShareWhatsApp = () => {
+  // ── Share Bill via WhatsApp (with File Attachment or Structured Link) ────
+  const handleShareWhatsApp = async () => {
+    setSharing(true);
+    const toastId = toast.loading('💬 Preparing receipt for WhatsApp...');
+
     try {
+      // 1. Attempt Native Mobile/Desktop OS Share with actual PNG image file
+      if (invoiceRef.current && navigator.canShare) {
+        try {
+          const blob = await toBlob(invoiceRef.current, {
+            quality: 0.95,
+            pixelRatio: 2,
+            backgroundColor: '#ffffff',
+            cacheBust: true,
+          });
+
+          if (blob) {
+            const file = new File([blob], 'DoodCafe_Bill_Receipt.png', { type: 'image/png' });
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({
+                files: [file],
+                title: 'Dood Cafe Order Receipt',
+                text: `☕ Dood Cafe Receipt ${formattedOrderId} | Total: ₹${Number(totalAmount).toFixed(2)}`,
+              });
+              toast.success('🎉 Bill shared successfully!', { id: toastId });
+              setSharing(false);
+              return;
+            }
+          }
+        } catch (shareErr) {
+          // If native share was dismissed or unsupported, smoothly fallback to WhatsApp Web API
+          console.log('[Native share fallback to WhatsApp Web API]', shareErr);
+        }
+      }
+
+      // 2. Structured WhatsApp Direct API Message Stream
+      const trackingUrl = `${window.location.origin}/orders`;
       const itemsList = items.map(
         (item, idx) => `${idx + 1}. *${item.name}* × ${item.quantity} = ₹${(item.price * item.quantity).toFixed(2)}`
       ).join('\n');
 
       const message = 
-`☕ *DOOD CAFE - OFFICIAL ORDER RECEIPT* ☕
+`☕ *DOOD CAFE - OFFICIAL ORDER RECEIPT & INVOICE* ☕
 =================================
 🧾 *Invoice ID:* ${formattedOrderId}
 📅 *Date & Time:* ${formattedDate}
@@ -98,17 +132,21 @@ ${itemsList}
 =================================
 💵 *GRAND TOTAL:* ₹${Number(totalAmount).toFixed(2)}
 ${specialInstructions ? `📝 *Note:* ${specialInstructions}\n=================================\n` : ''}
+🔗 *Live Order Tracking & Bill Portal:*
+${trackingUrl}
+=================================
 ✨ _Thank you for dining with Dood Cafe! Enjoy your freshly brewed moments._
 🌐 Visit us again soon!`;
 
       const encodedMessage = encodeURIComponent(message);
-      // Universal WhatsApp Web / App API URL
       const whatsappUrl = `https://api.whatsapp.com/send?text=${encodedMessage}`;
       window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-      toast.success('💬 WhatsApp sharing opened!');
+      toast.success('💬 WhatsApp sharing opened!', { id: toastId });
     } catch (err) {
       console.error('[WhatsApp Share Error]:', err);
-      toast.error('Could not open WhatsApp sharing.');
+      toast.error('Could not open WhatsApp sharing.', { id: toastId });
+    } finally {
+      setSharing(false);
     }
   };
 
@@ -142,11 +180,19 @@ ${specialInstructions ? `📝 *Note:* ${specialInstructions}\n==================
         <div className="invoice-modal-body">
           <div className="invoice-paper" id="doodcafe-invoice-content" ref={invoiceRef}>
             
-            {/* Invoice Cafe Branding Header */}
+            {/* Invoice Cafe Branding Header with Real Brand Logo */}
             <div className="invoice-brand-header">
               <div className="invoice-brand-info">
                 <div className="invoice-brand-logo-wrap">
-                  <span className="invoice-brand-icon">☕</span>
+                  <img 
+                    src={cafeLogo} 
+                    alt="Dood Cafe Logo" 
+                    className="invoice-brand-logo-img"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = '/cafe_logo.png';
+                    }}
+                  />
                   <div>
                     <h2 className="invoice-brand-name">DOOD CAFE</h2>
                     <p className="invoice-brand-tagline">Artisanal Coffee & Gourmet Delights</p>
@@ -284,11 +330,11 @@ ${specialInstructions ? `📝 *Note:* ${specialInstructions}\n==================
               type="button"
               id="download-invoice-btn"
               className="btn btn-invoice-download"
-              onClick={handleDownloadPdf}
+              onClick={handleDownloadImage}
               disabled={downloading}
             >
               <Download size={17} />
-              <span>{downloading ? 'Exporting PDF...' : 'Download Invoice'}</span>
+              <span>{downloading ? 'Exporting PNG...' : 'Download Bill (PNG)'}</span>
             </button>
 
             <button
@@ -296,9 +342,10 @@ ${specialInstructions ? `📝 *Note:* ${specialInstructions}\n==================
               id="share-whatsapp-btn"
               className="btn btn-invoice-whatsapp"
               onClick={handleShareWhatsApp}
+              disabled={sharing}
             >
               <Share2 size={17} />
-              <span>Share Bill via WhatsApp</span>
+              <span>{sharing ? 'Opening WhatsApp...' : 'Share Bill via WhatsApp'}</span>
             </button>
           </div>
 
