@@ -49,10 +49,12 @@ const orderSchema = new mongoose.Schema(
     customer_location: {
       type: String,
       trim: true,
+      maxlength: [200, 'Customer location cannot exceed 200 characters'],
     },
     deliveryAddress: {
       type: String,
       trim: true,
+      maxlength: [250, 'Delivery address cannot exceed 250 characters'],
     },
     coordinates: {
       lat: { type: Number },

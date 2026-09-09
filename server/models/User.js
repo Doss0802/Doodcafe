@@ -7,7 +7,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Name is required'],
       trim: true,
-      maxlength: [60, 'Name cannot exceed 60 characters'],
+      maxlength: [50, 'Name cannot exceed 50 characters'],
     },
     email: {
       type: String,
@@ -15,7 +15,8 @@ const userSchema = new mongoose.Schema(
       unique: true,
       lowercase: true,
       trim: true,
-      match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email address'],
+      maxlength: [100, 'Email cannot exceed 100 characters'],
+      match: [/^[a-zA-Z0-9]+([._%+-][a-zA-Z0-9]+)*@[a-zA-Z0-9]+([.-][a-zA-Z0-9]+)*\.[a-zA-Z]{2,}$/, 'Please provide a valid email address'],
     },
     passwordHash: {
       type: String,
@@ -30,7 +31,8 @@ const userSchema = new mongoose.Schema(
     phone: {
       type: String,
       trim: true,
-      match: [/^[6-9]\d{9}$/, 'Please provide a valid 10-digit Indian mobile number'],
+      maxlength: [15, 'Phone number cannot exceed 15 characters'],
+      match: [/^\+?[0-9]{10,14}$/, 'Phone number must contain numbers and optional plus prefix only (10-14 digits)'],
     },
     tokenVersion: {
       type: Number,

@@ -25,6 +25,7 @@ const inventorySchema = new mongoose.Schema(
       required: [true, 'Item name is required'],
       trim: true,
       unique: true,
+      maxlength: [80, 'Item name cannot exceed 80 characters'],
     },
     sku: {
       type: String,
@@ -32,6 +33,7 @@ const inventorySchema = new mongoose.Schema(
       unique: true,
       uppercase: true,
       trim: true,
+      maxlength: [30, 'SKU cannot exceed 30 characters'],
       match: [/^[A-Z0-9-]+$/, 'SKU must contain only uppercase letters, numbers, and hyphens'],
     },
     category: {

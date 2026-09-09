@@ -320,6 +320,7 @@ export default function Menu() {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               aria-label="Search menu items"
+              maxLength={80}
             />
             {searchQuery && (
               <button type="button" className="search-clear" onClick={clearSearch} title="Clear search">

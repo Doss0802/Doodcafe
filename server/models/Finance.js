@@ -62,6 +62,7 @@ const financeSchema = new mongoose.Schema(
     reference: {
       type: String,
       trim: true,
+      maxlength: [100, 'Reference cannot exceed 100 characters'],
       default: '',
     },
     // Optional link to the Order that generated this income entry

@@ -242,7 +242,7 @@ export default function Checkout() {
               {/* Address Form Inputs */}
               <div className="address-inputs-grid">
                 <div className="form-field full-width">
-                  <label htmlFor="address-street" className="input-label">Street / House / Area</label>
+                  <label htmlFor="address-street" className="input-label">Street / House / Area (max 120)</label>
                   <input
                     type="text"
                     id="address-street"
@@ -250,11 +250,12 @@ export default function Checkout() {
                     placeholder="e.g. 42 MG Road, Green Park"
                     value={street}
                     onChange={(e) => setStreet(e.target.value)}
+                    maxLength={120}
                   />
                 </div>
 
                 <div className="form-field">
-                  <label htmlFor="address-city" className="input-label">City</label>
+                  <label htmlFor="address-city" className="input-label">City (max 50)</label>
                   <input
                     type="text"
                     id="address-city"
@@ -262,11 +263,12 @@ export default function Checkout() {
                     placeholder="e.g. Chennai"
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
+                    maxLength={50}
                   />
                 </div>
 
                 <div className="form-field">
-                  <label htmlFor="address-state" className="input-label">State</label>
+                  <label htmlFor="address-state" className="input-label">State (max 50)</label>
                   <input
                     type="text"
                     id="address-state"
@@ -274,18 +276,22 @@ export default function Checkout() {
                     placeholder="e.g. Tamil Nadu"
                     value={stateName}
                     onChange={(e) => setStateName(e.target.value)}
+                    maxLength={50}
                   />
                 </div>
 
                 <div className="form-field">
-                  <label htmlFor="address-zip" className="input-label">Zip Code / Pincode</label>
+                  <label htmlFor="address-zip" className="input-label">Pincode / Zip Code (5-6 digits)</label>
                   <input
                     type="text"
                     id="address-zip"
                     className="form-input"
                     placeholder="e.g. 600001"
                     value={zipCode}
-                    onChange={(e) => setZipCode(e.target.value)}
+                    onChange={(e) => setZipCode(e.target.value.replace(/[^0-9]/g, ''))}
+                    maxLength={10}
+                    pattern="[0-9]{5,6}"
+                    title="Please enter a valid 5 or 6 digit pincode"
                   />
                 </div>
               </div>
@@ -382,9 +388,14 @@ export default function Checkout() {
 
           {/* Special Instructions (Directly under Order Summary) */}
           <div className="special-instructions-card">
-            <label htmlFor="special-instructions" className="form-label">
-              <MessageSquare size={15} /> Special Instructions
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <label htmlFor="special-instructions" className="form-label" style={{ margin: 0 }}>
+                <MessageSquare size={15} /> Special Instructions
+              </label>
+              <span style={{ fontSize: '0.75rem', color: specialInstructions.length >= 190 ? '#ef4444' : '#888' }}>
+                {specialInstructions.length}/200
+              </span>
+            </div>
             <textarea
               id="special-instructions"
               form="checkout-form"

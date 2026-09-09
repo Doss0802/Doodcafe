@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, Coffee } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Coffee, AlertCircle } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import toast from 'react-hot-toast';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [errors, setErrors] = useState({});
   const [showPass, setShowPass] = useState(false);
   const { login, isLoading, isAuthenticated, user } = useAuthStore();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirect = searchParams.get('redirect') || '/';
-
 
   useEffect(() => {
     document.title = 'Login — Dood Cafe';
@@ -29,8 +29,29 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const newErrors = {};
+
+    if (!email.trim()) {
+      newErrors.email = 'Email address is required';
+    } else if (email.length > 100) {
+      newErrors.email = 'Email cannot exceed 100 characters';
+    } else if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email.trim())) {
+      newErrors.email = 'Please enter a valid email format';
+    }
+
+    if (!password) {
+      newErrors.password = 'Password is required';
+    } else if (password.length > 128) {
+      newErrors.password = 'Password cannot exceed 128 characters';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
     try {
-      const res = await login(email, password);
+      const res = await login(email.trim(), password);
       toast.success('Welcome back! ☕');
       const loggedUser = res?.data?.user || res?.user;
       if (redirect && redirect !== '/') {
@@ -41,7 +62,7 @@ export default function Login() {
         navigate('/', { replace: true });
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Login failed. Please try again.');
+      toast.error(err.response?.data?.message || err.response?.data?.errors?.[0]?.message || 'Login failed. Please try again.');
     }
   };
 
@@ -57,7 +78,7 @@ export default function Login() {
           <p className="auth-sub">Sign in to your Dood Cafe account</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="auth-form" id="login-form">
+        <form onSubmit={handleSubmit} className="auth-form" id="login-form" noValidate>
           <div className="form-group">
             <label htmlFor="login-email" className="form-label">
               <Mail size={14} /> Email Address
@@ -65,13 +86,22 @@ export default function Login() {
             <input
               id="login-email"
               type="email"
-              className="form-input"
+              className={`form-input ${errors.email ? 'form-input-error' : ''}`}
               placeholder="you@example.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (errors.email) setErrors((prev) => ({ ...prev, email: '' }));
+              }}
               required
+              maxLength={100}
               autoComplete="email"
             />
+            {errors.email && (
+              <span className="form-field-error" style={{ color: '#ef4444', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                <AlertCircle size={13} /> {errors.email}
+              </span>
+            )}
           </div>
 
           <div className="form-group">
@@ -82,11 +112,15 @@ export default function Login() {
               <input
                 id="login-password"
                 type={showPass ? 'text' : 'password'}
-                className="form-input"
+                className={`form-input ${errors.password ? 'form-input-error' : ''}`}
                 placeholder="••••••••"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (errors.password) setErrors((prev) => ({ ...prev, password: '' }));
+                }}
                 required
+                maxLength={128}
                 autoComplete="current-password"
               />
               <button
@@ -98,6 +132,11 @@ export default function Login() {
                 {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+            {errors.password && (
+              <span className="form-field-error" style={{ color: '#ef4444', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                <AlertCircle size={13} /> {errors.password}
+              </span>
+            )}
           </div>
 
           <button

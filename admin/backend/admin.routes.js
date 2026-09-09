@@ -9,6 +9,7 @@ const {
 } = require('./admin.controller');
 const { protect } = require('../../server/middleware/auth');
 const { sensitiveLimiter } = require('../../server/middleware/rateLimiter');
+const validate = require('../../server/middleware/validate');
 
 const router = express.Router();
 
@@ -28,6 +29,7 @@ router.get('/kpis', getOverviewKPIs);
 router.get(
   '/trends',
   [query('period').optional().isIn(['daily', 'weekly', 'monthly']).withMessage('Period must be daily, weekly, or monthly')],
+  validate,
   getDashboardTrends
 );
 
@@ -35,13 +37,23 @@ router.get(
  * @route   GET /api/admin/top-items?limit=8
  * @desc    Get top-selling dishes aggregated from customer orders collection
  */
-router.get('/top-items', getTopSellingItems);
+router.get(
+  '/top-items',
+  [query('limit').optional().isInt({ min: 1, max: 50 }).withMessage('Limit must be between 1 and 50')],
+  validate,
+  getTopSellingItems
+);
 
 /**
  * @route   GET /api/admin/live-orders?status=all|pending|preparing|ready
  * @desc    Get customer orders stream with customer details
  */
-router.get('/live-orders', getLiveOrders);
+router.get(
+  '/live-orders',
+  [query('status').optional().isIn(['all', 'pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled']).withMessage('Invalid order status')],
+  validate,
+  getLiveOrders
+);
 
 /**
  * @route   PATCH /api/admin/orders/:id/status
@@ -56,6 +68,7 @@ router.patch(
       .isIn(['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled'])
       .withMessage('Invalid order status'),
   ],
+  validate,
   updateOrderStatus
 );
 
