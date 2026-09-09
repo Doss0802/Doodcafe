@@ -1,9 +1,14 @@
+require('dotenv').config();
 const { MongoClient } = require('mongodb');
 
-const LOCAL_URI = 'mongodb://localhost:27017/Doodcafe';
-const ATLAS_URI = 'mongodb+srv://yesudoss0802_db_user:MniTKS0XT34sfo7p@cluster0.eos8oyt.mongodb.net/Doodcafe?appName=Cluster0&retryWrites=true&w=majority';
+const LOCAL_URI = process.env.MONGODB_LOCAL_URI || 'mongodb://localhost:27017/Doodcafe';
+const ATLAS_URI = process.env.MONGODB_URI;
 
 async function run() {
+  if (!ATLAS_URI) {
+    console.error('\n❌ MONGODB_URI is not set. Add it to server/.env before running this script.');
+    process.exit(1);
+  }
   // ── Step 1: Test both connections ──────────────────────────────
   console.log('\n1️⃣  Connecting to Local MongoDB (localhost)...');
   const localClient = new MongoClient(LOCAL_URI);

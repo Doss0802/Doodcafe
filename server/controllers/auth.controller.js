@@ -161,7 +161,7 @@ const refreshToken = async (req, res, next) => {
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET || 'fallback_refresh_secret');
+    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
     const user = await User.findById(decoded.id).select('+refreshToken +tokenVersion');
 
     if (!user || user.refreshToken !== token || (decoded.tokenVersion !== undefined && decoded.tokenVersion !== user.tokenVersion)) {

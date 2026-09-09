@@ -19,7 +19,7 @@ const protect = async (req, res, next) => {
     const token = authHeader.split(' ')[1];
     let decoded;
     try {
-      decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET || 'fallback_access_secret');
+      decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
     } catch (e) {
       return ApiResponse.error(res, {
         statusCode: 401,

@@ -1,12 +1,20 @@
 const jwt = require('jsonwebtoken');
 
+// Guard: Fail fast if JWT secrets are not configured — never allow a known fallback in production
+if (!process.env.JWT_ACCESS_SECRET) {
+  throw new Error('FATAL: JWT_ACCESS_SECRET is not set in environment variables.');
+}
+if (!process.env.JWT_REFRESH_SECRET) {
+  throw new Error('FATAL: JWT_REFRESH_SECRET is not set in environment variables.');
+}
+
 /**
  * Generate Access Token with short lifetime and token versioning payload
  */
 const generateAccessToken = (userId, tokenVersion = 0, role = 'customer') => {
   return jwt.sign(
     { id: userId, tokenVersion, role },
-    process.env.JWT_ACCESS_SECRET || 'fallback_access_secret',
+    process.env.JWT_ACCESS_SECRET,
     { expiresIn: process.env.JWT_ACCESS_EXPIRES || '15m' }
   );
 };
@@ -17,7 +25,7 @@ const generateAccessToken = (userId, tokenVersion = 0, role = 'customer') => {
 const generateRefreshToken = (userId, tokenVersion = 0, role = 'customer') => {
   return jwt.sign(
     { id: userId, tokenVersion, role },
-    process.env.JWT_REFRESH_SECRET || 'fallback_refresh_secret',
+    process.env.JWT_REFRESH_SECRET,
     { expiresIn: process.env.JWT_REFRESH_EXPIRES || '7d' }
   );
 };
