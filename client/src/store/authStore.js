@@ -78,6 +78,17 @@ const useAuthStore = create(
         }
       },
 
+      /**
+       * clearAuth — Synchronous, atomic session purge.
+       * Called by ProtectedRoute when a structurally invalid or expired
+       * token is detected in localStorage, ensuring no stale auth state
+       * remains before the redirect to /login is issued.
+       */
+      clearAuth: () => {
+        localStorage.removeItem('accessToken');
+        set({ user: null, accessToken: null, isAuthenticated: false });
+      },
+
       setLoading: (val) => set({ isLoading: val }),
     }),
     {

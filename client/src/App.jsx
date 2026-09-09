@@ -6,6 +6,7 @@ import Footer from './components/Footer';
 import CartDrawer from './components/CartDrawer';
 import ContactWidget from './components/ContactWidget';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { PublicOnlyRoute } from './components/PublicOnlyRoute';
 import useAuthStore from './store/authStore';
 
 import Home from './pages/Home';
@@ -39,8 +40,9 @@ function App() {
             {/* Public */}
             <Route path="/" element={<Home />} />
             <Route path="/menu" element={<Menu />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+            {/* Public — unauthenticated access only */}
+            <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
+            <Route path="/register" element={<PublicOnlyRoute><Register /></PublicOnlyRoute>} />
 
             {/* Protected */}
             <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
