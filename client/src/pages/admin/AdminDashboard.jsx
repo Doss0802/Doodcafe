@@ -57,9 +57,9 @@ function CustomerDetailModal({ order, onClose }) {
 
   // Fallback map embed
   const embedUrl = order.coordinates?.lat && order.coordinates?.lng
-    ? `https://maps.google.com/maps?q=${order.coordinates.lat},${order.coordinates.lng}&hl=en&z=15&output=embed`
+    ? `https://maps.google.com/maps?q=${order.coordinates.lat},${order.coordinates.lng}&hl=en&z=13&output=embed`
     : (textAddress && textAddress !== 'Dood Cafe Counter — Takeaway / Self Pickup'
-      ? `https://maps.google.com/maps?q=${encodeURIComponent(textAddress)}&hl=en&z=15&output=embed`
+      ? `https://maps.google.com/maps?q=${encodeURIComponent(textAddress)}&hl=en&z=13&output=embed`
       : null);
 
   const displayLocation = textAddress || (order.orderType === 'takeaway' ? 'Dood Cafe Counter — Takeaway / Self Pickup' : order.orderType || 'Takeaway Pickup');

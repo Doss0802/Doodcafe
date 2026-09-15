@@ -25,6 +25,17 @@ const placeOrder = async (req, res, next) => {
     const initialStatus = 'delivered';
     const resolvedPaymentMode = (paymentMode && ['cash', 'upi'].includes(paymentMode)) ? paymentMode : 'cash';
 
+    // Delivery Geofence: Enforce Coimbatore boundary check for delivery orders
+    if (resolvedOrderType === 'delivery') {
+      const locCheck = `${deliveryAddress || ''} ${customer_location || ''}`.toLowerCase();
+      if (locCheck && !locCheck.includes('coimbatore')) {
+        return ApiResponse.error(res, {
+          statusCode: 400,
+          message: 'Delivery currently available in Coimbatore city limits only',
+        });
+      }
+    }
+
     // Fallback: If no items provided, use dummy item array
     if (!items || !Array.isArray(items) || items.length === 0) {
       items = [{ name: 'Classic Cappuccino', price: 149, quantity: 1 }];
@@ -84,6 +95,9 @@ const placeOrder = async (req, res, next) => {
     const userOrderCount = await Order.countDocuments({ user: req.user._id });
     const orderNumber = userOrderCount + 1;
 
+    const fallbackLocation = 'Coimbatore, Tamil Nadu';
+    const fallbackCoords = { lat: 11.0168, lng: 76.9558 };
+
     const order = await Order.create({
       user: req.user._id,
       orderNumber,
@@ -91,9 +105,11 @@ const placeOrder = async (req, res, next) => {
       totalAmount,
       orderType: resolvedOrderType,
       paymentMode: resolvedPaymentMode,
-      customer_location: customer_location || deliveryAddress || '',
-      deliveryAddress: deliveryAddress || customer_location || '',
-      coordinates: coordinates && typeof coordinates.lat === 'number' && typeof coordinates.lng === 'number' ? coordinates : undefined,
+      customer_location: customer_location || deliveryAddress || fallbackLocation,
+      deliveryAddress: deliveryAddress || customer_location || fallbackLocation,
+      coordinates: coordinates && typeof coordinates.lat === 'number' && typeof coordinates.lng === 'number'
+        ? coordinates
+        : fallbackCoords,
       specialInstructions,
       status: initialStatus,
     });

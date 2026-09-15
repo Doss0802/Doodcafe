@@ -49,16 +49,18 @@ const orderSchema = new mongoose.Schema(
     customer_location: {
       type: String,
       trim: true,
+      default: 'Coimbatore, Tamil Nadu',
       maxlength: [200, 'Customer location cannot exceed 200 characters'],
     },
     deliveryAddress: {
       type: String,
       trim: true,
+      default: 'Coimbatore, Tamil Nadu',
       maxlength: [250, 'Delivery address cannot exceed 250 characters'],
     },
     coordinates: {
-      lat: { type: Number },
-      lng: { type: Number },
+      lat: { type: Number, default: 11.0168 },
+      lng: { type: Number, default: 76.9558 },
     },
     specialInstructions: {
       type: String,

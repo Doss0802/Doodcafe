@@ -18,14 +18,15 @@ export default function Checkout() {
   const [placing, setPlacing] = useState(false);
   const [locating, setLocating] = useState(false);
 
-  // Address Form States
+  // Address Form States (Restricted to Coimbatore City Limits)
   const [street, setStreet] = useState('');
-  const [city, setCity] = useState('');
-  const [stateName, setStateName] = useState('');
-  const [zipCode, setZipCode] = useState('');
-  const [coordinates, setCoordinates] = useState({ lat: 13.0827, lng: 80.2707 }); // Default: Chennai/Cafe default
+  const [city, setCity] = useState('Coimbatore');
+  const [stateName, setStateName] = useState('Tamil Nadu');
+  const [zipCode, setZipCode] = useState('641001');
+  const [coordinates, setCoordinates] = useState({ lat: 11.0168, lng: 76.9558 }); // Default: Coimbatore central coordinates
   const [hasLiveCoords, setHasLiveCoords] = useState(false);
   const [selectedOrderType, setSelectedOrderType] = useState('takeaway');
+  const [isOutOfDeliveryBoundary, setIsOutOfDeliveryBoundary] = useState(false);
 
   // Post-order Invoice Modal State
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
@@ -74,18 +75,37 @@ export default function Checkout() {
             ].filter(Boolean).join(' ') || data.display_name.split(',')[0] || '';
 
             const extractedCity = addr.city || addr.town || addr.village || addr.city_district || addr.county || '';
-            const extractedState = addr.state || addr.state_district || '';
-            const extractedZip = addr.postcode || '';
+            const extractedState = addr.state || addr.state_district || 'Tamil Nadu';
+            const extractedZip = addr.postcode || '641001';
+
+            // Geofence verification: Check if geocoded location is within Coimbatore city boundary
+            const fullAddressText = `${data.display_name || ''} ${extractedCity} ${addr.county || ''} ${addr.state_district || ''}`.toLowerCase();
+            const isInCoimbatore = fullAddressText.includes('coimbatore');
 
             setStreet(extractedStreet);
-            setCity(extractedCity);
             setStateName(extractedState);
             setZipCode(extractedZip);
 
-            toast.success('📍 Live address extracted and auto-filled!', { id: toastId });
+            if (!isInCoimbatore) {
+              setCity(extractedCity || 'Outside Coimbatore');
+              setIsOutOfDeliveryBoundary(true);
+              toast.error('Delivery currently available in Coimbatore city limits only', { id: toastId });
+            } else {
+              setCity(extractedCity ? (extractedCity.toLowerCase().includes('coimbatore') ? extractedCity : `${extractedCity}, Coimbatore`) : 'Coimbatore');
+              setIsOutOfDeliveryBoundary(false);
+              toast.success('📍 Live address verified within Coimbatore!', { id: toastId });
+            }
           } else {
             setStreet(`Live Location: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
-            toast.success('📍 GPS location locked!', { id: toastId });
+            // Check approximate coordinate boundary for Coimbatore
+            const isCoordInCbe = latitude >= 10.85 && latitude <= 11.20 && longitude >= 76.80 && longitude <= 77.15;
+            if (!isCoordInCbe) {
+              setIsOutOfDeliveryBoundary(true);
+              toast.error('Delivery currently available in Coimbatore city limits only', { id: toastId });
+            } else {
+              setIsOutOfDeliveryBoundary(false);
+              toast.success('📍 GPS location locked in Coimbatore!', { id: toastId });
+            }
           }
         } catch (apiErr) {
           console.warn('[Geolocation] Reverse geocoding failed:', apiErr);
@@ -114,6 +134,12 @@ export default function Checkout() {
   const handlePlaceOrder = async (e) => {
     e.preventDefault();
 
+    // Programmatic Geofence Check: Block delivery and order actions if outside Coimbatore
+    if (isOutOfDeliveryBoundary || !city || !city.toLowerCase().includes('coimbatore')) {
+      toast.error('Delivery currently available in Coimbatore city limits only');
+      return;
+    }
+
     setPlacing(true);
     try {
       const isMongoId = (id) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id);
@@ -126,7 +152,7 @@ export default function Checkout() {
 
       // Construct rich customer location string combining reverse geocoded address & maps link
       const addressParts = [street, city, stateName, zipCode].filter(Boolean);
-      const textAddress = addressParts.length > 0 ? addressParts.join(', ') : 'Dood Cafe Counter — Takeaway Pickup';
+      const textAddress = addressParts.length > 0 ? addressParts.join(', ') : 'Dood Cafe Counter — Coimbatore, Tamil Nadu';
       const mapsUrl = `https://www.google.com/maps?q=${coordinates.lat},${coordinates.lng}`;
       const customerLocationString = `${textAddress} | Maps: ${mapsUrl}`;
 
@@ -174,8 +200,8 @@ export default function Checkout() {
     }
   };
 
-  // Google Maps embed URL
-  const mapEmbedUrl = `https://maps.google.com/maps?q=${coordinates.lat},${coordinates.lng}&hl=en&z=15&output=embed`;
+  // Google Maps embed URL tightly configured for Coimbatore city limits (zoom: 13)
+  const mapEmbedUrl = `https://maps.google.com/maps?q=${coordinates.lat},${coordinates.lng}&hl=en&z=13&output=embed`;
   const externalMapsLink = `https://www.google.com/maps?q=${coordinates.lat},${coordinates.lng}`;
 
   return (
@@ -223,6 +249,17 @@ export default function Checkout() {
                 </div>
               </div>
 
+              {/* Service Boundary User-Alert Banner */}
+              {(isOutOfDeliveryBoundary || !city || !city.toLowerCase().includes('coimbatore')) && (
+                <div className="coimbatore-alert-banner" role="alert" id="coimbatore-boundary-alert">
+                  <div className="coimbatore-alert-icon">⚠️</div>
+                  <div className="coimbatore-alert-body">
+                    <span className="coimbatore-alert-title">Service Boundary Alert</span>
+                    <span className="coimbatore-alert-msg">Delivery currently available in Coimbatore city limits only</span>
+                  </div>
+                </div>
+              )}
+
               {/* Prominent Live GPS Location Button */}
               <div className="checkout-gps-action-wrap">
                 <button
@@ -247,7 +284,7 @@ export default function Checkout() {
                     type="text"
                     id="address-street"
                     className="form-input"
-                    placeholder="e.g. 42 MG Road, Green Park"
+                    placeholder="e.g. 42 Avinashi Road, Peelamedu"
                     value={street}
                     onChange={(e) => setStreet(e.target.value)}
                     maxLength={120}
@@ -255,16 +292,41 @@ export default function Checkout() {
                 </div>
 
                 <div className="form-field">
-                  <label htmlFor="address-city" className="input-label">City (max 50)</label>
-                  <input
-                    type="text"
+                  <label htmlFor="address-city" className="input-label">City / Delivery Zone (Coimbatore Only)</label>
+                  <select
                     id="address-city"
                     className="form-input"
-                    placeholder="e.g. Chennai"
                     value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    maxLength={50}
-                  />
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setCity(val);
+                      if (val && !val.toLowerCase().includes('coimbatore')) {
+                        setIsOutOfDeliveryBoundary(true);
+                      } else {
+                        setIsOutOfDeliveryBoundary(false);
+                      }
+                    }}
+                  >
+                    <option value="Coimbatore">Coimbatore (Central / City Limits)</option>
+                    <option value="RS Puram, Coimbatore">RS Puram, Coimbatore</option>
+                    <option value="Gandhipuram, Coimbatore">Gandhipuram, Coimbatore</option>
+                    <option value="Peelamedu, Coimbatore">Peelamedu, Coimbatore</option>
+                    <option value="Saibaba Colony, Coimbatore">Saibaba Colony, Coimbatore</option>
+                    <option value="Saravanampatti, Coimbatore">Saravanampatti, Coimbatore</option>
+                    <option value="Ramanathapuram, Coimbatore">Ramanathapuram, Coimbatore</option>
+                    <option value="Singanallur, Coimbatore">Singanallur, Coimbatore</option>
+                    <option value="Race Course, Coimbatore">Race Course, Coimbatore</option>
+                    <option value="Town Hall, Coimbatore">Town Hall, Coimbatore</option>
+                    <option value="Outside Coimbatore (Unsupported)">Outside Coimbatore (Unsupported)</option>
+                    {city && ![
+                      'Coimbatore', 'RS Puram, Coimbatore', 'Gandhipuram, Coimbatore',
+                      'Peelamedu, Coimbatore', 'Saibaba Colony, Coimbatore', 'Saravanampatti, Coimbatore',
+                      'Ramanathapuram, Coimbatore', 'Singanallur, Coimbatore', 'Race Course, Coimbatore',
+                      'Town Hall, Coimbatore', 'Outside Coimbatore (Unsupported)'
+                    ].includes(city) && (
+                      <option value={city}>{city}</option>
+                    )}
+                  </select>
                 </div>
 
                 <div className="form-field">
@@ -286,7 +348,7 @@ export default function Checkout() {
                     type="text"
                     id="address-zip"
                     className="form-input"
-                    placeholder="e.g. 600001"
+                    placeholder="e.g. 641001"
                     value={zipCode}
                     onChange={(e) => setZipCode(e.target.value.replace(/[^0-9]/g, ''))}
                     maxLength={10}
@@ -376,7 +438,8 @@ export default function Checkout() {
               form="checkout-form"
               id="place-order-btn"
               className="btn btn-primary btn-full checkout-summary-btn"
-              disabled={placing}
+              disabled={placing || isOutOfDeliveryBoundary || !city || !city.toLowerCase().includes('coimbatore')}
+              title={isOutOfDeliveryBoundary || !city || !city.toLowerCase().includes('coimbatore') ? 'Delivery currently available in Coimbatore city limits only' : ''}
             >
               {placing ? (
                 <span className="loading-spinner" />
@@ -422,7 +485,8 @@ export default function Checkout() {
             form="checkout-form"
             id="place-order-mobile-btn"
             className="btn btn-primary checkout-mobile-btn"
-            disabled={placing}
+            disabled={placing || isOutOfDeliveryBoundary || !city || !city.toLowerCase().includes('coimbatore')}
+            title={isOutOfDeliveryBoundary || !city || !city.toLowerCase().includes('coimbatore') ? 'Delivery currently available in Coimbatore city limits only' : ''}
           >
             {placing ? (
               <span className="loading-spinner" />
