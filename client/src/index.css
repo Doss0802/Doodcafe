@@ -217,23 +217,15 @@ select {
 }
 
 .btn-primary {
-  background: #000000;
-  color: #ffffff;
-  border-color: #000000;
-  letter-spacing: 0.01em;
+  background: var(--gold);
+  color: var(--charcoal);
+  border-color: var(--gold);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #1a1a1a;
-  border-color: #1a1a1a;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.28);
-  transform: translateY(-1px);
-}
-
-.btn-primary:active:not(:disabled) {
-  background: #000000;
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+  background: var(--gold-dark);
+  border-color: var(--gold-dark);
+  box-shadow: 0 4px 14px rgba(212, 160, 23, 0.35);
 }
 
 .btn-outline {
@@ -1528,9 +1520,9 @@ select {
 }
 
 .order-type-active {
-  background: #000000 !important;
-  color: #ffffff !important;
-  border-color: #000000 !important;
+  background: var(--gold-muted) !important;
+  color: var(--gold-dark) !important;
+  border-color: var(--gold) !important;
 }
 
 .cart-items {
@@ -1839,20 +1831,13 @@ select {
 }
 
 .payment-btn:hover {
-  border-color: #333333;
-  background: #f5f5f5;
-  color: #000000;
+  border-color: var(--gold-muted);
 }
 
 .payment-btn-active {
-  border-color: #000000 !important;
-  background: #000000 !important;
-  color: #ffffff !important;
-}
-
-.payment-btn-active:hover {
-  background: #1a1a1a !important;
-  border-color: #1a1a1a !important;
+  border-color: var(--gold) !important;
+  background: var(--gold-muted) !important;
+  color: var(--gold-dark) !important;
 }
 
 .form-checkboxes {
@@ -2438,8 +2423,7 @@ select {
 
 .total-amount {
   font-size: 1.3rem;
-  color: #000000;
-  font-weight: 800;
+  color: var(--gold-dark);
 }
 
 .summary-note {
@@ -2493,8 +2477,8 @@ select {
 
 .checkout-mobile-total-val {
   font-size: 1.25rem;
-  font-weight: 800;
-  color: #000000;
+  font-weight: 700;
+  color: var(--gold-dark);
   line-height: 1.1;
 }
 
