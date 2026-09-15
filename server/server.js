@@ -170,7 +170,7 @@ app.use('/health', healthRoutes);
 app.get('/', (req, res) => {
   res.status(200).json({
     success: true,
-    message: 'Dood Cafe API is up and running 🚀',
+    message: 'Dood Cafe API is up and running',
     version: 'v1',
     docs: '/api/v1/health',
     meta: { timestamp: new Date().toISOString(), requestId: req.id },
@@ -197,9 +197,9 @@ let server;
 const startServer = async () => {
   await connectDB();
   server = httpServer.listen(PORT, () => {
-    logger.info(`🚀 Dood Cafe Production Server running on http://localhost:${PORT}`);
-    logger.info(`📋 Environment: ${process.env.NODE_ENV || 'development'}`);
-    logger.info(`🛡️ Security Stack Active: Helmet, RateLimiter, MongoSanitize, HPP, TokenVersion, Socket.io`);
+    logger.info(`Dood Cafe Production Server running on http://localhost:${PORT}`);
+    logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    logger.info(`Security Stack Active: Helmet, RateLimiter, MongoSanitize, HPP, TokenVersion, Socket.io`);
   });
 };
 
