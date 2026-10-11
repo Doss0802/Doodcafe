@@ -104,9 +104,9 @@ export default function InvoiceModal({ isOpen, onClose, invoiceData }) {
               return;
             }
           }
+          // Native share dismissed or unsupported — fall through to WhatsApp Web API
         } catch (shareErr) {
-          // If native share was dismissed or unsupported, smoothly fallback to WhatsApp Web API
-          console.log('[Native share fallback to WhatsApp Web API]', shareErr);
+          // Native share dismissed or unsupported — fall through silently to WhatsApp Web API
         }
       }
 
