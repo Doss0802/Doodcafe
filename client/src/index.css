@@ -1,7 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=Handlee&display=swap');
+
 /* ═══════════════════════════════════════════════════════════════
    DOOD CAFE — Design System
    Light palette: warm whites, amber gold, charcoal text
-   Font: Outfit (body) + Playfair Display (headings)
+   Font: Outfit (body) + Playfair Display (headings) + Caveat (cursive nav)
 ═══════════════════════════════════════════════════════════════ */
 
 /* ── Imports & Reset ─────────────────────────────────────────── */
@@ -403,10 +405,10 @@ select {
 }
 
 .nav-link {
-  padding: 0.4rem 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.85rem;
   border-radius: var(--radius-sm);
-  font-size: 0.88rem;
-  font-weight: 500;
   color: var(--gray-700);
   transition: var(--transition);
 }
@@ -418,8 +420,40 @@ select {
 
 .nav-link-active {
   color: var(--gold-dark) !important;
-  font-weight: 600;
   background: var(--gold-muted) !important;
+}
+
+/* ── Custom Cursive / Handwriting Typography for Nav Items ── */
+.cursive-nav-text {
+  font-family: 'Caveat', 'Handlee', cursive, sans-serif;
+  font-size: 1.28rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.15;
+  display: inline-block;
+  vertical-align: middle;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.nav-link:hover .cursive-nav-text {
+  transform: translateY(-1px);
+}
+
+.dropdown-item .cursive-nav-text {
+  font-size: 1.18rem;
+  font-weight: 600;
+  letter-spacing: 0.015em;
+  color: inherit;
+}
+
+.dropdown-item:hover .cursive-nav-text {
+  color: var(--gold-dark);
+}
+
+.mobile-nav-link .cursive-nav-text {
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .navbar-actions {

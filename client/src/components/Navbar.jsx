@@ -44,7 +44,7 @@ export default function Navbar() {
 
   const navLinks = [
     { label: 'Home', path: '/' },
-    { label: 'Menu', path: '/menu' },
+    { label: 'Cafe Items', path: '/menu' },
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -76,7 +76,7 @@ export default function Navbar() {
               to={link.path}
               className={`nav-link ${isActive(link.path) ? 'nav-link-active' : ''}`}
             >
-              {link.label}
+              <span className="cursive-nav-text">{link.label}</span>
             </Link>
           ))}
         </nav>
@@ -134,7 +134,7 @@ export default function Navbar() {
                   onClick={() => setProfileOpen(false)}
                 >
                   <UserCircle2 size={14} />
-                  Profile
+                  <span className="cursive-nav-text">Profile</span>
                 </Link>
                 <Link
                   to="/orders"
@@ -143,7 +143,7 @@ export default function Navbar() {
                   onClick={() => setProfileOpen(false)}
                 >
                   <ClipboardList size={14} />
-                  My Orders
+                  <span className="cursive-nav-text">My Orders</span>
                 </Link>
                 {isAuthenticated && user?.role === 'admin' && (
                   <>
@@ -206,16 +206,16 @@ export default function Navbar() {
               className={`mobile-nav-link ${isActive(link.path) ? 'nav-link-active' : ''}`}
               onClick={() => setMobileOpen(false)}
             >
-              {link.label}
+              <span className="cursive-nav-text">{link.label}</span>
             </Link>
           ))}
           {isAuthenticated ? (
             <>
               <Link to="/profile" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
-                Profile
+                <span className="cursive-nav-text">Profile</span>
               </Link>
               <Link to="/orders" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
-                My Orders
+                <span className="cursive-nav-text">My Orders</span>
               </Link>
               {isAuthenticated && user?.role === 'admin' && (
                 <>
