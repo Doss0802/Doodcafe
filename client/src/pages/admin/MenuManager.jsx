@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   ChefHat, Eye, EyeOff, Edit3, Check, X, Upload, RefreshCw,
   Search, ToggleLeft, ToggleRight, DollarSign, ImageIcon,
-  Leaf, Star, Clock, Tag, AlertCircle, Loader2, ShieldAlert, ArrowLeft,
+  Leaf, Star, Clock, Tag, AlertCircle, Loader2, ShieldAlert, ArrowLeft, Plus,
 } from 'lucide-react';
 import axiosInstance from '../../api/axiosInstance';
 import useAuthStore from '../../store/authStore';
@@ -177,6 +177,355 @@ function ImageEditor({ item, onSave, saving }) {
   );
 }
 
+/* ─── Create Menu Item Modal Component ─────────────────────── */
+function CreateItemModal({ categories = [], onClose, onCreated }) {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [price, setPrice] = useState('');
+  const [category, setCategory] = useState(categories[0]?._id || '');
+  const [preparationTime, setPreparationTime] = useState(10);
+  const [isVeg, setIsVeg] = useState(false);
+  const [isBestseller, setIsBestseller] = useState(false);
+  const [tags, setTags] = useState('');
+
+  const [dragActive, setDragActive] = useState(false);
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (!category && categories.length > 0) {
+      setCategory(categories[0]._id);
+    }
+  }, [categories, category]);
+
+  useEffect(() => {
+    return () => {
+      if (imagePreview && imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]);
+
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileSelected(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleFileSelected = (file) => {
+    if (!file.type.startsWith('image/')) {
+      toast.error('Only image files (JPG, PNG, WebP, GIF) are allowed');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be under 5MB');
+      return;
+    }
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const handleRemoveImage = (e) => {
+    e.stopPropagation();
+    setImageFile(null);
+    if (imagePreview && imagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(imagePreview);
+    }
+    setImagePreview('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!name.trim()) {
+      toast.error('Item name is required');
+      return;
+    }
+    if (!price || parseFloat(price) < 0) {
+      toast.error('Please enter a valid price (>= 0)');
+      return;
+    }
+    if (!category) {
+      toast.error('Please select a category');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append('name', name.trim());
+      formData.append('description', description.trim());
+      formData.append('price', parseFloat(price));
+      formData.append('category', category);
+      formData.append('preparationTime', parseInt(preparationTime, 10) || 10);
+      formData.append('isVeg', isVeg);
+      formData.append('isBestseller', isBestseller);
+      formData.append('available', true);
+      formData.append('show_prices_to_public', true);
+      if (tags.trim()) {
+        formData.append('tags', tags.trim());
+      }
+      if (imageFile) {
+        formData.append('image', imageFile);
+      }
+
+      const { data } = await axiosInstance.post('/menu-items', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      toast.success(`🎉 "${data.data?.name || name}" added to menu!`);
+      onCreated(data.data);
+      onClose();
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Failed to create menu item';
+      toast.error(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="mm-modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
+      <div className="mm-modal-card" onClick={(e) => e.stopPropagation()}>
+        <div className="mm-modal-header">
+          <div className="mm-modal-title-group">
+            <div className="mm-modal-icon-wrap">
+              <ChefHat size={18} />
+            </div>
+            <div>
+              <h3 className="mm-modal-title">Add New Menu Item</h3>
+              <p className="mm-modal-sub">Create and publish a new dish to the digital cafe menu</p>
+            </div>
+          </div>
+          <button className="mm-modal-close" onClick={onClose} aria-label="Close modal">
+            <X size={18} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="mm-form">
+          <div className="mm-form-grid">
+            {/* Item Name */}
+            <div className="mm-form-group full-col">
+              <label className="mm-form-label">
+                Dish / Item Name <span className="req">*</span>
+              </label>
+              <input
+                type="text"
+                className="mm-form-input"
+                placeholder="e.g. Double Truffle Crunch Burger"
+                value={name}
+                maxLength={80}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Category Select */}
+            <div className="mm-form-group">
+              <label className="mm-form-label">
+                Category <span className="req">*</span>
+              </label>
+              <select
+                className="mm-form-select"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                required
+              >
+                <option value="" disabled>Select category…</option>
+                {categories.map((cat) => (
+                  <option key={cat._id} value={cat._id}>
+                    {cat.icon || '🍽️'} {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Base Price */}
+            <div className="mm-form-group">
+              <label className="mm-form-label">
+                Base Price (₹) <span className="req">*</span>
+              </label>
+              <div className="mm-input-prefix-wrap">
+                <span className="mm-input-prefix">₹</span>
+                <input
+                  type="number"
+                  className="mm-form-input mm-input-with-prefix"
+                  placeholder="199"
+                  min="0"
+                  step="1"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Prep Time */}
+            <div className="mm-form-group">
+              <label className="mm-form-label">Prep Time (minutes)</label>
+              <input
+                type="number"
+                className="mm-form-input"
+                min="1"
+                max="180"
+                value={preparationTime}
+                onChange={(e) => setPreparationTime(e.target.value)}
+              />
+            </div>
+
+            {/* Tags */}
+            <div className="mm-form-group">
+              <label className="mm-form-label">Tags (comma-separated)</label>
+              <input
+                type="text"
+                className="mm-form-input"
+                placeholder="crispy, spicy, loaded"
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
+              />
+            </div>
+
+            {/* Description */}
+            <div className="mm-form-group full-col">
+              <label className="mm-form-label">
+                Description <span className="hint">({300 - description.length} chars left)</span>
+              </label>
+              <textarea
+                className="mm-form-textarea"
+                rows={3}
+                placeholder="Handcrafted golden patty layered with crisp iceberg lettuce, melted cheddar, and secret house sauce..."
+                maxLength={300}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+
+            {/* Dietary & Highlight Badges */}
+            <div className="mm-form-group full-col">
+              <label className="mm-form-label">Dietary &amp; Highlights</label>
+              <div className="mm-switches-row">
+                <button
+                  type="button"
+                  className={`mm-pill-toggle ${isVeg ? 'mm-pill-veg' : 'mm-pill-nonveg'}`}
+                  onClick={() => setIsVeg(!isVeg)}
+                >
+                  <Leaf size={13} />
+                  <span>{isVeg ? 'Vegetarian' : 'Non-Vegetarian'}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`mm-pill-toggle ${isBestseller ? 'mm-pill-best' : ''}`}
+                  onClick={() => setIsBestseller(!isBestseller)}
+                >
+                  <Star size={13} />
+                  <span>{isBestseller ? 'Bestseller ⭐' : 'Standard'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Image File Drag-and-Drop Dropzone */}
+            <div className="mm-form-group full-col">
+              <label className="mm-form-label">
+                Dish Photo <span className="hint">(Drag &amp; drop or click to browse)</span>
+              </label>
+              <div
+                className={`mm-dropzone ${dragActive ? 'mm-dropzone-active' : ''} ${imagePreview ? 'mm-dropzone-has-file' : ''}`}
+                onDragEnter={handleDrag}
+                onDragOver={handleDrag}
+                onDragLeave={handleDrag}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={(e) => e.target.files?.[0] && handleFileSelected(e.target.files[0])}
+                />
+                {imagePreview ? (
+                  <div className="mm-dropzone-preview">
+                    <img src={imagePreview} alt="Preview" className="mm-dropzone-img" />
+                    <div className="mm-dropzone-meta">
+                      <p className="mm-dropzone-filename">{imageFile?.name}</p>
+                      <p className="mm-dropzone-filesize">
+                        {imageFile?.size ? `${(imageFile.size / 1024).toFixed(1)} KB` : ''}
+                      </p>
+                      <span className="mm-dropzone-replace-hint">Click or drop to replace</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="mm-dropzone-remove-btn"
+                      onClick={handleRemoveImage}
+                      title="Remove image"
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mm-dropzone-placeholder">
+                    <div className="mm-dropzone-icon">
+                      <Upload size={24} />
+                    </div>
+                    <p className="mm-dropzone-prompt">
+                      <strong>Drag and drop dish image here</strong>, or <span className="browse-link">browse</span>
+                    </p>
+                    <p className="mm-dropzone-subtext">JPG, PNG, WebP or GIF (up to 5MB)</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Form Footer */}
+          <div className="mm-modal-footer">
+            <button
+              type="button"
+              className="btn btn-secondary mm-btn-cancel"
+              onClick={onClose}
+              disabled={submitting}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="btn btn-primary mm-btn-submit"
+              disabled={submitting}
+            >
+              {submitting ? (
+                <>
+                  <Loader2 size={15} className="spin" />
+                  <span>Saving Dish…</span>
+                </>
+              ) : (
+                <>
+                  <Plus size={15} />
+                  <span>Create Menu Item</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Main MenuManager ────────────────────────────────────── */
 export default function MenuManager() {
   const { user } = useAuthStore();
@@ -195,6 +544,8 @@ export default function MenuManager() {
   }
 
   const [items, setItems] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [savingId, setSavingId] = useState(null);
@@ -202,6 +553,18 @@ export default function MenuManager() {
   const [toggleLoading, setToggleLoading] = useState(false);
   const [meta, setMeta] = useState({ total: 0, pages: 1 });
   const [page, setPage] = useState(1);
+
+  /* ── Fetch categories for insertion form ── */
+  const fetchCategories = useCallback(async () => {
+    try {
+      const { data } = await axiosInstance.get('/menu/categories');
+      if (Array.isArray(data.data) && data.data.length > 0) {
+        setCategories(data.data);
+      }
+    } catch {
+      // fallback handled
+    }
+  }, []);
 
   /* ── Fetch global price setting ── */
   const fetchSettings = useCallback(async () => {
@@ -230,9 +593,16 @@ export default function MenuManager() {
   }, []);
 
   useEffect(() => {
+    fetchCategories();
     fetchSettings();
     fetchItems(1);
-  }, [fetchSettings, fetchItems]);
+  }, [fetchCategories, fetchSettings, fetchItems]);
+
+  /* ── Item created callback ── */
+  const handleItemCreated = useCallback((newItem) => {
+    setItems((prev) => [newItem, ...prev]);
+    setMeta((prev) => ({ ...prev, total: (prev.total || 0) + 1 }));
+  }, []);
 
   /* ── Toggle price visibility globally ── */
   const handlePriceToggle = async () => {
@@ -301,9 +671,20 @@ export default function MenuManager() {
             <p className="mm-subtitle">{meta.total} items · Inline edit prices &amp; images</p>
           </div>
         </div>
-        <button className="mm-refresh-btn" onClick={() => fetchItems(page)} disabled={loading} title="Refresh">
-          <RefreshCw size={15} className={loading ? 'spin' : ''} />
-        </button>
+        <div className="mm-header-actions">
+          <button
+            id="mm-open-create-btn"
+            className="mm-create-btn"
+            onClick={() => setShowAddModal(true)}
+            title="Add a new menu item"
+          >
+            <Plus size={15} />
+            <span>Add Menu Item</span>
+          </button>
+          <button className="mm-refresh-btn" onClick={() => fetchItems(page)} disabled={loading} title="Refresh">
+            <RefreshCw size={15} className={loading ? 'spin' : ''} />
+          </button>
+        </div>
       </div>
 
       {/* ── Price Visibility Master Toggle ── */}
@@ -469,6 +850,15 @@ export default function MenuManager() {
             </button>
           ))}
         </div>
+      )}
+
+      {/* ── Add New Item Modal ── */}
+      {showAddModal && (
+        <CreateItemModal
+          categories={categories}
+          onClose={() => setShowAddModal(false)}
+          onCreated={handleItemCreated}
+        />
       )}
     </main>
   );
