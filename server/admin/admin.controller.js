@@ -1,5 +1,6 @@
 const Order = require('../models/Order');
 const MenuItem = require('../models/MenuItem');
+const SiteSettings = require('../models/SiteSettings');
 const User = require('../models/User');
 const ApiResponse = require('../utils/ApiResponse');
 const { emitOrderStatusUpdate } = require('./admin.socket');
@@ -321,10 +322,170 @@ const getOverviewKPIs = async (req, res, next) => {
   }
 };
 
+
+/**
+ * ─── 6. Get Global Menu Settings (Price Visibility Toggle) ────────────────────
+ * @route GET /api/v1/admin/menu-settings
+ * @access Admin
+ */
+const getMenuSettings = async (req, res, next) => {
+  try {
+    const settings = await SiteSettings.getSettings();
+    return ApiResponse.success(res, {
+      statusCode: 200,
+      data: {
+        show_prices_to_public: settings.show_prices_to_public,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * ─── 7. Update Global Menu Settings (Price Visibility Toggle) ─────────────────
+ * @route PATCH /api/v1/admin/menu-settings
+ * @access Admin
+ */
+const updateMenuSettings = async (req, res, next) => {
+  try {
+    const { show_prices_to_public } = req.body;
+
+    if (typeof show_prices_to_public !== 'boolean') {
+      return ApiResponse.error(res, {
+        statusCode: 400,
+        message: 'show_prices_to_public must be a boolean value (true or false)',
+      });
+    }
+
+    const settings = await SiteSettings.findOneAndUpdate(
+      { key: 'global' },
+      { show_prices_to_public },
+      { new: true, upsert: true, runValidators: true }
+    );
+
+    return ApiResponse.success(res, {
+      statusCode: 200,
+      message: `Price display ${show_prices_to_public ? 'enabled' : 'hidden'} for customers`,
+      data: { show_prices_to_public: settings.show_prices_to_public },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * ─── 8. Get All Menu Items for Admin Manager View ─────────────────────────────
+ * @route GET /api/v1/admin/menu-items
+ * @access Admin
+ */
+const getMenuManagerItems = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 50, category } = req.query;
+    const pageNum = Math.max(1, parseInt(page));
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
+    const skip = (pageNum - 1) * limitNum;
+
+    const filter = {};
+    if (category && category !== 'all') {
+      const Category = require('../models/Category');
+      const cat = await Category.findOne({ slug: category }).select('_id').lean();
+      if (cat) filter.category = cat._id;
+    }
+
+    const [items, total] = await Promise.all([
+      MenuItem.find(filter)
+        .populate('category', 'name slug icon')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
+      MenuItem.countDocuments(filter),
+    ]);
+
+    return ApiResponse.success(res, {
+      statusCode: 200,
+      data: items,
+      meta: {
+        total,
+        page: pageNum,
+        pages: Math.ceil(total / limitNum),
+        limit: limitNum,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * ─── 9. Inline Update Menu Item (Price + Image) ────────────────────────────────
+ * @route PATCH /api/v1/admin/menu-items/:id
+ * @access Admin
+ */
+const updateMenuItemAdmin = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Only allow safe, explicit fields to be patched — no role / system fields
+    const ALLOWED_FIELDS = ['price', 'imageUrl', 'image', 'name', 'description', 'available', 'isBestseller', 'isVeg', 'preparationTime', 'tags', 'show_prices_to_public'];
+    const updateData = {};
+
+    for (const field of ALLOWED_FIELDS) {
+      if (req.body[field] !== undefined) {
+        updateData[field] = req.body[field];
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return ApiResponse.error(res, {
+        statusCode: 400,
+        message: 'No valid fields provided for update',
+      });
+    }
+
+    if (updateData.price !== undefined) {
+      const price = Number(updateData.price);
+      if (isNaN(price) || price < 0) {
+        return ApiResponse.error(res, {
+          statusCode: 400,
+          message: 'Price must be a non-negative number',
+        });
+      }
+      updateData.price = price;
+    }
+
+    const updatedItem = await MenuItem.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    ).populate('category', 'name slug icon');
+
+    if (!updatedItem) {
+      return ApiResponse.error(res, {
+        statusCode: 404,
+        message: 'Menu item not found',
+      });
+    }
+
+    return ApiResponse.success(res, {
+      statusCode: 200,
+      message: 'Menu item updated successfully',
+      data: updatedItem,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getDashboardTrends,
   getTopSellingItems,
   getLiveOrders,
   updateOrderStatus,
   getOverviewKPIs,
+  getMenuSettings,
+  updateMenuSettings,
+  getMenuManagerItems,
+  updateMenuItemAdmin,
 };

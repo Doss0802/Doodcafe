@@ -1,5 +1,6 @@
 const MenuItem = require('../models/MenuItem');
 const Category = require('../models/Category');
+const SiteSettings = require('../models/SiteSettings');
 const ApiResponse = require('../utils/ApiResponse');
 const { filterMenuItems, quickSortMenuItems, binarySearchPriceRange } = require('../utils/CatalogDSA');
 
@@ -134,4 +135,20 @@ const getMenuItem = async (req, res, next) => {
   }
 };
 
-module.exports = { getCategories, getMenuItems, getMenuItem };
+
+// @desc   Get public-facing menu settings (e.g. price visibility flag)
+// @route  GET /api/v1/menu/settings
+// @access Public
+const getMenuPublicSettings = async (req, res, next) => {
+  try {
+    const settings = await SiteSettings.getSettings();
+    return ApiResponse.success(res, {
+      statusCode: 200,
+      data: { show_prices_to_public: settings.show_prices_to_public },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { getCategories, getMenuItems, getMenuItem, getMenuPublicSettings };

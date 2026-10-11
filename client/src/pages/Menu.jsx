@@ -146,6 +146,7 @@ export default function Menu() {
   const [dsaMeta, setDsaMeta] = useState(null);
   const [searchInput, setSearchInput] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
+  const [showPrices, setShowPrices] = useState(true);
 
   // Extracted URL state data
   const selectedCategory = searchParams.get('category') || 'all';
@@ -160,6 +161,17 @@ export default function Menu() {
 
   useEffect(() => {
     document.title = 'Menu — Dood Cafe';
+
+    // Fetch public menu settings (e.g. price visibility toggle)
+    axiosInstance
+      .get('/menu/settings')
+      .then((res) => {
+        if (typeof res.data?.data?.show_prices_to_public === 'boolean') {
+          setShowPrices(res.data.data.show_prices_to_public);
+        }
+      })
+      .catch(() => {});
+
     axiosInstance
       .get('/menu/categories')
       .then((res) => {
@@ -444,13 +456,24 @@ export default function Menu() {
         ) : (
           <div className="menu-grid">
             {items.map((item) => (
-              <MenuCard key={item._id} item={item} onItemClick={(it) => setSelectedItem(it)} />
+              <MenuCard
+                key={item._id}
+                item={item}
+                showPrice={showPrices}
+                onItemClick={(it) => setSelectedItem(it)}
+              />
             ))}
           </div>
         )}
 
         {/* Item Quick View Modal */}
-        {selectedItem && <ItemModal item={selectedItem} onClose={() => setSelectedItem(null)} />}
+        {selectedItem && (
+          <ItemModal
+            item={selectedItem}
+            showPrice={showPrices}
+            onClose={() => setSelectedItem(null)}
+          />
+        )}
 
         {/* Pagination */}
         {pagination.pages > 1 && (

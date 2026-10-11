@@ -4,7 +4,7 @@ import { getItemImage } from '../utils/imageMapper';
 import { flyToCart } from '../utils/flyToCart';
 import toast from 'react-hot-toast';
 
-export default function MenuCard({ item, onItemClick }) {
+export default function MenuCard({ item, onItemClick, showPrice = true }) {
   const { items, addItem, updateQuantity, removeItem } = useCartStore();
 
   const cartItem = items.find((i) => i._id === item._id);
@@ -100,7 +100,9 @@ export default function MenuCard({ item, onItemClick }) {
 
         <div className="menu-card-footer">
           <div className="menu-card-meta">
-            <span className="menu-price">₹{item.price}</span>
+            {showPrice && item.show_prices_to_public !== false && (
+              <span className="menu-price">₹{item.price}</span>
+            )}
             <span className="menu-time">
               <Clock size={12} />
               {item.preparationTime || 10} min

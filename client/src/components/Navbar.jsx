@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingCart, Menu, X, LogOut, User, ClipboardList, Coffee, UserCircle2 } from 'lucide-react';
+import { ShoppingCart, Menu, X, LogOut, User, ClipboardList, Coffee, UserCircle2, ChefHat } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import useAuthStore from '../store/authStore';
 import useCartStore from '../store/cartStore';
@@ -145,15 +145,28 @@ export default function Navbar() {
                   <ClipboardList size={14} />
                   My Orders
                 </Link>
-                <Link
-                  to="/admin"
-                  className="dropdown-item"
-                  role="menuitem"
-                  onClick={() => setProfileOpen(false)}
-                >
-                  <Coffee size={14} />
-                  Admin Panel
-                </Link>
+                {isAuthenticated && user?.role === 'admin' && (
+                  <>
+                    <Link
+                      to="/admin"
+                      className="dropdown-item dropdown-item-admin"
+                      role="menuitem"
+                      onClick={() => setProfileOpen(false)}
+                    >
+                      <Coffee size={14} />
+                      Admin Panel
+                    </Link>
+                    <Link
+                      to="/admin/menu-manager"
+                      className="dropdown-item dropdown-item-admin"
+                      role="menuitem"
+                      onClick={() => setProfileOpen(false)}
+                    >
+                      <ChefHat size={14} />
+                      Menu Manager
+                    </Link>
+                  </>
+                )}
                 <button
                   onClick={handleLogout}
                   className="dropdown-item dropdown-logout"
@@ -204,9 +217,16 @@ export default function Navbar() {
               <Link to="/orders" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
                 My Orders
               </Link>
-              <Link to="/admin" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
-                Admin Panel
-              </Link>
+              {isAuthenticated && user?.role === 'admin' && (
+                <>
+                  <Link to="/admin" className="mobile-nav-link mobile-nav-admin" onClick={() => setMobileOpen(false)}>
+                    Admin Panel
+                  </Link>
+                  <Link to="/admin/menu-manager" className="mobile-nav-link mobile-nav-admin" onClick={() => setMobileOpen(false)}>
+                    Menu Manager
+                  </Link>
+                </>
+              )}
               <button className="mobile-nav-link mobile-logout" onClick={handleLogout}>
                 Logout
               </button>

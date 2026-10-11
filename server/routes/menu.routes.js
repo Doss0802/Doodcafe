@@ -1,6 +1,6 @@
 const express = require('express');
 const { query, param } = require('express-validator');
-const { getCategories, getMenuItems, getMenuItem } = require('../controllers/menu.controller');
+const { getCategories, getMenuItems, getMenuItem, getMenuPublicSettings } = require('../controllers/menu.controller');
 const validate = require('../middleware/validate');
 
 const router = express.Router();
@@ -50,6 +50,7 @@ const menuItemIdValidation = [
 // ─── GET /api/menu & GET /api/v1/menu (DSA-powered Trie Search, QuickSort, Filtering)
 router.get('/', menuQueryValidation, validate, getMenuItems);
 router.get('/categories', getCategories);
+router.get('/settings', getMenuPublicSettings);
 router.get('/items', menuQueryValidation, validate, getMenuItems);
 router.get('/items/:id', menuItemIdValidation, validate, getMenuItem);
 

@@ -5,7 +5,7 @@ import { getItemImage } from '../utils/imageMapper';
 import { flyToCart } from '../utils/flyToCart';
 import toast from 'react-hot-toast';
 
-export default function ItemModal({ item, onClose }) {
+export default function ItemModal({ item, onClose, showPrice = true }) {
   const [quantity, setQuantity] = useState(1);
   const { addItem } = useCartStore();
 
@@ -111,7 +111,9 @@ export default function ItemModal({ item, onClose }) {
               onClick={handleAddToCart}
             >
               <ShoppingBag size={18} />
-              Add to Cart · ₹{item.price * quantity}
+              {showPrice && item.show_prices_to_public !== false
+                ? `Add to Cart · ₹${item.price * quantity}`
+                : 'Add to Cart'}
             </button>
           </div>
         </div>

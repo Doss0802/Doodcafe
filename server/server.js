@@ -113,8 +113,8 @@ app.use(
 );
 
 // ─── 3. Body Parsing & Input Sanitization ─────────────────────────────────────
-app.use(express.json({ limit: '10kb' }));
-app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
 // NoSQL Query Injection Sanitization (Strips out '$' and '.' operators)

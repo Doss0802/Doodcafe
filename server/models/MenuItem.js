@@ -48,6 +48,10 @@ const menuItemSchema = new mongoose.Schema(
       type: Number, // in minutes
       default: 10,
     },
+    show_prices_to_public: {
+      type: Boolean,
+      default: true, // prices visible by default; admin can toggle off globally
+    },
   },
   { timestamps: true }
 );
