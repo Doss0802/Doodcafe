@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   TrendingUp, DollarSign, ShoppingBag, Flame, CheckCircle2,
-  RefreshCw, Radio, Sparkles, X, UserRound, MapPin, ExternalLink, Navigation, Compass, ChefHat
+  RefreshCw, Radio, Sparkles, X, UserRound, MapPin, ExternalLink, Navigation, Compass
 } from 'lucide-react';
 import axiosInstance from '../../api/axiosInstance';
 // Socket.io disabled — using axios polling instead
@@ -509,15 +509,6 @@ export default function AdminDashboard() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Link
-              to="/admin/menu-manager"
-              className="btn btn-secondary adm-refresh-btn"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}
-              title="Open Menu Manager"
-            >
-              <ChefHat size={15} />
-              Menu Manager
-            </Link>
             <button
               className="btn btn-secondary adm-refresh-btn"
               onClick={() => fetchDashboardData(true)}
