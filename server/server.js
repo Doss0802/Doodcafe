@@ -38,17 +38,27 @@ const WS_ALLOWED_ORIGINS = [
   'http://localhost:5175',
   'http://127.0.0.1:5173',
   'http://127.0.0.1:5174',
+  'https://onrender.com',
+  'https://doodcafe.onrender.com',
+  'https://doodcafe-frontend.onrender.com',
+  'https://doodcafe-client.onrender.com',
 ].filter(Boolean);
 
 // Initialize Socket.io — explicit origin list required when credentials:true
 const io = new Server(httpServer, {
   cors: {
     origin: (origin, cb) => {
-      // Allow no-origin (Postman, curl) and all localhost ports
-      if (!origin || /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) {
+      // Allow no-origin (Postman, curl), all localhost ports, and Render URLs
+      if (
+        !origin ||
+        /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin) ||
+        /\.onrender\.com$/i.test(origin) ||
+        origin.endsWith('.onrender.com') ||
+        WS_ALLOWED_ORIGINS.includes(origin)
+      ) {
         return cb(null, true);
       }
-      return cb(null, WS_ALLOWED_ORIGINS.includes(origin));
+      return cb(null, false);
     },
     methods: ['GET', 'POST', 'PATCH'],
     credentials: true,
@@ -86,8 +96,8 @@ app.use(
   })
 );
 
-// Dynamic CORS Origin Evaluator — explicitly supports http://localhost:5174 (Vite default)
-// alongside 5173, 5175, and any CLIENT_ORIGIN env override.
+// Dynamic CORS Origin Evaluator — explicitly supports http://localhost:5174 (local dev)
+// alongside 5173, 5175, live Render URLs (e.g., https://onrender.com), and CLIENT_ORIGIN.
 const allowedOrigins = [
   process.env.CLIENT_ORIGIN,
   'http://localhost:5173',
@@ -95,13 +105,24 @@ const allowedOrigins = [
   'http://localhost:5175',
   'http://127.0.0.1:5173',
   'http://127.0.0.1:5174',
+  'https://onrender.com',
+  'https://doodcafe.onrender.com',
+  'https://doodcafe-frontend.onrender.com',
+  'https://doodcafe-client.onrender.com',
 ].filter(Boolean);
 
 app.use(
   cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (like mobile apps, curl, or Postman)
-      if (!origin || allowedOrigins.includes(origin) || /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) {
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin) ||
+        /\.onrender\.com$/i.test(origin) ||
+        origin.endsWith('.onrender.com') ||
+        origin.includes('onrender.com')
+      ) {
         return callback(null, true);
       }
       return callback(null, true);

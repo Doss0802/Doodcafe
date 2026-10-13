@@ -1,10 +1,10 @@
 import axios from 'axios';
 
 // In development: falls back to local server. In production: uses VITE_API_URL from .env
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const axiosInstance = axios.create({
-  baseURL: API_BASE,
+  baseURL: API_URL,
   withCredentials: true, // send httpOnly refresh cookie
   timeout: 15000,
 });
@@ -71,7 +71,7 @@ axiosInstance.interceptors.response.use(
 
       try {
         const { data } = await axios.post(
-          `${API_BASE}/auth/refresh`,
+          `${API_URL}/auth/refresh`,
           {},
           { withCredentials: true }
         );
