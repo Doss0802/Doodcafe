@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ChefHat, Edit3, Trash2, Check, X, Upload, RefreshCw,
-  Search, DollarSign, Leaf, Star, Clock, Tag,
+  DollarSign, Leaf, Star, Clock, Tag,
   AlertCircle, Loader2, ShieldAlert, ArrowLeft, Plus,
 } from 'lucide-react';
 import axiosInstance from '../../api/axiosInstance';
@@ -426,7 +426,6 @@ export default function MenuManager() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null); // null = Add, object = Update
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
   const [savingId, setSavingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [page, setPage] = useState(1);
@@ -524,10 +523,7 @@ export default function MenuManager() {
     }
   }, [updateStoreItem]);
 
-  /* ── Filtered view (Name search only, category search purged) ── */
-  const filtered = items.filter((it) =>
-    it.name?.toLowerCase().includes(search.toLowerCase())
-  );
+
 
   return (
     <main className="mm-root">
@@ -564,23 +560,6 @@ export default function MenuManager() {
         </div>
       </div>
 
-      {/* ── Search bar (Dish name search only) ── */}
-      <div className="mm-search-wrap">
-        <Search size={15} className="mm-search-icon" />
-        <input
-          id="mm-search-input"
-          type="text"
-          className="mm-search"
-          placeholder="Search menu items by name…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        {search && (
-          <button className="mm-search-clear" onClick={() => setSearch('')}>
-            <X size={13} />
-          </button>
-        )}
-      </div>
 
       {/* ── Loading state ── */}
       {loading && (
@@ -591,17 +570,17 @@ export default function MenuManager() {
       )}
 
       {/* ── Empty state ── */}
-      {!loading && filtered.length === 0 && (
+      {!loading && items.length === 0 && (
         <div className="mm-empty">
           <AlertCircle size={36} style={{ color: '#D4A017', opacity: 0.6 }} />
-          <p>No items found{search ? ` for "${search}"` : ''}.</p>
+          <p>No menu items found. Add your first dish above.</p>
         </div>
       )}
 
       {/* ── Items Grid (Responsive fluid cards) ── */}
-      {!loading && filtered.length > 0 && (
+      {!loading && items.length > 0 && (
         <div className="mm-grid">
-          {filtered.map((item) => (
+          {items.map((item) => (
             <div
               key={item._id}
               className={`mm-card ${!item.available ? 'mm-card-unavailable' : ''}`}
