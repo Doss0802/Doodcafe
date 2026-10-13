@@ -78,8 +78,8 @@ const connectDB = async () => {
           }
         }
 
-        logger.error('💥 Fatal: Could not establish MongoDB database connection after max retries.');
-        process.exit(1);
+        logger.error('⚠️ Could not establish initial MongoDB database connection. Server remains active; verify MONGODB_URI in Render dashboard and ensure MongoDB Atlas allows IP 0.0.0.0/0.');
+        return null;
       }
 
       await new Promise((resolve) => setTimeout(resolve, delay));

@@ -210,12 +210,19 @@ const PORT = process.env.PORT || 5000;
 let server;
 
 const startServer = async () => {
-  await connectDB();
-  server = httpServer.listen(PORT, () => {
-    logger.info(`Dood Cafe Production Server running on http://localhost:${PORT}`);
+  // Bind HTTP server immediately to 0.0.0.0 for cloud providers (Render, Railway, etc.)
+  server = httpServer.listen(PORT, '0.0.0.0', () => {
+    logger.info(`Dood Cafe Production Server listening on 0.0.0.0:${PORT}`);
     logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
     logger.info(`Security Stack Active: Helmet, RateLimiter, MongoSanitize, HPP, TokenVersion, Socket.io`);
   });
+
+  // Connect database asynchronously
+  try {
+    await connectDB();
+  } catch (err) {
+    logger.error('Database connection error on boot:', err.message);
+  }
 };
 
 if (process.env.NODE_ENV !== 'test') {
