@@ -152,25 +152,15 @@ app.use('/api/v1/users', usersRoutes);
 app.use('/api/v1/admin/dashboard', dashboardRoutes);
 app.use('/api/v1/admin', adminRoutes);
 
-// Backward Compatibility & Root Aliases (/api/* -> /api/v1/* and root /*)
+// ─── Backward Compatibility: /api/* aliases ────────────────────────────────
 app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/menu', menuRoutes);
 app.use('/api/menu-items', menuItemRoutes);
-app.use('/api/items', menuItemRoutes);
-app.use('/api/item', menuItemRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/admin/dashboard', dashboardRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/admin', adminRoutes);
-app.use('/auth', authRoutes);
-app.use('/menu', menuRoutes);
-app.use('/menu-items', menuItemRoutes);
-app.use('/items', menuItemRoutes);
-app.use('/orders', orderRoutes);
-app.use('/users', usersRoutes);
-app.use('/health', healthRoutes);
 
 
 // ─── 6. Base Health Route ────────────────────────────────────────────────────

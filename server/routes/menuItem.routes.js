@@ -490,7 +490,9 @@ const deleteMenuItem = async (req, res, next) => {
   }
 };
 
-// ─── Public GET Routes (optional auth — admin sees all items, guests see available only) ──
+// ─── Public GET Routes ────────────────────────────────────────────────────────
+// optionalAuth populates req.user if Bearer token present (no hard block)
+// Admin users see ALL items; guests see only available items
 router.get('/', optionalAuth, getMenuItemsList);
 router.get('/items', optionalAuth, getMenuItemsList);
 router.get('/:id', optionalAuth, [
@@ -498,7 +500,7 @@ router.get('/:id', optionalAuth, [
   validate,
 ], getSingleMenuItem);
 
-// ─── Admin CRUD Routes (JWT auth + isAdmin required) ───────────────────────
+// ─── Admin CRUD Routes (JWT protect + isAdmin role required) ─────────────────
 router.post(
   '/',
   protect,
@@ -511,32 +513,8 @@ router.post(
   createMenuItem
 );
 
-router.post(
-  '/menu-items',
-  protect,
-  isAdmin,
-  sensitiveLimiter,
-  uploadSingle('image'),
-  sanitizePayload,
-  createMenuItemValidation,
-  validate,
-  createMenuItem
-);
-
 router.put(
   '/:id',
-  protect,
-  isAdmin,
-  sensitiveLimiter,
-  uploadSingle('image'),
-  sanitizePayload,
-  updateMenuItemValidation,
-  validate,
-  updateMenuItem
-);
-
-router.put(
-  '/menu-items/:id',
   protect,
   isAdmin,
   sensitiveLimiter,
@@ -559,18 +537,6 @@ router.patch(
   updateMenuItem
 );
 
-router.patch(
-  '/menu-items/:id',
-  protect,
-  isAdmin,
-  sensitiveLimiter,
-  uploadSingle('image'),
-  sanitizePayload,
-  updateMenuItemValidation,
-  validate,
-  updateMenuItem
-);
-
 router.delete(
   '/:id',
   protect,
@@ -582,17 +548,7 @@ router.delete(
   deleteMenuItem
 );
 
-router.delete(
-  '/menu-items/:id',
-  protect,
-  isAdmin,
-  sensitiveLimiter,
-  sanitizePayload,
-  deleteMenuItemValidation,
-  validate,
-  deleteMenuItem
-);
-
+// ─── Handler exports (used by admin panel internals if needed) ────────────────
 router.createMenuItem = createMenuItem;
 router.updateMenuItem = updateMenuItem;
 router.deleteMenuItem = deleteMenuItem;

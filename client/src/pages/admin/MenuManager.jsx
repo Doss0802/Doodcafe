@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ChefHat, Edit3, Trash2, Check, X, Upload, RefreshCw,
+  ChefHat, Edit3, Trash2, Check, X, RefreshCw,
   DollarSign, Leaf, Star, Clock, Tag,
   AlertCircle, Loader2, ShieldAlert, ArrowLeft, Plus,
 } from 'lucide-react';

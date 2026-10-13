@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Connect React client to live backend on Render
-const API_BASE = import.meta.env.VITE_API_URL || 'https://doodcafe.onrender.com/api';
+// In development: falls back to local server. In production: uses VITE_API_URL from .env
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const axiosInstance = axios.create({
   baseURL: API_BASE,
@@ -12,6 +12,10 @@ const axiosInstance = axios.create({
 // Attach access token to every request
 axiosInstance.interceptors.request.use(
   (config) => {
+    // Strip duplicate /api prefix if caller passes /api/path while baseURL ends with /api
+    if (config.url?.startsWith('/api/')) {
+      config.url = config.url.replace(/^\/api/, '');
+    }
     const token = localStorage.getItem('accessToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
