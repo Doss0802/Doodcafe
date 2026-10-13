@@ -6,7 +6,7 @@ const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
 const mongoSanitize = require('express-mongo-sanitize');
 const hpp = require('hpp');
-const mongoose = require('mongoose');
+const sequelize = require('./src/config/db');
 
 const http = require('http');
 const { Server } = require('socket.io');
@@ -242,9 +242,9 @@ const gracefulShutdown = async (signal) => {
       await new Promise((resolve) => server.close(resolve));
       logger.info('HTTP server closed.');
     }
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.connection.close();
-      logger.info('MongoDB connection closed.');
+    if (sequelize) {
+      await sequelize.close();
+      logger.info('PostgreSQL connection closed.');
     }
     clearTimeout(forceTimeout);
     process.exit(0);

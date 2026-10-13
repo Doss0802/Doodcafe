@@ -1,40 +1,39 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../src/config/db');
 
-/**
- * SiteSettings — singleton document model.
- * There is always exactly ONE document in this collection, keyed by SINGLETON_KEY.
- * All global configuration flags that need to be persisted and read by the frontend live here.
- */
 const SINGLETON_KEY = 'global';
 
-const siteSettingsSchema = new mongoose.Schema(
-  {
-    key: {
-      type: String,
-      default: SINGLETON_KEY,
-      unique: true,
-      immutable: true,
-    },
-    // ── Price Display Control ───────────────────────────────────
-    // When false, customer-facing MenuCard components hide all price tags.
-    show_prices_to_public: {
-      type: Boolean,
-      default: true,
+const SiteSettings = sequelize.define('SiteSettings', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
+  },
+  key: {
+    type: DataTypes.STRING,
+    defaultValue: SINGLETON_KEY,
+    unique: true,
+  },
+  show_prices_to_public: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
+  },
+  _id: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return this.id;
     },
   },
-  { timestamps: true }
-);
+}, {
+  timestamps: true,
+  tableName: 'site_settings',
+});
 
-const SiteSettings = mongoose.model('SiteSettings', siteSettingsSchema);
-
-/**
- * getSettings() — always returns the singleton document, creating it if absent.
- */
 SiteSettings.getSettings = async function () {
-  let doc = await SiteSettings.findOne({ key: SINGLETON_KEY });
-  if (!doc) {
-    doc = await SiteSettings.create({ key: SINGLETON_KEY });
-  }
+  let [doc] = await SiteSettings.findOrCreate({
+    where: { key: SINGLETON_KEY },
+    defaults: { key: SINGLETON_KEY, show_prices_to_public: true },
+  });
   return doc;
 };
 

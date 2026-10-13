@@ -1,101 +1,114 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
 const bcrypt = require('bcryptjs');
+const sequelize = require('../src/config/db');
 
-const userSchema = new mongoose.Schema(
-  {
-    name: {
-      type: String,
-      required: [true, 'Name is required'],
-      trim: true,
-      maxlength: [50, 'Name cannot exceed 50 characters'],
-    },
-    email: {
-      type: String,
-      required: [true, 'Email is required'],
-      unique: true,
-      lowercase: true,
-      trim: true,
-      maxlength: [100, 'Email cannot exceed 100 characters'],
-      match: [/^[a-zA-Z0-9]+([._%+-][a-zA-Z0-9]+)*@[a-zA-Z0-9]+([.-][a-zA-Z0-9]+)*\.[a-zA-Z]{2,}$/, 'Please provide a valid email address'],
-    },
-    passwordHash: {
-      type: String,
-      required: true,
-      select: false,
-    },
-    role: {
-      type: String,
-      enum: ['customer', 'manager', 'admin'],
-      default: 'customer',
-    },
-    phone: {
-      type: String,
-      trim: true,
-      maxlength: [15, 'Phone number cannot exceed 15 characters'],
-      match: [/^\+?[0-9]{10,14}$/, 'Phone number must contain numbers and optional plus prefix only (10-14 digits)'],
-    },
-    tokenVersion: {
-      type: Number,
-      default: 0,
-    },
-    failedLoginAttempts: {
-      type: Number,
-      default: 0,
-    },
-    lockUntil: {
-      type: Date,
-    },
-    refreshToken: {
-      type: String,
-      select: false,
+const User = sequelize.define('User', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
+  },
+  name: {
+    type: DataTypes.STRING(50),
+    allowNull: false,
+    validate: {
+      notEmpty: { msg: 'Name is required' },
+      len: [1, 50],
     },
   },
-  { timestamps: true }
-);
-
-// Virtual property to check if account is currently locked
-userSchema.virtual('isLocked').get(function () {
-  return !!(this.lockUntil && this.lockUntil > Date.now());
+  email: {
+    type: DataTypes.STRING(100),
+    allowNull: false,
+    unique: { msg: 'Email address already in use' },
+    validate: {
+      isEmail: { msg: 'Please provide a valid email address' },
+    },
+    set(value) {
+      if (value) this.setDataValue('email', value.toLowerCase().trim());
+    },
+  },
+  passwordHash: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  role: {
+    type: DataTypes.ENUM('customer', 'manager', 'admin'),
+    defaultValue: 'customer',
+  },
+  phone: {
+    type: DataTypes.STRING(15),
+    allowNull: true,
+  },
+  tokenVersion: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+  },
+  failedLoginAttempts: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+  },
+  lockUntil: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  refreshToken: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  _id: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return this.id;
+    },
+  },
+  isLocked: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return !!(this.lockUntil && new Date(this.lockUntil) > new Date());
+    },
+  },
+}, {
+  timestamps: true,
+  tableName: 'users',
+  hooks: {
+    beforeCreate: async (user) => {
+      if (user.passwordHash) {
+        user.passwordHash = await bcrypt.hash(user.passwordHash, 12);
+      }
+    },
+    beforeUpdate: async (user) => {
+      if (user.changed('passwordHash')) {
+        user.passwordHash = await bcrypt.hash(user.passwordHash, 12);
+      }
+    },
+  },
 });
 
-// Hash password before saving
-userSchema.pre('save', async function () {
-  if (!this.isModified('passwordHash')) return;
-  this.passwordHash = await bcrypt.hash(this.passwordHash, 12);
-});
-
-// Compare password method
-userSchema.methods.matchPassword = async function (enteredPassword) {
+// Compare password instance method
+User.prototype.matchPassword = async function (enteredPassword) {
   return bcrypt.compare(enteredPassword, this.passwordHash);
 };
 
 // Handle failed login attempt for lockout protection
-userSchema.methods.incFailedLogin = async function () {
-  // Reset lock if lockout period has expired
-  if (this.lockUntil && this.lockUntil < Date.now()) {
-    return this.updateOne({
-      $set: { failedLoginAttempts: 1 },
-      $unset: { lockUntil: 1 },
-    });
+User.prototype.incFailedLogin = async function () {
+  if (this.lockUntil && new Date(this.lockUntil) < new Date()) {
+    this.failedLoginAttempts = 1;
+    this.lockUntil = null;
+    return this.save();
   }
 
-  const updates = { $inc: { failedLoginAttempts: 1 } };
-  // Lock account for 15 mins after 5 consecutive failed attempts
-  if (this.failedLoginAttempts + 1 >= 5 && !this.isLocked) {
-    updates.$set = { lockUntil: new Date(Date.now() + 15 * 60 * 1000) };
+  this.failedLoginAttempts += 1;
+  if (this.failedLoginAttempts >= 5 && !this.isLocked) {
+    this.lockUntil = new Date(Date.now() + 15 * 60 * 1000);
   }
-  return this.updateOne(updates);
+  return this.save();
 };
 
 // Reset failed attempts on successful login
-userSchema.methods.resetFailedLogin = async function () {
-  return this.updateOne({
-    $set: { failedLoginAttempts: 0 },
-    $unset: { lockUntil: 1 },
-  });
+User.prototype.resetFailedLogin = async function () {
+  this.failedLoginAttempts = 0;
+  this.lockUntil = null;
+  return this.save();
 };
 
-// Indexes
-userSchema.index({ role: 1 });
-
-module.exports = mongoose.model('User', userSchema);
+module.exports = User;

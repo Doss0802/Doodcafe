@@ -1,65 +1,97 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../src/config/db');
+const Category = require('./Category');
 
-const menuItemSchema = new mongoose.Schema(
-  {
-    name: {
-      type: String,
-      required: [true, 'Item name is required'],
-      trim: true,
-      maxlength: [80, 'Item name cannot exceed 80 characters'],
-    },
-    description: {
-      type: String,
-      trim: true,
-      maxlength: [300, 'Description cannot exceed 300 characters'],
-    },
-    price: {
-      type: Number,
-      required: [true, 'Price is required'],
-      min: [0, 'Price cannot be negative'],
-    },
-    category: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Category',
-      required: [true, 'Category is required'],
-    },
-    imageUrl: {
-      type: String,
-      default: '',
-    },
-    image: {
-      type: String,
-      default: '',
-    },
-    tags: [{ type: String, trim: true }],
-    available: {
-      type: Boolean,
-      default: true,
-    },
-    isVeg: {
-      type: Boolean,
-      default: false,
-    },
-    isBestseller: {
-      type: Boolean,
-      default: false,
-    },
-    preparationTime: {
-      type: Number, // in minutes
-      default: 10,
-    },
-    show_prices_to_public: {
-      type: Boolean,
-      default: true, // prices visible by default; admin can toggle off globally
+const MenuItem = sequelize.define('MenuItem', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
+  },
+  name: {
+    type: DataTypes.STRING(80),
+    allowNull: false,
+    validate: {
+      notEmpty: { msg: 'Item name is required' },
+      len: [1, 80],
     },
   },
-  { timestamps: true }
-);
+  description: {
+    type: DataTypes.STRING(300),
+    allowNull: true,
+    defaultValue: '',
+  },
+  price: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    validate: {
+      min: { args: [0], msg: 'Price cannot be negative' },
+    },
+    get() {
+      const rawValue = this.getDataValue('price');
+      return rawValue !== null ? parseFloat(rawValue) : 0;
+    },
+  },
+  categoryId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'categories',
+      key: 'id',
+    },
+    onUpdate: 'CASCADE',
+    onDelete: 'CASCADE',
+  },
+  imageUrl: {
+    type: DataTypes.TEXT,
+    defaultValue: '',
+  },
+  image: {
+    type: DataTypes.TEXT,
+    defaultValue: '',
+  },
+  tags: {
+    type: DataTypes.JSON,
+    defaultValue: [],
+  },
+  available: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
+  },
+  isVeg: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  isBestseller: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  preparationTime: {
+    type: DataTypes.INTEGER,
+    defaultValue: 10,
+  },
+  show_prices_to_public: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
+  },
+  _id: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return this.id;
+    },
+  },
+}, {
+  timestamps: true,
+  tableName: 'menu_items',
+  indexes: [
+    { fields: ['categoryId', 'available', 'price'] },
+    { fields: ['isBestseller', 'available'] },
+    { fields: ['available', 'isVeg'] },
+  ],
+});
 
-// Compound indexes for query optimization
-menuItemSchema.index({ category: 1, available: 1, price: 1 });
-menuItemSchema.index({ isBestseller: -1, available: 1 });
-menuItemSchema.index({ available: 1, isVeg: 1 });
-menuItemSchema.index({ name: 'text', description: 'text', tags: 'text' }); // full-text search index
+// Associations
+MenuItem.belongsTo(Category, { foreignKey: 'categoryId', as: 'category' });
+Category.hasMany(MenuItem, { foreignKey: 'categoryId', as: 'items' });
 
-module.exports = mongoose.model('MenuItem', menuItemSchema);
+module.exports = MenuItem;

@@ -13,9 +13,8 @@ const orderValidation = [
     .optional({ nullable: true, checkFalsy: true })
     .custom((val) => {
       if (!val) return true;
-      const mongoose = require('mongoose');
-      if (!mongoose.Types.ObjectId.isValid(val)) {
-        throw new Error('menuItemId must be a valid MongoDB ID if provided');
+      if (typeof val !== 'string' || val.trim().length === 0) {
+        throw new Error('menuItemId must be a valid ID if provided');
       }
       return true;
     }),

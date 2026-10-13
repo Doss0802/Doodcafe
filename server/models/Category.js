@@ -1,38 +1,53 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../src/config/db');
 
-const categorySchema = new mongoose.Schema(
-  {
-    name: {
-      type: String,
-      required: [true, 'Category name is required'],
-      unique: true,
-      trim: true,
-      maxlength: [50, 'Category name cannot exceed 50 characters'],
-    },
-    slug: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-      trim: true,
-      maxlength: [50, 'Slug cannot exceed 50 characters'],
-    },
-    icon: {
-      type: String,
-      default: '🍽️',
-    },
-    displayOrder: {
-      type: Number,
-      default: 0,
-    },
-    isActive: {
-      type: Boolean,
-      default: true,
+const Category = sequelize.define('Category', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
+  },
+  name: {
+    type: DataTypes.STRING(50),
+    allowNull: false,
+    unique: true,
+    validate: {
+      notEmpty: { msg: 'Category name is required' },
+      len: [1, 50],
     },
   },
-  { timestamps: true }
-);
+  slug: {
+    type: DataTypes.STRING(50),
+    allowNull: false,
+    unique: true,
+    set(value) {
+      if (value) this.setDataValue('slug', value.toLowerCase().trim());
+    },
+  },
+  icon: {
+    type: DataTypes.STRING,
+    defaultValue: '🍽️',
+  },
+  displayOrder: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+  },
+  isActive: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
+  },
+  _id: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return this.id;
+    },
+  },
+}, {
+  timestamps: true,
+  tableName: 'categories',
+  indexes: [
+    { fields: ['displayOrder', 'isActive'] },
+  ],
+});
 
-categorySchema.index({ displayOrder: 1, isActive: 1 });
-
-module.exports = mongoose.model('Category', categorySchema);
+module.exports = Category;
