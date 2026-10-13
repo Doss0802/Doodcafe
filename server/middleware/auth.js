@@ -57,4 +57,18 @@ const requireRole = (...roles) => (req, res, next) => {
   next();
 };
 
-module.exports = { protect, requireRole };
+/**
+ * isAdmin — Admin role verification middleware guard
+ * Usage: router.post('/menu-items', protect, isAdmin, handler)
+ */
+const isAdmin = (req, res, next) => {
+  if (!req.user || req.user.role !== 'admin') {
+    return ApiResponse.error(res, {
+      statusCode: 403,
+      message: 'Access denied. Administrator privileges required.',
+    });
+  }
+  next();
+};
+
+module.exports = { protect, requireRole, isAdmin };

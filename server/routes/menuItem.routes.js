@@ -5,7 +5,7 @@ const mongoSanitize = require('express-mongo-sanitize');
 const MenuItem = require('../models/MenuItem');
 const Category = require('../models/Category');
 const ApiResponse = require('../utils/ApiResponse');
-const { protect, requireRole } = require('../middleware/auth');
+const { protect, requireRole, isAdmin } = require('../middleware/auth');
 const { uploadSingle } = require('../middleware/upload');
 const validate = require('../middleware/validate');
 const { sensitiveLimiter } = require('../middleware/rateLimiter');
@@ -369,10 +369,22 @@ const deleteMenuItem = async (req, res, next) => {
 router.post(
   '/',
   protect,
-  requireRole('admin'),
+  isAdmin,
   sensitiveLimiter,
-  sanitizePayload,
   uploadSingle('image'),
+  sanitizePayload,
+  createMenuItemValidation,
+  validate,
+  createMenuItem
+);
+
+router.post(
+  '/menu-items',
+  protect,
+  isAdmin,
+  sensitiveLimiter,
+  uploadSingle('image'),
+  sanitizePayload,
   createMenuItemValidation,
   validate,
   createMenuItem
@@ -381,10 +393,22 @@ router.post(
 router.put(
   '/:id',
   protect,
-  requireRole('admin'),
+  isAdmin,
   sensitiveLimiter,
-  sanitizePayload,
   uploadSingle('image'),
+  sanitizePayload,
+  updateMenuItemValidation,
+  validate,
+  updateMenuItem
+);
+
+router.put(
+  '/menu-items/:id',
+  protect,
+  isAdmin,
+  sensitiveLimiter,
+  uploadSingle('image'),
+  sanitizePayload,
   updateMenuItemValidation,
   validate,
   updateMenuItem
@@ -393,10 +417,22 @@ router.put(
 router.patch(
   '/:id',
   protect,
-  requireRole('admin'),
+  isAdmin,
   sensitiveLimiter,
-  sanitizePayload,
   uploadSingle('image'),
+  sanitizePayload,
+  updateMenuItemValidation,
+  validate,
+  updateMenuItem
+);
+
+router.patch(
+  '/menu-items/:id',
+  protect,
+  isAdmin,
+  sensitiveLimiter,
+  uploadSingle('image'),
+  sanitizePayload,
   updateMenuItemValidation,
   validate,
   updateMenuItem
@@ -405,12 +441,31 @@ router.patch(
 router.delete(
   '/:id',
   protect,
-  requireRole('admin'),
+  isAdmin,
   sensitiveLimiter,
   sanitizePayload,
   deleteMenuItemValidation,
   validate,
   deleteMenuItem
 );
+
+router.delete(
+  '/menu-items/:id',
+  protect,
+  isAdmin,
+  sensitiveLimiter,
+  sanitizePayload,
+  deleteMenuItemValidation,
+  validate,
+  deleteMenuItem
+);
+
+router.createMenuItem = createMenuItem;
+router.updateMenuItem = updateMenuItem;
+router.deleteMenuItem = deleteMenuItem;
+router.sanitizePayload = sanitizePayload;
+router.createMenuItemValidation = createMenuItemValidation;
+router.updateMenuItemValidation = updateMenuItemValidation;
+router.deleteMenuItemValidation = deleteMenuItemValidation;
 
 module.exports = router;
