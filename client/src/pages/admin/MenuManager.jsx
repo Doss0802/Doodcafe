@@ -442,12 +442,14 @@ export default function MenuManager() {
     }
   }, []);
 
-  /* ── Fetch menu items ── */
+  /* ── Fetch menu items (admin view — shows all items including unavailable) ── */
   const fetchItems = useCallback(async (p = 1) => {
     setLoading(true);
     try {
-      const { data } = await axiosInstance.get(`/menu-items?page=${p}&limit=30`);
-      setItems(data.data || [], { total: data.meta?.total || 0, pages: data.meta?.pages || 1 });
+      const { data } = await axiosInstance.get(`/menu-items?page=${p}&limit=30&available=false`);
+      const metaTotal = data.meta?.total ?? data.meta?.pagination?.total ?? 0;
+      const metaPages = data.meta?.pages ?? data.meta?.pagination?.pages ?? 1;
+      setItems(data.data || [], { total: metaTotal, pages: metaPages });
       setPage(p);
     } catch (err) {
       toast.error('Failed to load menu items');

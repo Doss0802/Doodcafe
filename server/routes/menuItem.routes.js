@@ -1,6 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const { body, param } = require('express-validator');
+const { body, param, query } = require('express-validator');
 const mongoSanitize = require('express-mongo-sanitize');
 const MenuItem = require('../models/MenuItem');
 const Category = require('../models/Category');
@@ -11,6 +11,131 @@ const validate = require('../middleware/validate');
 const { sensitiveLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
+
+/**
+ * @desc   Get all menu items with optional pagination & filtering
+ * @route  GET /api/menu-items or GET /api/v1/menu-items
+ * @access Public
+ */
+const getMenuItemsList = async (req, res, next) => {
+  try {
+    const {
+      category,
+      search,
+      available,
+      page = 1,
+      limit = 30,
+    } = req.query;
+
+    const filter = {};
+    if (available === 'false') {
+      // admin view: show all items including unavailable
+    } else {
+      // default: only show available items on customer-facing views; admin needs all
+      // Check if admin request — allow all; otherwise only available
+      const isAdminReq = req.user && req.user.role === 'admin';
+      if (!isAdminReq) filter.available = true;
+    }
+
+    if (category && category !== 'all') {
+      const cat = await Category.findOne({
+        $or: [{ slug: category }, { name: new RegExp(`^${category}$`, 'i') }],
+      }).select('_id').lean();
+      if (cat) filter.category = cat._id;
+    }
+
+    if (search && search.trim()) {
+      filter.$or = [
+        { name: new RegExp(search.trim(), 'i') },
+        { description: new RegExp(search.trim(), 'i') },
+      ];
+    }
+
+    const pageNum = Math.max(1, parseInt(page, 10));
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10)));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [total, items] = await Promise.all([
+      MenuItem.countDocuments(filter),
+      MenuItem.find(filter)
+        .populate('category', 'name slug icon')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
+    ]);
+
+    return ApiResponse.success(res, {
+      statusCode: 200,
+      message: 'Menu items fetched successfully',
+      data: items,
+      meta: {
+        total,
+        page: pageNum,
+        pages: Math.ceil(total / limitNum) || 1,
+        limit: limitNum,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc   Get a single menu item by ID
+ * @route  GET /api/menu-items/:id
+ * @access Public
+ */
+const getSingleMenuItem = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return ApiResponse.error(res, { statusCode: 400, message: 'Invalid menu item ID format' });
+    }
+
+    const item = await MenuItem.findById(id)
+      .populate('category', 'name slug icon')
+      .lean();
+
+    if (!item) {
+      return ApiResponse.error(res, { statusCode: 404, message: 'Menu item not found' });
+    }
+
+    return ApiResponse.success(res, {
+      statusCode: 200,
+      message: 'Menu item fetched successfully',
+      data: item,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Optional JWT auth — populates req.user if valid Bearer token is present,
+ * but does NOT block the request if token is absent or invalid.
+ * Used on public GET routes to detect admin access without requiring login.
+ */
+const optionalAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const jwt = require('jsonwebtoken');
+      const User = require('../models/User');
+      const token = authHeader.split(' ')[1];
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+        const user = await User.findById(decoded.id).select('role').lean();
+        if (user) req.user = user;
+      } catch (_) {
+        // Invalid/expired token — continue as guest
+      }
+    }
+    next();
+  } catch (error) {
+    next();
+  }
+};
 
 /**
  * Payload sanitization guard against NoSQL query injections
@@ -365,7 +490,15 @@ const deleteMenuItem = async (req, res, next) => {
   }
 };
 
-// Route declarations: protected by JWT auth & strict admin role evaluation
+// ─── Public GET Routes (optional auth — admin sees all items, guests see available only) ──
+router.get('/', optionalAuth, getMenuItemsList);
+router.get('/items', optionalAuth, getMenuItemsList);
+router.get('/:id', optionalAuth, [
+  param('id').isMongoId().withMessage('Invalid menu item ID format'),
+  validate,
+], getSingleMenuItem);
+
+// ─── Admin CRUD Routes (JWT auth + isAdmin required) ───────────────────────
 router.post(
   '/',
   protect,
