@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import axiosInstance from '../../api/axiosInstance';
 import useAuthStore from '../../store/authStore';
+import useMenuStore from '../../store/menuStore';
 import toast from 'react-hot-toast';
 
 /* ─── Badge Helper ─────────────────────────────────────────── */
@@ -412,7 +413,15 @@ export default function MenuManager() {
     );
   }
 
-  const [items, setItems] = useState([]);
+  const {
+    items,
+    meta,
+    setItems,
+    addItem: addStoreItem,
+    updateItem: updateStoreItem,
+    removeItem: removeStoreItem,
+  } = useMenuStore();
+
   const [categories, setCategories] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null); // null = Add, object = Update
@@ -420,7 +429,6 @@ export default function MenuManager() {
   const [search, setSearch] = useState('');
   const [savingId, setSavingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
-  const [meta, setMeta] = useState({ total: 0, pages: 1 });
   const [page, setPage] = useState(1);
 
   /* ── Fetch categories for insertion & update form ── */
@@ -440,30 +448,28 @@ export default function MenuManager() {
     setLoading(true);
     try {
       const { data } = await axiosInstance.get(`/admin/menu-items?page=${p}&limit=30`);
-      setItems(data.data || []);
-      setMeta({ total: data.meta?.total || 0, pages: data.meta?.pages || 1 });
+      setItems(data.data || [], { total: data.meta?.total || 0, pages: data.meta?.pages || 1 });
       setPage(p);
     } catch (err) {
       toast.error('Failed to load menu items');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [setItems]);
 
   useEffect(() => {
     fetchCategories();
     fetchItems(1);
   }, [fetchCategories, fetchItems]);
 
-  /* ── Item saved callback (Create / Update) ── */
+  /* ── Item saved callback (Create / Update via Zustand 5 store) ── */
   const handleItemSaved = useCallback((savedItem, isEdit) => {
     if (isEdit) {
-      setItems((prev) => prev.map((i) => (i._id === savedItem._id ? savedItem : i)));
+      updateStoreItem(savedItem);
     } else {
-      setItems((prev) => [savedItem, ...prev]);
-      setMeta((prev) => ({ ...prev, total: (prev.total || 0) + 1 }));
+      addStoreItem(savedItem);
     }
-  }, []);
+  }, [updateStoreItem, addStoreItem]);
 
   /* ── Open Edit Modal ── */
   const handleOpenEdit = useCallback((item) => {
@@ -471,7 +477,7 @@ export default function MenuManager() {
     setModalOpen(true);
   }, []);
 
-  /* ── Remove Menu Item ── */
+  /* ── Remove Menu Item (connected to DELETE API & Zustand store) ── */
   const handleRemoveItem = async (item) => {
     const confirmed = window.confirm(`Are you sure you want to remove "${item.name}" from the menu?`);
     if (!confirmed) return;
@@ -479,8 +485,7 @@ export default function MenuManager() {
     setDeletingId(item._id);
     try {
       await axiosInstance.delete(`/menu-items/${item._id}`);
-      setItems((prev) => prev.filter((i) => i._id !== item._id));
-      setMeta((prev) => ({ ...prev, total: Math.max(0, (prev.total || 1) - 1) }));
+      removeStoreItem(item._id);
       toast.success(`🗑️ "${item.name}" removed from menu`);
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to remove menu item');
@@ -495,14 +500,14 @@ export default function MenuManager() {
     try {
       const nextAvailable = !item.available;
       const { data } = await axiosInstance.patch(`/admin/menu-items/${item._id}`, { available: nextAvailable });
-      setItems((prev) => prev.map((it) => (it._id === item._id ? { ...it, ...data.data } : it)));
+      updateStoreItem({ ...item, ...data.data });
       toast.success(nextAvailable ? 'Item marked as available' : 'Item marked as unavailable');
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Update failed');
     } finally {
       setSavingId(null);
     }
-  }, []);
+  }, [updateStoreItem]);
 
   /* ── Toggle bestseller ── */
   const handleToggleBestseller = useCallback(async (item) => {
@@ -510,14 +515,14 @@ export default function MenuManager() {
     try {
       const nextBestseller = !item.isBestseller;
       const { data } = await axiosInstance.patch(`/admin/menu-items/${item._id}`, { isBestseller: nextBestseller });
-      setItems((prev) => prev.map((it) => (it._id === item._id ? { ...it, ...data.data } : it)));
+      updateStoreItem({ ...item, ...data.data });
       toast.success(nextBestseller ? 'Item marked as bestseller' : 'Bestseller status removed');
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Update failed');
     } finally {
       setSavingId(null);
     }
-  }, []);
+  }, [updateStoreItem]);
 
   /* ── Filtered view (Name search only, category search purged) ── */
   const filtered = items.filter((it) =>
@@ -537,7 +542,7 @@ export default function MenuManager() {
           </div>
           <div>
             <h1 className="mm-title">Menu Manager</h1>
-            <p className="mm-subtitle">{meta.total} items · Live dish inventory &amp; updates</p>
+            <p className="mm-subtitle">{meta?.total || items.length} items · Live dish inventory &amp; updates</p>
           </div>
         </div>
         <div className="mm-header-actions">
@@ -551,7 +556,7 @@ export default function MenuManager() {
             title="Add a new menu item"
           >
             <Plus size={15} />
-            <span>Add Menu Item</span>
+            <span>Add New Menu Item</span>
           </button>
           <button className="mm-refresh-btn" onClick={() => fetchItems(page)} disabled={loading} title="Refresh">
             <RefreshCw size={15} className={loading ? 'spin' : ''} />

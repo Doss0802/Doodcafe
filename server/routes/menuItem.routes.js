@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const { body } = require('express-validator');
+const { body, param } = require('express-validator');
+const mongoSanitize = require('express-mongo-sanitize');
 const MenuItem = require('../models/MenuItem');
 const Category = require('../models/Category');
 const ApiResponse = require('../utils/ApiResponse');
@@ -10,6 +11,19 @@ const validate = require('../middleware/validate');
 const { sensitiveLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
+
+/**
+ * Payload sanitization guard against NoSQL query injections
+ */
+const sanitizePayload = (req, res, next) => {
+  if (req.body && typeof req.body === 'object') {
+    mongoSanitize.sanitize(req.body, { replaceWith: '_' });
+  }
+  if (req.params && typeof req.params === 'object') {
+    mongoSanitize.sanitize(req.params, { replaceWith: '_' });
+  }
+  next();
+};
 
 /**
  * Validation rules for menu item creation.
@@ -61,6 +75,63 @@ const createMenuItemValidation = [
     .optional({ checkFalsy: true })
     .isString()
     .trim(),
+];
+
+/**
+ * Validation rules for menu item update.
+ */
+const updateMenuItemValidation = [
+  param('id')
+    .isMongoId()
+    .withMessage('Invalid menu item ID format'),
+  body('name')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 80 })
+    .withMessage('Item name must be between 1 and 80 characters')
+    .escape(),
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 300 })
+    .withMessage('Description cannot exceed 300 characters')
+    .escape(),
+  body('price')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Price must be a non-negative number')
+    .toFloat(),
+  body('category')
+    .optional()
+    .trim()
+    .escape(),
+  body('preparationTime')
+    .optional()
+    .isInt({ min: 1, max: 180 })
+    .withMessage('Preparation time must be between 1 and 180 minutes')
+    .toInt(),
+  body('isVeg')
+    .optional()
+    .toBoolean(),
+  body('isBestseller')
+    .optional()
+    .toBoolean(),
+  body('available')
+    .optional()
+    .toBoolean(),
+  body('imageUrl')
+    .optional({ checkFalsy: true })
+    .isString()
+    .trim(),
+];
+
+/**
+ * Validation rules for menu item removal.
+ */
+const deleteMenuItemValidation = [
+  param('id')
+    .isMongoId()
+    .withMessage('Invalid menu item ID format'),
 ];
 
 /**
@@ -300,6 +371,7 @@ router.post(
   protect,
   requireRole('admin'),
   sensitiveLimiter,
+  sanitizePayload,
   uploadSingle('image'),
   createMenuItemValidation,
   validate,
@@ -311,7 +383,10 @@ router.put(
   protect,
   requireRole('admin'),
   sensitiveLimiter,
+  sanitizePayload,
   uploadSingle('image'),
+  updateMenuItemValidation,
+  validate,
   updateMenuItem
 );
 
@@ -320,7 +395,10 @@ router.patch(
   protect,
   requireRole('admin'),
   sensitiveLimiter,
+  sanitizePayload,
   uploadSingle('image'),
+  updateMenuItemValidation,
+  validate,
   updateMenuItem
 );
 
@@ -329,6 +407,9 @@ router.delete(
   protect,
   requireRole('admin'),
   sensitiveLimiter,
+  sanitizePayload,
+  deleteMenuItemValidation,
+  validate,
   deleteMenuItem
 );
 
