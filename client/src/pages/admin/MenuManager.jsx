@@ -447,7 +447,7 @@ export default function MenuManager() {
   const fetchItems = useCallback(async (p = 1) => {
     setLoading(true);
     try {
-      const { data } = await axiosInstance.get(`/admin/menu-items?page=${p}&limit=30`);
+      const { data } = await axiosInstance.get(`/menu-items?page=${p}&limit=30`);
       setItems(data.data || [], { total: data.meta?.total || 0, pages: data.meta?.pages || 1 });
       setPage(p);
     } catch (err) {
@@ -499,7 +499,7 @@ export default function MenuManager() {
     setSavingId(item._id);
     try {
       const nextAvailable = !item.available;
-      const { data } = await axiosInstance.patch(`/admin/menu-items/${item._id}`, { available: nextAvailable });
+      const { data } = await axiosInstance.patch(`/menu-items/${item._id}`, { available: nextAvailable });
       updateStoreItem({ ...item, ...data.data });
       toast.success(nextAvailable ? 'Item marked as available' : 'Item marked as unavailable');
     } catch (err) {
@@ -514,7 +514,7 @@ export default function MenuManager() {
     setSavingId(item._id);
     try {
       const nextBestseller = !item.isBestseller;
-      const { data } = await axiosInstance.patch(`/admin/menu-items/${item._id}`, { isBestseller: nextBestseller });
+      const { data } = await axiosInstance.patch(`/menu-items/${item._id}`, { isBestseller: nextBestseller });
       updateStoreItem({ ...item, ...data.data });
       toast.success(nextBestseller ? 'Item marked as bestseller' : 'Bestseller status removed');
     } catch (err) {
