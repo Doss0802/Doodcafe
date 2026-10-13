@@ -1,15 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ChefHat, Eye, EyeOff, Edit3, Check, X, Upload, RefreshCw,
-  Search, ToggleLeft, ToggleRight, DollarSign, ImageIcon,
-  Leaf, Star, Clock, Tag, AlertCircle, Loader2, ShieldAlert, ArrowLeft, Plus,
+  ChefHat, Edit3, Trash2, Check, X, Upload, RefreshCw,
+  Search, DollarSign, Leaf, Star, Clock, Tag,
+  AlertCircle, Loader2, ShieldAlert, ArrowLeft, Plus,
 } from 'lucide-react';
 import axiosInstance from '../../api/axiosInstance';
 import useAuthStore from '../../store/authStore';
 import toast from 'react-hot-toast';
 
-/* ─── Helpers ──────────────────────────────────────────────── */
+/* ─── Badge Helper ─────────────────────────────────────────── */
 function Badge({ children, color = '#D4A017', bg = '#FEF3C7' }) {
   return (
     <span style={{ fontSize: '0.68rem', fontWeight: 600, padding: '2px 7px', borderRadius: 99, color, background: bg, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
@@ -18,179 +18,28 @@ function Badge({ children, color = '#D4A017', bg = '#FEF3C7' }) {
   );
 }
 
-/* ─── Inline Price Editor ─────────────────────────────────── */
-function PriceEditor({ item, onSave, saving }) {
-  const [editing, setEditing] = useState(false);
-  const [val, setVal] = useState(String(item.price));
-  const inputRef = useRef(null);
+/* ─── Add / Update Menu Item Modal Component ─────────────────── */
+function ItemFormModal({ itemToEdit = null, categories = [], onClose, onSaved }) {
+  const isEditing = Boolean(itemToEdit?._id);
 
-  useEffect(() => {
-    if (editing) inputRef.current?.focus();
-  }, [editing]);
-
-  const handleSave = async () => {
-    const price = parseFloat(val);
-    if (isNaN(price) || price < 0) {
-      toast.error('Enter a valid price');
-      return;
-    }
-    await onSave(item._id, { price });
-    setEditing(false);
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') handleSave();
-    if (e.key === 'Escape') { setVal(String(item.price)); setEditing(false); }
-  };
-
-  if (editing) {
-    return (
-      <div className="mm-price-editor">
-        <span className="mm-price-prefix">₹</span>
-        <input
-          ref={inputRef}
-          type="number"
-          value={val}
-          onChange={(e) => setVal(e.target.value)}
-          onKeyDown={handleKeyDown}
-          className="mm-price-input"
-          min="0"
-          step="1"
-        />
-        <button className="mm-action-btn mm-save-btn" onClick={handleSave} disabled={saving} title="Save price">
-          {saving ? <Loader2 size={13} className="spin" /> : <Check size={13} />}
-        </button>
-        <button className="mm-action-btn mm-cancel-btn" onClick={() => { setVal(String(item.price)); setEditing(false); }} title="Cancel">
-          <X size={13} />
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mm-price-display" onClick={() => setEditing(true)} title="Click to edit price">
-      <span className="mm-price-value">₹{item.price}</span>
-      <Edit3 size={12} className="mm-edit-icon" />
-    </div>
+  const [name, setName] = useState(itemToEdit?.name || '');
+  const [description, setDescription] = useState(itemToEdit?.description || '');
+  const [price, setPrice] = useState(itemToEdit?.price != null ? String(itemToEdit.price) : '');
+  const [category, setCategory] = useState(
+    itemToEdit?.category?._id || itemToEdit?.category || categories[0]?._id || ''
   );
-}
-
-/* ─── Inline Image URL & File Upload Editor ──────────────── */
-function ImageEditor({ item, onSave, saving }) {
-  const [editing, setEditing] = useState(false);
-  const [val, setVal] = useState(item.imageUrl || item.image || '');
-  const inputRef = useRef(null);
-  const fileInputRef = useRef(null);
-
-  useEffect(() => {
-    if (editing) inputRef.current?.focus();
-  }, [editing]);
-
-  const handleSave = async () => {
-    if (!val.trim() && val !== '') { toast.error('Enter a valid image URL'); return; }
-    await onSave(item._id, { imageUrl: val.trim() });
-    setEditing(false);
-  };
-
-  const handleFileUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 3 * 1024 * 1024) {
-      toast.error('Image must be under 3MB');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const dataUrl = event.target?.result;
-      if (dataUrl) {
-        setVal(dataUrl);
-        await onSave(item._id, { imageUrl: dataUrl });
-        toast.success('Replacement dish image uploaded!');
-        setEditing(false);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') handleSave();
-    if (e.key === 'Escape') { setVal(item.imageUrl || item.image || ''); setEditing(false); }
-  };
-
-  const imgSrc = item.imageUrl || item.image || '';
-
-  if (editing) {
-    return (
-      <div className="mm-img-editor">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          style={{ display: 'none' }}
-          onChange={handleFileUpload}
-        />
-        <ImageIcon size={13} style={{ color: '#888', flexShrink: 0 }} />
-        <input
-          ref={inputRef}
-          type="url"
-          value={val}
-          onChange={(e) => setVal(e.target.value)}
-          onKeyDown={handleKeyDown}
-          className="mm-img-input"
-          placeholder="https://... or upload"
-        />
-        <button
-          className="mm-action-btn mm-upload-btn"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={saving}
-          title="Upload image from computer"
-        >
-          <Upload size={12} />
-        </button>
-        <button className="mm-action-btn mm-save-btn" onClick={handleSave} disabled={saving} title="Save image URL">
-          {saving ? <Loader2 size={13} className="spin" /> : <Check size={13} />}
-        </button>
-        <button className="mm-action-btn mm-cancel-btn" onClick={() => { setVal(item.imageUrl || item.image || ''); setEditing(false); }} title="Cancel">
-          <X size={13} />
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mm-img-display" onClick={() => setEditing(true)} title="Click to edit URL or upload replacement dish image">
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        style={{ display: 'none' }}
-        onChange={handleFileUpload}
-      />
-      <div className="mm-thumb-wrap">
-        {imgSrc
-          ? <img src={imgSrc} alt={item.name} className="mm-thumb" loading="lazy" onError={(e) => { e.target.style.display = 'none'; }} />
-          : <div className="mm-thumb-placeholder"><span>{item.category?.icon || '🍽️'}</span></div>
-        }
-      </div>
-      <Upload size={11} className="mm-edit-icon" onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }} title="Upload replacement image" />
-    </div>
+  const [preparationTime, setPreparationTime] = useState(itemToEdit?.preparationTime || 10);
+  const [isVeg, setIsVeg] = useState(Boolean(itemToEdit?.isVeg));
+  const [isBestseller, setIsBestseller] = useState(Boolean(itemToEdit?.isBestseller));
+  const [tags, setTags] = useState(
+    Array.isArray(itemToEdit?.tags)
+      ? itemToEdit.tags.join(', ')
+      : (itemToEdit?.tags || '')
   );
-}
-
-/* ─── Create Menu Item Modal Component ─────────────────────── */
-function CreateItemModal({ categories = [], onClose, onCreated }) {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [price, setPrice] = useState('');
-  const [category, setCategory] = useState(categories[0]?._id || '');
-  const [preparationTime, setPreparationTime] = useState(10);
-  const [isVeg, setIsVeg] = useState(false);
-  const [isBestseller, setIsBestseller] = useState(false);
-  const [tags, setTags] = useState('');
 
   const [dragActive, setDragActive] = useState(false);
   const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState('');
+  const [imagePreview, setImagePreview] = useState(itemToEdit?.imageUrl || itemToEdit?.image || '');
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -276,23 +125,32 @@ function CreateItemModal({ categories = [], onClose, onCreated }) {
       formData.append('isVeg', isVeg);
       formData.append('isBestseller', isBestseller);
       formData.append('available', true);
-      formData.append('show_prices_to_public', true);
       if (tags.trim()) {
         formData.append('tags', tags.trim());
       }
       if (imageFile) {
         formData.append('image', imageFile);
+      } else if (isEditing && imagePreview && !imagePreview.startsWith('blob:')) {
+        formData.append('imageUrl', imagePreview);
       }
 
-      const { data } = await axiosInstance.post('/menu-items', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-
-      toast.success(`🎉 "${data.data?.name || name}" added to menu!`);
-      onCreated(data.data);
+      let response;
+      if (isEditing) {
+        response = await axiosInstance.put(`/menu-items/${itemToEdit._id}`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        toast.success(`✅ "${response.data.data?.name || name}" updated!`);
+        onSaved(response.data.data, true);
+      } else {
+        response = await axiosInstance.post('/menu-items', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        toast.success(`🎉 "${response.data.data?.name || name}" added to menu!`);
+        onSaved(response.data.data, false);
+      }
       onClose();
     } catch (err) {
-      const msg = err?.response?.data?.message || err?.message || 'Failed to create menu item';
+      const msg = err?.response?.data?.message || err?.message || 'Operation failed';
       toast.error(msg);
     } finally {
       setSubmitting(false);
@@ -308,8 +166,14 @@ function CreateItemModal({ categories = [], onClose, onCreated }) {
               <ChefHat size={18} />
             </div>
             <div>
-              <h3 className="mm-modal-title">Add New Menu Item</h3>
-              <p className="mm-modal-sub">Create and publish a new dish to the digital cafe menu</p>
+              <h3 className="mm-modal-title">
+                {isEditing ? 'Update Menu Item' : 'Add New Menu Item'}
+              </h3>
+              <p className="mm-modal-sub">
+                {isEditing
+                  ? 'Modify item name, price, category or replacement dish photo'
+                  : 'Create and publish a new dish to the digital cafe menu'}
+              </p>
             </div>
           </div>
           <button className="mm-modal-close" onClick={onClose} aria-label="Close modal">
@@ -441,7 +305,7 @@ function CreateItemModal({ categories = [], onClose, onCreated }) {
             {/* Image File Drag-and-Drop Dropzone */}
             <div className="mm-form-group full-col">
               <label className="mm-form-label">
-                Dish Photo <span className="hint">(Drag &amp; drop or click to browse)</span>
+                Dish Photo <span className="hint">(Drag &amp; drop or click to replace)</span>
               </label>
               <div
                 className={`mm-dropzone ${dragActive ? 'mm-dropzone-active' : ''} ${imagePreview ? 'mm-dropzone-has-file' : ''}`}
@@ -462,11 +326,11 @@ function CreateItemModal({ categories = [], onClose, onCreated }) {
                   <div className="mm-dropzone-preview">
                     <img src={imagePreview} alt="Preview" className="mm-dropzone-img" />
                     <div className="mm-dropzone-meta">
-                      <p className="mm-dropzone-filename">{imageFile?.name}</p>
+                      <p className="mm-dropzone-filename">{imageFile ? imageFile.name : (itemToEdit?.name || 'Current Image')}</p>
                       <p className="mm-dropzone-filesize">
-                        {imageFile?.size ? `${(imageFile.size / 1024).toFixed(1)} KB` : ''}
+                        {imageFile ? `${(imageFile.size / 1024).toFixed(1)} KB` : 'Active dish photo'}
                       </p>
-                      <span className="mm-dropzone-replace-hint">Click or drop to replace</span>
+                      <span className="mm-dropzone-replace-hint">Click or drop new file to replace</span>
                     </div>
                     <button
                       type="button"
@@ -510,7 +374,12 @@ function CreateItemModal({ categories = [], onClose, onCreated }) {
               {submitting ? (
                 <>
                   <Loader2 size={15} className="spin" />
-                  <span>Saving Dish…</span>
+                  <span>{isEditing ? 'Saving Changes…' : 'Saving Dish…'}</span>
+                </>
+              ) : isEditing ? (
+                <>
+                  <Check size={15} />
+                  <span>Update Menu Item</span>
                 </>
               ) : (
                 <>
@@ -545,16 +414,16 @@ export default function MenuManager() {
 
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null); // null = Add, object = Update
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [savingId, setSavingId] = useState(null);
-  const [priceVisible, setPriceVisible] = useState(true);
-  const [toggleLoading, setToggleLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
   const [meta, setMeta] = useState({ total: 0, pages: 1 });
   const [page, setPage] = useState(1);
 
-  /* ── Fetch categories for insertion form ── */
+  /* ── Fetch categories for insertion & update form ── */
   const fetchCategories = useCallback(async () => {
     try {
       const { data } = await axiosInstance.get('/menu/categories');
@@ -562,18 +431,7 @@ export default function MenuManager() {
         setCategories(data.data);
       }
     } catch {
-      // fallback handled
-    }
-  }, []);
-
-  /* ── Fetch global price setting ── */
-  const fetchSettings = useCallback(async () => {
-    try {
-      const { data } = await axiosInstance.get('/menu/settings');
-      const val = data.data?.show_prices_to_public;
-      if (typeof val === 'boolean') setPriceVisible(val);
-    } catch {
-      // fallback to true
+      // fallback
     }
   }, []);
 
@@ -594,38 +452,51 @@ export default function MenuManager() {
 
   useEffect(() => {
     fetchCategories();
-    fetchSettings();
     fetchItems(1);
-  }, [fetchCategories, fetchSettings, fetchItems]);
+  }, [fetchCategories, fetchItems]);
 
-  /* ── Item created callback ── */
-  const handleItemCreated = useCallback((newItem) => {
-    setItems((prev) => [newItem, ...prev]);
-    setMeta((prev) => ({ ...prev, total: (prev.total || 0) + 1 }));
+  /* ── Item saved callback (Create / Update) ── */
+  const handleItemSaved = useCallback((savedItem, isEdit) => {
+    if (isEdit) {
+      setItems((prev) => prev.map((i) => (i._id === savedItem._id ? savedItem : i)));
+    } else {
+      setItems((prev) => [savedItem, ...prev]);
+      setMeta((prev) => ({ ...prev, total: (prev.total || 0) + 1 }));
+    }
   }, []);
 
-  /* ── Toggle price visibility globally ── */
-  const handlePriceToggle = async () => {
-    setToggleLoading(true);
-    const next = !priceVisible;
+  /* ── Open Edit Modal ── */
+  const handleOpenEdit = useCallback((item) => {
+    setSelectedItem(item);
+    setModalOpen(true);
+  }, []);
+
+  /* ── Remove Menu Item ── */
+  const handleRemoveItem = async (item) => {
+    const confirmed = window.confirm(`Are you sure you want to remove "${item.name}" from the menu?`);
+    if (!confirmed) return;
+
+    setDeletingId(item._id);
     try {
-      await axiosInstance.patch('/admin/menu-settings', { show_prices_to_public: next });
-      setPriceVisible(next);
-      toast.success(next ? '✅ Prices are now visible to customers' : '🙈 Prices hidden from customers');
-    } catch {
-      toast.error('Failed to update price visibility');
+      await axiosInstance.delete(`/menu-items/${item._id}`);
+      setItems((prev) => prev.filter((i) => i._id !== item._id));
+      setMeta((prev) => ({ ...prev, total: Math.max(0, (prev.total || 1) - 1) }));
+      toast.success(`🗑️ "${item.name}" removed from menu`);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to remove menu item');
     } finally {
-      setToggleLoading(false);
+      setDeletingId(null);
     }
   };
 
-  /* ── Inline save handler ── */
-  const handleSave = useCallback(async (id, patch) => {
-    setSavingId(id);
+  /* ── Toggle availability ── */
+  const handleToggleAvailable = useCallback(async (item) => {
+    setSavingId(item._id);
     try {
-      const { data } = await axiosInstance.patch(`/admin/menu-items/${id}`, patch);
-      setItems((prev) => prev.map((it) => it._id === id ? { ...it, ...data.data } : it));
-      toast.success('✅ Item updated');
+      const nextAvailable = !item.available;
+      const { data } = await axiosInstance.patch(`/admin/menu-items/${item._id}`, { available: nextAvailable });
+      setItems((prev) => prev.map((it) => (it._id === item._id ? { ...it, ...data.data } : it)));
+      toast.success(nextAvailable ? 'Item marked as available' : 'Item marked as unavailable');
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Update failed');
     } finally {
@@ -633,26 +504,24 @@ export default function MenuManager() {
     }
   }, []);
 
-  /* ── Toggle availability ── */
-  const handleToggleAvailable = useCallback(async (item) => {
-    await handleSave(item._id, { available: !item.available });
-  }, [handleSave]);
-
   /* ── Toggle bestseller ── */
   const handleToggleBestseller = useCallback(async (item) => {
-    await handleSave(item._id, { isBestseller: !item.isBestseller });
-  }, [handleSave]);
+    setSavingId(item._id);
+    try {
+      const nextBestseller = !item.isBestseller;
+      const { data } = await axiosInstance.patch(`/admin/menu-items/${item._id}`, { isBestseller: nextBestseller });
+      setItems((prev) => prev.map((it) => (it._id === item._id ? { ...it, ...data.data } : it)));
+      toast.success(nextBestseller ? 'Item marked as bestseller' : 'Bestseller status removed');
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Update failed');
+    } finally {
+      setSavingId(null);
+    }
+  }, []);
 
-  /* ── Toggle item price visibility ── */
-  const handleToggleItemPrice = useCallback(async (item) => {
-    const nextVal = !(item.show_prices_to_public !== false);
-    await handleSave(item._id, { show_prices_to_public: nextVal });
-  }, [handleSave]);
-
-  /* ── Filtered view ── */
+  /* ── Filtered view (Name search only, category search purged) ── */
   const filtered = items.filter((it) =>
-    it.name?.toLowerCase().includes(search.toLowerCase()) ||
-    it.category?.name?.toLowerCase().includes(search.toLowerCase())
+    it.name?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -668,14 +537,17 @@ export default function MenuManager() {
           </div>
           <div>
             <h1 className="mm-title">Menu Manager</h1>
-            <p className="mm-subtitle">{meta.total} items · Inline edit prices &amp; images</p>
+            <p className="mm-subtitle">{meta.total} items · Live dish inventory &amp; updates</p>
           </div>
         </div>
         <div className="mm-header-actions">
           <button
             id="mm-open-create-btn"
             className="mm-create-btn"
-            onClick={() => setShowAddModal(true)}
+            onClick={() => {
+              setSelectedItem(null);
+              setModalOpen(true);
+            }}
             title="Add a new menu item"
           >
             <Plus size={15} />
@@ -687,51 +559,21 @@ export default function MenuManager() {
         </div>
       </div>
 
-      {/* ── Price Visibility Master Toggle ── */}
-      <div className="mm-toggle-card">
-        <div className="mm-toggle-info">
-          <div className="mm-toggle-icon-wrap" style={{ background: priceVisible ? '#D4A017' : '#374151' }}>
-            {priceVisible ? <Eye size={18} color="#fff" /> : <EyeOff size={18} color="#fff" />}
-          </div>
-          <div>
-            <p className="mm-toggle-label">Display Prices to Customers</p>
-            <p className="mm-toggle-hint">
-              {priceVisible
-                ? 'Prices are currently visible on the customer menu.'
-                : 'All price tags are hidden from the customer-facing menu.'}
-            </p>
-          </div>
-        </div>
-        <button
-          id="price-visibility-toggle-btn"
-          className={`mm-master-toggle ${priceVisible ? 'mm-toggle-on' : 'mm-toggle-off'}`}
-          onClick={handlePriceToggle}
-          disabled={toggleLoading}
-          aria-label={priceVisible ? 'Hide prices' : 'Show prices'}
-        >
-          {toggleLoading
-            ? <Loader2 size={20} className="spin" />
-            : priceVisible
-              ? <ToggleRight size={36} />
-              : <ToggleLeft size={36} />
-          }
-          <span>{priceVisible ? 'ON' : 'OFF'}</span>
-        </button>
-      </div>
-
-      {/* ── Search bar ── */}
+      {/* ── Search bar (Dish name search only) ── */}
       <div className="mm-search-wrap">
         <Search size={15} className="mm-search-icon" />
         <input
           id="mm-search-input"
           type="text"
           className="mm-search"
-          placeholder="Search by name or category…"
+          placeholder="Search menu items by name…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
         {search && (
-          <button className="mm-search-clear" onClick={() => setSearch('')}><X size={13} /></button>
+          <button className="mm-search-clear" onClick={() => setSearch('')}>
+            <X size={13} />
+          </button>
         )}
       </div>
 
@@ -739,7 +581,7 @@ export default function MenuManager() {
       {loading && (
         <div className="mm-loading">
           <Loader2 size={28} className="spin" style={{ color: '#D4A017' }} />
-          <span>Loading menu…</span>
+          <span>Loading menu items…</span>
         </div>
       )}
 
@@ -751,28 +593,60 @@ export default function MenuManager() {
         </div>
       )}
 
-      {/* ── Items Grid ── */}
+      {/* ── Items Grid (Responsive fluid cards) ── */}
       {!loading && filtered.length > 0 && (
         <div className="mm-grid">
           {filtered.map((item) => (
-            <div key={item._id} className={`mm-card ${!item.available ? 'mm-card-unavailable' : ''}`} id={`mm-item-${item._id}`}>
-
-              {/* Image Editor */}
+            <div
+              key={item._id}
+              className={`mm-card ${!item.available ? 'mm-card-unavailable' : ''}`}
+              id={`mm-item-${item._id}`}
+            >
+              {/* Image Preview */}
               <div className="mm-card-img-col">
-                <ImageEditor item={item} onSave={handleSave} saving={savingId === item._id} />
+                <div className="mm-thumb-wrap">
+                  {item.imageUrl || item.image ? (
+                    <img
+                      src={item.imageUrl || item.image}
+                      alt={item.name}
+                      className="mm-thumb"
+                      loading="lazy"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className="mm-thumb-placeholder">
+                      <span>{item.category?.icon || '🍽️'}</span>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Content */}
+              {/* Content Body */}
               <div className="mm-card-body">
                 <div className="mm-card-top">
                   <p className="mm-item-name">{item.name}</p>
                   <div className="mm-item-badges">
-                    {item.isVeg
-                      ? <Badge color="#059669" bg="#ECFDF5"><Leaf size={9} /> Veg</Badge>
-                      : <Badge color="#DC2626" bg="#FEF2F2">● Non-Veg</Badge>
-                    }
-                    {item.isBestseller && <Badge color="#D97706" bg="#FEF3C7"><Star size={9} /> Best</Badge>}
-                    {!item.available && <Badge color="#6B7280" bg="#F3F4F6">Unavailable</Badge>}
+                    {item.isVeg ? (
+                      <Badge color="#059669" bg="#ECFDF5">
+                        <Leaf size={9} /> Veg
+                      </Badge>
+                    ) : (
+                      <Badge color="#DC2626" bg="#FEF2F2">
+                        ● Non-Veg
+                      </Badge>
+                    )}
+                    {item.isBestseller && (
+                      <Badge color="#D97706" bg="#FEF3C7">
+                        <Star size={9} /> Best
+                      </Badge>
+                    )}
+                    {!item.available && (
+                      <Badge color="#6B7280" bg="#F3F4F6">
+                        Unavailable
+                      </Badge>
+                    )}
                   </div>
                 </div>
 
@@ -782,10 +656,15 @@ export default function MenuManager() {
                   <Clock size={10} style={{ verticalAlign: 'middle' }} /> {item.preparationTime || 10} min
                 </p>
 
-                {/* Price editor */}
+                {/* Price Display */}
                 <div className="mm-field-row">
-                  <DollarSign size={12} style={{ color: '#D4A017' }} />
-                  <PriceEditor item={item} onSave={handleSave} saving={savingId === item._id} />
+                  <DollarSign size={13} style={{ color: '#D4A017' }} />
+                  <span className="mm-price-pill">₹{item.price}</span>
+                  {item.description && (
+                    <span className="mm-desc-preview" title={item.description}>
+                      · {item.description}
+                    </span>
+                  )}
                 </div>
 
                 {/* Tags */}
@@ -798,7 +677,7 @@ export default function MenuManager() {
                   </div>
                 )}
 
-                {/* Toggle controls row */}
+                {/* Toggle chips row: Availability & Bestseller */}
                 <div className="mm-toggle-row">
                   <button
                     id={`mm-avail-${item._id}`}
@@ -807,7 +686,13 @@ export default function MenuManager() {
                     disabled={savingId === item._id}
                     title={item.available ? 'Mark as unavailable' : 'Mark as available'}
                   >
-                    {savingId === item._id ? <Loader2 size={11} className="spin" /> : item.available ? <Check size={11} /> : <X size={11} />}
+                    {savingId === item._id ? (
+                      <Loader2 size={11} className="spin" />
+                    ) : item.available ? (
+                      <Check size={11} />
+                    ) : (
+                      <X size={11} />
+                    )}
                     {item.available ? 'Available' : 'Unavailable'}
                   </button>
                   <button
@@ -820,15 +705,34 @@ export default function MenuManager() {
                     <Star size={11} />
                     Bestseller
                   </button>
+                </div>
+
+                {/* Mobile-optimized Action Buttons: Update Item & Remove Item */}
+                <div className="mm-card-actions">
                   <button
-                    id={`mm-price-vis-${item._id}`}
-                    className={`mm-chip-toggle ${item.show_prices_to_public !== false ? 'mm-chip-on' : 'mm-chip-off'}`}
-                    onClick={() => handleToggleItemPrice(item)}
-                    disabled={savingId === item._id}
-                    title={item.show_prices_to_public !== false ? 'Hide price from customers' : 'Show price to customers'}
+                    type="button"
+                    id={`mm-update-${item._id}`}
+                    className="mm-btn-update"
+                    onClick={() => handleOpenEdit(item)}
+                    title={`Update ${item.name}`}
                   >
-                    {item.show_prices_to_public !== false ? <Eye size={11} /> : <EyeOff size={11} />}
-                    {item.show_prices_to_public !== false ? 'Price Visible' : 'Price Hidden'}
+                    <Edit3 size={14} />
+                    <span>Update Item</span>
+                  </button>
+                  <button
+                    type="button"
+                    id={`mm-remove-${item._id}`}
+                    className="mm-btn-remove"
+                    onClick={() => handleRemoveItem(item)}
+                    disabled={deletingId === item._id}
+                    title={`Remove ${item.name}`}
+                  >
+                    {deletingId === item._id ? (
+                      <Loader2 size={14} className="spin" />
+                    ) : (
+                      <Trash2 size={14} />
+                    )}
+                    <span>{deletingId === item._id ? 'Removing…' : 'Remove Item'}</span>
                   </button>
                 </div>
               </div>
@@ -852,12 +756,16 @@ export default function MenuManager() {
         </div>
       )}
 
-      {/* ── Add New Item Modal ── */}
-      {showAddModal && (
-        <CreateItemModal
+      {/* ── Add / Update Modal (Dynamically reused) ── */}
+      {modalOpen && (
+        <ItemFormModal
+          itemToEdit={selectedItem}
           categories={categories}
-          onClose={() => setShowAddModal(false)}
-          onCreated={handleItemCreated}
+          onClose={() => {
+            setModalOpen(false);
+            setSelectedItem(null);
+          }}
+          onSaved={handleItemSaved}
         />
       )}
     </main>

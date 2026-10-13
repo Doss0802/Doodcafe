@@ -158,7 +158,143 @@ const createMenuItem = async (req, res, next) => {
   }
 };
 
-// Route declaration: protected by JWT auth & strict admin role evaluation
+/**
+ * @desc   Update a menu item by ID (with optional image file upload)
+ * @route  PUT /api/menu-items/:id or PATCH /api/menu-items/:id
+ * @access Private (Admin only)
+ */
+const updateMenuItem = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return ApiResponse.error(res, {
+        statusCode: 400,
+        message: 'Invalid menu item ID format',
+      });
+    }
+
+    const existing = await MenuItem.findById(id);
+    if (!existing) {
+      return ApiResponse.error(res, {
+        statusCode: 404,
+        message: 'Menu item not found',
+      });
+    }
+
+    const updateData = {};
+    if (req.body.name !== undefined && req.body.name.trim()) {
+      updateData.name = req.body.name.trim();
+    }
+    if (req.body.description !== undefined) {
+      updateData.description = req.body.description.trim();
+    }
+    if (req.body.price !== undefined && req.body.price !== '') {
+      const priceNum = Number(req.body.price);
+      if (!isNaN(priceNum) && priceNum >= 0) {
+        updateData.price = priceNum;
+      }
+    }
+    if (req.body.preparationTime !== undefined && req.body.preparationTime !== '') {
+      updateData.preparationTime = Number(req.body.preparationTime) || 10;
+    }
+    if (req.body.isVeg !== undefined) {
+      updateData.isVeg = req.body.isVeg === 'true' || req.body.isVeg === true;
+    }
+    if (req.body.isBestseller !== undefined) {
+      updateData.isBestseller = req.body.isBestseller === 'true' || req.body.isBestseller === true;
+    }
+    if (req.body.available !== undefined) {
+      updateData.available = req.body.available === 'true' || req.body.available === true;
+    }
+
+    if (req.body.category) {
+      let categoryDoc = null;
+      if (mongoose.Types.ObjectId.isValid(req.body.category)) {
+        categoryDoc = await Category.findById(req.body.category);
+      }
+      if (!categoryDoc) {
+        categoryDoc = await Category.findOne({
+          $or: [
+            { slug: req.body.category.toLowerCase() },
+            { name: new RegExp(`^${req.body.category}$`, 'i') },
+          ],
+        });
+      }
+      if (categoryDoc) {
+        updateData.category = categoryDoc._id;
+      }
+    }
+
+    if (req.body.tags !== undefined) {
+      if (Array.isArray(req.body.tags)) {
+        updateData.tags = req.body.tags.map((t) => String(t).trim()).filter(Boolean);
+      } else if (typeof req.body.tags === 'string') {
+        updateData.tags = req.body.tags
+          .split(',')
+          .map((t) => t.trim().replace(/^#/, ''))
+          .filter(Boolean);
+      }
+    }
+
+    if (req.file && req.file.buffer) {
+      const mime = req.file.mimetype || 'image/jpeg';
+      const base64 = req.file.buffer.toString('base64');
+      const dataUrl = `data:${mime};base64,${base64}`;
+      updateData.imageUrl = dataUrl;
+      updateData.image = dataUrl;
+    } else if (req.body.imageUrl !== undefined && req.body.imageUrl.trim()) {
+      updateData.imageUrl = req.body.imageUrl.trim();
+      updateData.image = req.body.imageUrl.trim();
+    }
+
+    const updated = await MenuItem.findByIdAndUpdate(id, { $set: updateData }, { new: true, runValidators: true })
+      .populate('category', 'name slug icon')
+      .lean();
+
+    return ApiResponse.success(res, {
+      statusCode: 200,
+      message: `Menu item "${updated.name}" updated successfully`,
+      data: updated,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc   Delete a menu item by ID
+ * @route  DELETE /api/menu-items/:id or DELETE /api/v1/menu-items/:id
+ * @access Private (Admin only)
+ */
+const deleteMenuItem = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return ApiResponse.error(res, {
+        statusCode: 400,
+        message: 'Invalid menu item ID format',
+      });
+    }
+
+    const item = await MenuItem.findByIdAndDelete(id);
+    if (!item) {
+      return ApiResponse.error(res, {
+        statusCode: 404,
+        message: 'Menu item not found or already removed',
+      });
+    }
+
+    return ApiResponse.success(res, {
+      statusCode: 200,
+      message: `Menu item "${item.name}" removed successfully`,
+      data: { _id: id, name: item.name },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Route declarations: protected by JWT auth & strict admin role evaluation
 router.post(
   '/',
   protect,
@@ -168,6 +304,32 @@ router.post(
   createMenuItemValidation,
   validate,
   createMenuItem
+);
+
+router.put(
+  '/:id',
+  protect,
+  requireRole('admin'),
+  sensitiveLimiter,
+  uploadSingle('image'),
+  updateMenuItem
+);
+
+router.patch(
+  '/:id',
+  protect,
+  requireRole('admin'),
+  sensitiveLimiter,
+  uploadSingle('image'),
+  updateMenuItem
+);
+
+router.delete(
+  '/:id',
+  protect,
+  requireRole('admin'),
+  sensitiveLimiter,
+  deleteMenuItem
 );
 
 module.exports = router;
