@@ -55,6 +55,15 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  password: {
+    type: DataTypes.VIRTUAL,
+    set(value) {
+      if (value) {
+        this.setDataValue('password', value);
+        this.setDataValue('passwordHash', value);
+      }
+    },
+  },
   _id: {
     type: DataTypes.VIRTUAL,
     get() {
@@ -72,17 +81,25 @@ const User = sequelize.define('User', {
   tableName: 'users',
   hooks: {
     beforeCreate: async (user) => {
-      if (user.passwordHash) {
-        user.passwordHash = await bcrypt.hash(user.passwordHash, 12);
+      if (user.passwordHash && !user.passwordHash.startsWith('$2a$') && !user.passwordHash.startsWith('$2b$')) {
+        user.passwordHash = await bcrypt.hash(user.passwordHash, 10);
       }
     },
     beforeUpdate: async (user) => {
-      if (user.changed('passwordHash')) {
-        user.passwordHash = await bcrypt.hash(user.passwordHash, 12);
+      if (user.changed('passwordHash') && user.passwordHash && !user.passwordHash.startsWith('$2a$') && !user.passwordHash.startsWith('$2b$')) {
+        user.passwordHash = await bcrypt.hash(user.passwordHash, 10);
       }
     },
   },
 });
+
+User.findById = function (id, options = {}) {
+  return this.findByPk(id, options);
+};
+
+User.countDocuments = function (filter = {}) {
+  return this.count({ where: filter });
+};
 
 // Compare password instance method
 User.prototype.matchPassword = async function (enteredPassword) {

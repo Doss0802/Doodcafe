@@ -10,7 +10,7 @@ class ApiResponse {
       data,
       meta: {
         timestamp: new Date().toISOString(),
-        requestId: res.req.id || null,
+        requestId: res?.req?.id || null,
         ...meta,
       },
     });
@@ -23,7 +23,7 @@ class ApiResponse {
       message,
       meta: {
         timestamp: new Date().toISOString(),
-        requestId: res.req.id || null,
+        requestId: res?.req?.id || null,
       },
     };
     if (errors) response.errors = errors;

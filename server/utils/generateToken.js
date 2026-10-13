@@ -11,9 +11,20 @@ if (!process.env.JWT_REFRESH_SECRET) {
 /**
  * Generate Access Token with short lifetime and token versioning payload
  */
-const generateAccessToken = (userId, tokenVersion = 0, role = 'customer') => {
+const generateAccessToken = (user, tokenVersion = 0, role = 'customer') => {
+  let payload;
+  if (user && typeof user === 'object' && !Array.isArray(user)) {
+    payload = {
+      id: user.id,
+      role: user.role || 'customer',
+      tokenVersion: user.tokenVersion !== undefined ? user.tokenVersion : tokenVersion,
+    };
+  } else {
+    payload = { id: user, role, tokenVersion };
+  }
+
   return jwt.sign(
-    { id: userId, tokenVersion, role },
+    payload,
     process.env.JWT_ACCESS_SECRET,
     { expiresIn: process.env.JWT_ACCESS_EXPIRES || '15m' }
   );
@@ -22,9 +33,20 @@ const generateAccessToken = (userId, tokenVersion = 0, role = 'customer') => {
 /**
  * Generate Refresh Token with 7-day lifetime and token versioning payload
  */
-const generateRefreshToken = (userId, tokenVersion = 0, role = 'customer') => {
+const generateRefreshToken = (user, tokenVersion = 0, role = 'customer') => {
+  let payload;
+  if (user && typeof user === 'object' && !Array.isArray(user)) {
+    payload = {
+      id: user.id,
+      role: user.role || 'customer',
+      tokenVersion: user.tokenVersion !== undefined ? user.tokenVersion : tokenVersion,
+    };
+  } else {
+    payload = { id: user, role, tokenVersion };
+  }
+
   return jwt.sign(
-    { id: userId, tokenVersion, role },
+    payload,
     process.env.JWT_REFRESH_SECRET,
     { expiresIn: process.env.JWT_REFRESH_EXPIRES || '7d' }
   );

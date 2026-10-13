@@ -4,7 +4,6 @@ const helmet = require('helmet');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
-const mongoSanitize = require('express-mongo-sanitize');
 const hpp = require('hpp');
 const sequelize = require('./src/config/db');
 
@@ -138,15 +137,6 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
-// NoSQL Query Injection Sanitization (Strips out '$' and '.' operators)
-app.use((req, res, next) => {
-  if (req.body) mongoSanitize.sanitize(req.body, { replaceWith: '_' });
-  if (req.params) mongoSanitize.sanitize(req.params, { replaceWith: '_' });
-  if (req.query && typeof req.query === 'object') {
-    mongoSanitize.sanitize(req.query, { replaceWith: '_' });
-  }
-  next();
-});
 
 // HTTP Parameter Pollution Protection
 app.use(hpp());

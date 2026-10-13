@@ -27,7 +27,9 @@ const protect = async (req, res, next) => {
       });
     }
 
-    const user = await User.findById(decoded.id).select('-passwordHash -refreshToken');
+    const user = await User.findByPk(decoded.id, {
+      attributes: { exclude: ['passwordHash', 'refreshToken'] },
+    });
     if (!user) {
       return ApiResponse.error(res, {
         statusCode: 401,

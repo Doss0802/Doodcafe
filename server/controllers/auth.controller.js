@@ -1,5 +1,6 @@
 const { validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const ApiResponse = require('../utils/ApiResponse');
 const AppError = require('../utils/AppError');
@@ -26,7 +27,7 @@ const register = async (req, res, next) => {
 
     const { name, email, password, phone } = req.body;
 
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       return ApiResponse.error(res, {
         statusCode: 409,
@@ -34,24 +35,27 @@ const register = async (req, res, next) => {
       });
     }
 
+    // Convert old MongoDB hash triggers to use strict bcrypt.hash(password, 10)
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     // Initialization workflow: If no admin user exists in DB, grant 'admin' role to the first registrant
-    const adminCount = await User.countDocuments({ role: 'admin' });
+    const adminCount = await User.count({ where: { role: 'admin' } });
     const assignedRole = adminCount === 0 ? 'admin' : 'customer';
 
-    const user = await User.create({
-      name,
-      email,
-      passwordHash: password,
-      phone,
-      role: assignedRole,
-      tokenVersion: 0,
-    });
+    // Create user cleanly via Sequelize
+    const newUser = await User.create({ name, email, password: hashedPassword, role: 'customer' });
+    if (phone) {
+      newUser.phone = phone;
+    }
+    if (assignedRole === 'admin') {
+      newUser.role = 'admin';
+    }
 
-    const accessToken  = generateAccessToken(user._id, user.tokenVersion, user.role);
-    const refreshToken = generateRefreshToken(user._id, user.tokenVersion, user.role);
+    const accessToken  = generateAccessToken(newUser);
+    const refreshToken = generateRefreshToken(newUser);
 
-    user.refreshToken = refreshToken;
-    await user.save({ validateBeforeSave: false });
+    newUser.refreshToken = refreshToken;
+    await newUser.save();
 
     setRefreshCookie(res, refreshToken);
 
@@ -61,11 +65,11 @@ const register = async (req, res, next) => {
       data: {
         accessToken,
         user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          phone: user.phone || null,
-          role: user.role,
+          id: newUser.id,
+          name: newUser.name,
+          email: newUser.email,
+          phone: newUser.phone || null,
+          role: newUser.role,
         },
       },
     });
@@ -90,7 +94,7 @@ const login = async (req, res, next) => {
 
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email }).select('+passwordHash +refreshToken +failedLoginAttempts +lockUntil +tokenVersion');
+    const user = await User.findOne({ where: { email } });
     if (!user) {
       return ApiResponse.error(res, {
         statusCode: 401,
@@ -100,7 +104,7 @@ const login = async (req, res, next) => {
 
     // Check account lockout
     if (user.isLocked) {
-      const remainingMinutes = Math.ceil((user.lockUntil - Date.now()) / 60000);
+      const remainingMinutes = Math.ceil((new Date(user.lockUntil).getTime() - Date.now()) / 60000);
       return ApiResponse.error(res, {
         statusCode: 423, // Locked
         message: `Account is temporarily locked due to multiple failed login attempts. Try again in ${remainingMinutes} minute(s).`,
@@ -121,11 +125,11 @@ const login = async (req, res, next) => {
       await user.resetFailedLogin();
     }
 
-    const accessToken  = generateAccessToken(user._id, user.tokenVersion || 0, user.role);
-    const refreshToken = generateRefreshToken(user._id, user.tokenVersion || 0, user.role);
+    const accessToken  = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
 
     user.refreshToken = refreshToken;
-    await user.save({ validateBeforeSave: false });
+    await user.save();
 
     setRefreshCookie(res, refreshToken);
 
@@ -135,7 +139,7 @@ const login = async (req, res, next) => {
       data: {
         accessToken,
         user: {
-          id: user._id,
+          id: user.id,
           name: user.name,
           email: user.email,
           phone: user.phone || null,
@@ -162,7 +166,7 @@ const refreshToken = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
-    const user = await User.findById(decoded.id).select('+refreshToken +tokenVersion');
+    const user = await User.findByPk(decoded.id);
 
     if (!user || user.refreshToken !== token || (decoded.tokenVersion !== undefined && decoded.tokenVersion !== user.tokenVersion)) {
       clearRefreshCookie(res);
@@ -172,11 +176,11 @@ const refreshToken = async (req, res, next) => {
       });
     }
 
-    const newAccessToken  = generateAccessToken(user._id, user.tokenVersion, user.role);
-    const newRefreshToken = generateRefreshToken(user._id, user.tokenVersion, user.role);
+    const newAccessToken  = generateAccessToken(user);
+    const newRefreshToken = generateRefreshToken(user);
 
     user.refreshToken = newRefreshToken;
-    await user.save({ validateBeforeSave: false });
+    await user.save();
 
     setRefreshCookie(res, newRefreshToken);
 
@@ -202,10 +206,13 @@ const refreshToken = async (req, res, next) => {
 // @access Private
 const logout = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user._id).select('+refreshToken');
-    if (user) {
-      user.refreshToken = undefined;
-      await user.save({ validateBeforeSave: false });
+    const userId = req.user?.id || req.user?._id;
+    if (userId) {
+      const user = await User.findByPk(userId);
+      if (user) {
+        user.refreshToken = null;
+        await user.save();
+      }
     }
     clearRefreshCookie(res);
     return ApiResponse.success(res, {
@@ -222,11 +229,14 @@ const logout = async (req, res, next) => {
 // @access Private
 const logoutAllDevices = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user._id).select('+tokenVersion +refreshToken');
-    if (user) {
-      user.tokenVersion = (user.tokenVersion || 0) + 1;
-      user.refreshToken = undefined;
-      await user.save({ validateBeforeSave: false });
+    const userId = req.user?.id || req.user?._id;
+    if (userId) {
+      const user = await User.findByPk(userId);
+      if (user) {
+        user.tokenVersion = (user.tokenVersion || 0) + 1;
+        user.refreshToken = null;
+        await user.save();
+      }
     }
     clearRefreshCookie(res);
     return ApiResponse.success(res, {
@@ -243,9 +253,10 @@ const logoutAllDevices = async (req, res, next) => {
 // @access Private
 const getMe = async (req, res, next) => {
   try {
-    // Use lean() for a plain JS object — Mongoose documents silently drop
-    // undefined fields during JSON serialization (e.g. phone if not stored).
-    const user = await User.findById(req.user._id).select('name email phone role').lean();
+    const userId = req.user?.id || req.user?._id;
+    const user = await User.findByPk(userId, {
+      attributes: ['id', 'name', 'email', 'phone', 'role'],
+    });
     if (!user) {
       return ApiResponse.error(res, { statusCode: 404, message: 'User not found.' });
     }
@@ -253,7 +264,7 @@ const getMe = async (req, res, next) => {
       statusCode: 200,
       data: {
         user: {
-          id: user._id,
+          id: user.id,
           name: user.name,
           email: user.email,
           phone: user.phone ?? null,
@@ -265,7 +276,6 @@ const getMe = async (req, res, next) => {
     next(error);
   }
 };
-
 
 module.exports = {
   register,
