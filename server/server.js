@@ -24,6 +24,7 @@ const orderRoutes = require('./routes/order.routes');
 const usersRoutes = require('./routes/users.routes');
 const healthRoutes = require('./routes/health.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
+const menuManagementRoutes = require('./routes/menuManagement');
 const adminRoutes = require('./admin/admin.routes');
 const { initAdminSocket } = require('./admin/admin.socket');
 
@@ -148,6 +149,7 @@ app.use('/api/v1/menu', menuRoutes);
 app.use('/api/v1/orders', orderRoutes);
 app.use('/api/v1/users', usersRoutes);
 app.use('/api/v1/admin/dashboard', dashboardRoutes);
+app.use('/api/v1/menu-management', menuManagementRoutes);
 app.use('/api/v1/admin', adminRoutes);
 
 // ─── Backward Compatibility: /api/* aliases ────────────────────────────────
@@ -157,6 +159,7 @@ app.use('/api/menu', menuRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/admin/dashboard', dashboardRoutes);
+app.use('/api/menu-management', menuManagementRoutes);
 app.use('/api/admin', adminRoutes);
 
 
