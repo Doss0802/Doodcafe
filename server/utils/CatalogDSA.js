@@ -303,8 +303,12 @@ const filterMenuItems = (items, criteria = {}) => {
 
     // Check Category matching
     if (category) {
-      const catId = typeof item.category === 'object' && item.category !== null ? item.category._id || item.category.slug : item.category;
-      if (catId !== category && item.category?.slug !== category) return false;
+      const catId = typeof item.category === 'object' && item.category !== null 
+        ? item.category.id || item.category._id || item.category.slug 
+        : item.category;
+      const catSlug = typeof item.category === 'object' && item.category !== null ? item.category.slug : null;
+      const itemCatId = item.categoryId || (typeof item.category === 'object' ? item.category.id || item.category._id : null);
+      if (catId !== category && catSlug !== category && itemCatId !== category) return false;
     }
 
     // Check Dietary Vegetarian filter

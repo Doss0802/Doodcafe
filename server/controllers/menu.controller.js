@@ -1,4 +1,4 @@
-﻿const { Op } = require('sequelize');
+const { Op } = require('sequelize');
 const MenuItem = require('../models/MenuItem');
 const Category = require('../models/Category');
 const SiteSettings = require('../models/SiteSettings');
@@ -72,6 +72,9 @@ const getMenuItems = async (req, res, next) => {
       const plain = item.toJSON();
       // Ensure _id alias is present for CatalogDSA Trie compatibility
       plain._id = plain.id;
+      if (plain.category) {
+        plain.category._id = plain.category.id;
+      }
       return plain;
     });
 

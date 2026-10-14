@@ -21,17 +21,17 @@ const dessertsImg = '/desserts-and-beverages/Ice scoop.jpeg';
 
 /* ── Static dining room strip data ─────────────────────────── */
 const DINING_ITEMS = [
-  { slug: 'quick-bites', label: 'Quick Bites', emoji: '🍟', img: quickBitesImg },
-  { slug: 'loaded-fries', label: 'Loaded Fries', emoji: '🧀', img: loadedFriesImg },
-  { slug: 'crispy-chicken', label: 'Crispy Chicken', emoji: '🍗', img: crispyChickenImg },
+  { slug: 'quick-bites', label: 'Quick Bites', emoji: '🍿', img: quickBitesImg },
+  { slug: 'loaded-fries', label: 'Loaded Fries', emoji: '🍟', img: loadedFriesImg },
+  { slug: 'crispy-chicken', label: 'Crispy chicken', emoji: '🍗', img: crispyChickenImg },
   { slug: 'burger', label: 'Burger', emoji: '🍔', img: burgerImg },
   { slug: 'sandwich', label: 'Sandwich', emoji: '🥪', img: sandwichImg },
-  { slug: 'roll-and-wrap', label: 'Roll & Wrap', emoji: '🌯', img: rollAndWrapImg },
+  { slug: 'roll-wrap', label: 'Roll & Wrap', emoji: '🌯', img: rollAndWrapImg },
   { slug: 'korean', label: 'Korean', emoji: '🍜', img: koreanImg },
-  { slug: 'pasta-and-pulao', label: 'Pasta & Pulao', emoji: '🍝', img: pastaPulaoImg },
-  { slug: 'milkshakes', label: 'Milkshakes', emoji: '🥤', img: shakeImg },
-  { slug: 'desserts-and-beverages', label: 'Desserts & Beverages', emoji: '🍨', img: dessertsImg },
-  { slug: 'mojitos', label: 'Mojitos', emoji: '🍹', img: mojitoImg },
+  { slug: 'pasta-pulao', label: 'Pasta & Pulao', emoji: '🍛', img: pastaPulaoImg },
+  { slug: 'mojito', label: 'Mojito', emoji: '🍹', img: mojitoImg },
+  { slug: 'milkshake', label: 'Milkshake', emoji: '🥤', img: shakeImg },
+  { slug: 'desserts-beverages', label: 'Desserts & Beverages', emoji: '🍰', img: dessertsImg },
 ];
 
 const HIGHLIGHTS = [

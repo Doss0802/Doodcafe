@@ -1,23 +1,23 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, SlidersHorizontal, ArrowUpDown, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { SlidersHorizontal, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import axiosInstance from '../api/axiosInstance';
 import MenuCard from '../components/MenuCard';
 import ItemModal from '../components/ItemModal';
 
 /* ── Fallback Category List ──────────────────────────────── */
 const DEFAULT_CATEGORIES = [
-  { _id: 'c-quick-bites', name: 'Quick Bites', slug: 'quick-bites', icon: '🍟' },
-  { _id: 'c-loaded-fries', name: 'Loaded Fries', slug: 'loaded-fries', icon: '🧀' },
+  { _id: 'c-quick-bites', name: 'Quick Bites', slug: 'quick-bites', icon: '🍿' },
+  { _id: 'c-loaded-fries', name: 'Loaded Fries', slug: 'loaded-fries', icon: '🍟' },
   { _id: 'c-crispy-chicken', name: 'Crispy chicken', slug: 'crispy-chicken', icon: '🍗' },
   { _id: 'c-burger', name: 'Burger', slug: 'burger', icon: '🍔' },
   { _id: 'c-sandwich', name: 'Sandwich', slug: 'sandwich', icon: '🥪' },
-  { _id: 'c-roll-and-wrap', name: 'Roll & Wrap', slug: 'roll-and-wrap', icon: '🌯' },
+  { _id: 'c-roll-wrap', name: 'Roll & Wrap', slug: 'roll-wrap', icon: '🌯' },
   { _id: 'c-korean', name: 'Korean', slug: 'korean', icon: '🍜' },
-  { _id: 'c-pasta-and-pulao', name: 'Pasta & Pulao', slug: 'pasta-and-pulao', icon: '🍝' },
-  { _id: 'c-mojitos', name: 'Mojitos', slug: 'mojitos', icon: '🍹' },
-  { _id: 'c-milkshakes', name: 'Milkshakes', slug: 'milkshakes', icon: '🥤' },
-  { _id: 'c-desserts-and-beverages', name: 'Desserts & Beverages', slug: 'desserts-and-beverages', icon: '🍨' },
+  { _id: 'c-pasta-pulao', name: 'Pasta & Pulao', slug: 'pasta-pulao', icon: '🍛' },
+  { _id: 'c-mojito', name: 'Mojito', slug: 'mojito', icon: '🍹' },
+  { _id: 'c-milkshake', name: 'Milkshake', slug: 'milkshake', icon: '🥤' },
+  { _id: 'c-desserts-beverages', name: 'Desserts & Beverages', slug: 'desserts-beverages', icon: '🍰' },
 ];
 
 /* ── Fallback Menu Items Dataset ──────────────────────────── */
@@ -55,19 +55,19 @@ const DEFAULT_ITEMS = [
   { _id: 'item-sw7', name: 'Fried Chicken Sandwich', price: 199, category: { name: 'Sandwich', slug: 'sandwich', icon: '🥪' }, description: 'Crispy golden fried chicken fillet with crunchy lettuce and special sauce', isVeg: false, isBestseller: false, preparationTime: 12, tags: ['chicken', 'fried', 'crispy'], imageUrl: '/sandwich/Fried Chicken Sandwich.jpeg' },
   { _id: 'item-sw8', name: 'Fried Chicken Cheese Sandwich', price: 219, category: { name: 'Sandwich', slug: 'sandwich', icon: '🥪' }, description: 'Crispy golden fried chicken topped with gooey melted cheese slice', isVeg: false, isBestseller: false, preparationTime: 12, tags: ['chicken', 'cheese', 'crispy'], imageUrl: '/sandwich/Fried Chicken Cheese Sandwich.jpeg' },
   { _id: 'item-sw9', name: 'Dynamite chicken sandwich', price: 219, category: { name: 'Sandwich', slug: 'sandwich', icon: '🥪' }, description: 'Crispy chicken tossed in fiery creamy dynamite sauce in grilled bread', isVeg: false, isBestseller: true, preparationTime: 10, tags: ['dynamite', 'spicy', 'chicken'], imageUrl: '/sandwich/Dynamite chicken sandwic.jpeg' },
-  { _id: 'item-rw1', name: 'Veg Roll', price: 149, category: { name: 'Roll & Wrap', slug: 'roll-and-wrap', icon: '🌯' }, description: 'Crispy golden potato filling rolled in a soft flour tortilla with mint chutney', isVeg: true, isBestseller: true, preparationTime: 8, tags: ['veg', 'roll', 'crispy'], imageUrl: '/roll-and-wrap/Veg Roll.jpeg' },
-  { _id: 'item-rw2', name: 'Peri peri Veg Roll', price: 169, category: { name: 'Roll & Wrap', slug: 'roll-and-wrap', icon: '🌯' }, description: 'Peri peri spiced veggie filling wrapped in a soft tortilla', isVeg: true, isBestseller: false, preparationTime: 8, tags: ['veg', 'peri-peri', 'spicy'], imageUrl: '/roll-and-wrap/Peri peri Veg Roll.jpeg' },
-  { _id: 'item-rw3', name: 'Veg Cheese Roll', price: 169, category: { name: 'Roll & Wrap', slug: 'roll-and-wrap', icon: '🌯' }, description: 'Fresh veggies and melted cheese wrapped in a toasted flour roll', isVeg: true, isBestseller: false, preparationTime: 8, tags: ['veg', 'cheese', 'roll'], imageUrl: '/roll-and-wrap/Veg Cheese Roll.jpeg' },
-  { _id: 'item-rw4', name: 'Panner Roll', price: 199, category: { name: 'Roll & Wrap', slug: 'roll-and-wrap', icon: '🌯' }, description: 'Spiced paneer pieces with onions and chutneys in a soft roll', isVeg: true, isBestseller: true, preparationTime: 10, tags: ['veg', 'paneer', 'roll'], imageUrl: '/roll-and-wrap/Panner Roll.jpeg' },
-  { _id: 'item-rw5', name: 'Peri peri Panner Roll', price: 219, category: { name: 'Roll & Wrap', slug: 'roll-and-wrap', icon: '🌯' }, description: 'Peri peri marinated paneer rolled with crunchy onions and cool mint sauce', isVeg: true, isBestseller: false, preparationTime: 10, tags: ['veg', 'paneer', 'peri-peri'], imageUrl: '/roll-and-wrap/Peri peri Panner Roll.jpeg' },
-  { _id: 'item-rw6', name: 'Corn Cheese Roll', price: 199, category: { name: 'Roll & Wrap', slug: 'roll-and-wrap', icon: '🌯' }, description: 'Sweet golden corn and gooey melted cheese in a crispy toasted roll', isVeg: true, isBestseller: true, preparationTime: 10, tags: ['veg', 'corn', 'cheese'], imageUrl: '/roll-and-wrap/Corn Cheese Roll.jpeg' },
-  { _id: 'item-rw7', name: 'Peri peri corn Cheese Roll', price: 219, category: { name: 'Roll & Wrap', slug: 'roll-and-wrap', icon: '🌯' }, description: 'Corn and cheese roll levelled up with fiery peri peri seasoning', isVeg: true, isBestseller: false, preparationTime: 10, tags: ['veg', 'peri-peri', 'cheese'], imageUrl: '/roll-and-wrap/Peri peri corn Cheese Roll.jpeg' },
-  { _id: 'item-rw8', name: 'Crispy Chicken Wrap', price: 199, category: { name: 'Roll & Wrap', slug: 'roll-and-wrap', icon: '🌯' }, description: 'Golden crispy fried chicken strips wrapped with fresh lettuce and creamy sauce', isVeg: false, isBestseller: true, preparationTime: 10, tags: ['chicken', 'crispy', 'wrap'], imageUrl: '/roll-and-wrap/Crispy Chicken Wrap.jpeg' },
-  { _id: 'item-rw9', name: 'Peri peri Chicken Wrap', price: 219, category: { name: 'Roll & Wrap', slug: 'roll-and-wrap', icon: '🌯' }, description: 'Spicy peri peri chicken strips with crunchy veggies and cool sauce', isVeg: false, isBestseller: false, preparationTime: 10, tags: ['chicken', 'peri-peri', 'spicy'], imageUrl: '/roll-and-wrap/Peri peri Chicken Wrap.jpeg' },
-  { _id: 'item-rw10', name: 'Grilled Chicken Wrap', price: 199, category: { name: 'Roll & Wrap', slug: 'roll-and-wrap', icon: '🌯' }, description: 'Juicy herb-grilled chicken breast with fresh greens and garlic mayo', isVeg: false, isBestseller: true, preparationTime: 10, tags: ['chicken', 'grilled', 'healthy'], imageUrl: '/roll-and-wrap/Grilled Chicken Wrap.jpeg' },
-  { _id: 'item-rw11', name: 'Peri peri Grilled Chicken Wrap', price: 219, category: { name: 'Roll & Wrap', slug: 'roll-and-wrap', icon: '🌯' }, description: 'Peri peri spiced grilled chicken with crunchy slaw and tangy sauce', isVeg: false, isBestseller: false, preparationTime: 10, tags: ['chicken', 'peri-peri', 'grilled'], imageUrl: '/roll-and-wrap/Peri peri Grilled Chicken Wrap.jpeg' },
-  { _id: 'item-rw12', name: 'BBQ Chicken Wrap', price: 219, category: { name: 'Roll & Wrap', slug: 'roll-and-wrap', icon: '🌯' }, description: 'Smoky BBQ glazed chicken strips with cheddar, lettuce and chipotle mayo', isVeg: false, isBestseller: true, preparationTime: 10, tags: ['chicken', 'bbq', 'smoky'], imageUrl: '/roll-and-wrap/BBQ Chicken Wrap.jpeg' },
-  { _id: 'item-rw13', name: 'Dynamite Chicken Wrap', price: 219, category: { name: 'Roll & Wrap', slug: 'roll-and-wrap', icon: '🌯' }, description: 'Crispy chicken in fiery dynamite sauce wrapped with crunchy veggies', isVeg: false, isBestseller: true, preparationTime: 10, tags: ['chicken', 'dynamite', 'spicy'], imageUrl: '/roll-and-wrap/Dynamite Chicken Wrap.jpeg' },
+  { _id: 'item-rw1', name: 'Veg Roll', price: 149, category: { name: 'Roll & Wrap', slug: 'roll-wrap', icon: '🌯' }, description: 'Crispy golden potato filling rolled in a soft flour tortilla with mint chutney', isVeg: true, isBestseller: true, preparationTime: 8, tags: ['veg', 'roll', 'crispy'], imageUrl: '/roll-and-wrap/Veg Roll.jpeg' },
+  { _id: 'item-rw2', name: 'Peri peri Veg Roll', price: 169, category: { name: 'Roll & Wrap', slug: 'roll-wrap', icon: '🌯' }, description: 'Peri peri spiced veggie filling wrapped in a soft tortilla', isVeg: true, isBestseller: false, preparationTime: 8, tags: ['veg', 'peri-peri', 'spicy'], imageUrl: '/roll-and-wrap/Peri peri Veg Roll.jpeg' },
+  { _id: 'item-rw3', name: 'Veg Cheese Roll', price: 169, category: { name: 'Roll & Wrap', slug: 'roll-wrap', icon: '🌯' }, description: 'Fresh veggies and melted cheese wrapped in a toasted flour roll', isVeg: true, isBestseller: false, preparationTime: 8, tags: ['veg', 'cheese', 'roll'], imageUrl: '/roll-and-wrap/Veg Cheese Roll.jpeg' },
+  { _id: 'item-rw4', name: 'Panner Roll', price: 199, category: { name: 'Roll & Wrap', slug: 'roll-wrap', icon: '🌯' }, description: 'Spiced paneer pieces with onions and chutneys in a soft roll', isVeg: true, isBestseller: true, preparationTime: 10, tags: ['veg', 'paneer', 'roll'], imageUrl: '/roll-and-wrap/Panner Roll.jpeg' },
+  { _id: 'item-rw5', name: 'Peri peri Panner Roll', price: 219, category: { name: 'Roll & Wrap', slug: 'roll-wrap', icon: '🌯' }, description: 'Peri peri marinated paneer rolled with crunchy onions and cool mint sauce', isVeg: true, isBestseller: false, preparationTime: 10, tags: ['veg', 'paneer', 'peri-peri'], imageUrl: '/roll-and-wrap/Peri peri Panner Roll.jpeg' },
+  { _id: 'item-rw6', name: 'Corn Cheese Roll', price: 199, category: { name: 'Roll & Wrap', slug: 'roll-wrap', icon: '🌯' }, description: 'Sweet golden corn and gooey melted cheese in a crispy toasted roll', isVeg: true, isBestseller: true, preparationTime: 10, tags: ['veg', 'corn', 'cheese'], imageUrl: '/roll-and-wrap/Corn Cheese Roll.jpeg' },
+  { _id: 'item-rw7', name: 'Peri peri corn Cheese Roll', price: 219, category: { name: 'Roll & Wrap', slug: 'roll-wrap', icon: '🌯' }, description: 'Corn and cheese roll levelled up with fiery peri peri seasoning', isVeg: true, isBestseller: false, preparationTime: 10, tags: ['veg', 'peri-peri', 'cheese'], imageUrl: '/roll-and-wrap/Peri peri corn Cheese Roll.jpeg' },
+  { _id: 'item-rw8', name: 'Crispy Chicken Wrap', price: 199, category: { name: 'Roll & Wrap', slug: 'roll-wrap', icon: '🌯' }, description: 'Golden crispy fried chicken strips wrapped with fresh lettuce and creamy sauce', isVeg: false, isBestseller: true, preparationTime: 10, tags: ['chicken', 'crispy', 'wrap'], imageUrl: '/roll-and-wrap/Crispy Chicken Wrap.jpeg' },
+  { _id: 'item-rw9', name: 'Peri peri Chicken Wrap', price: 219, category: { name: 'Roll & Wrap', slug: 'roll-wrap', icon: '🌯' }, description: 'Spicy peri peri chicken strips with crunchy veggies and cool sauce', isVeg: false, isBestseller: false, preparationTime: 10, tags: ['chicken', 'peri-peri', 'spicy'], imageUrl: '/roll-and-wrap/Peri peri Chicken Wrap.jpeg' },
+  { _id: 'item-rw10', name: 'Grilled Chicken Wrap', price: 199, category: { name: 'Roll & Wrap', slug: 'roll-wrap', icon: '🌯' }, description: 'Juicy herb-grilled chicken breast with fresh greens and garlic mayo', isVeg: false, isBestseller: true, preparationTime: 10, tags: ['chicken', 'grilled', 'healthy'], imageUrl: '/roll-and-wrap/Grilled Chicken Wrap.jpeg' },
+  { _id: 'item-rw11', name: 'Peri peri Grilled Chicken Wrap', price: 219, category: { name: 'Roll & Wrap', slug: 'roll-wrap', icon: '🌯' }, description: 'Peri peri spiced grilled chicken with crunchy slaw and tangy sauce', isVeg: false, isBestseller: false, preparationTime: 10, tags: ['chicken', 'peri-peri', 'grilled'], imageUrl: '/roll-and-wrap/Peri peri Grilled Chicken Wrap.jpeg' },
+  { _id: 'item-rw12', name: 'BBQ Chicken Wrap', price: 219, category: { name: 'Roll & Wrap', slug: 'roll-wrap', icon: '🌯' }, description: 'Smoky BBQ glazed chicken strips with cheddar, lettuce and chipotle mayo', isVeg: false, isBestseller: true, preparationTime: 10, tags: ['chicken', 'bbq', 'smoky'], imageUrl: '/roll-and-wrap/BBQ Chicken Wrap.jpeg' },
+  { _id: 'item-rw13', name: 'Dynamite Chicken Wrap', price: 219, category: { name: 'Roll & Wrap', slug: 'roll-wrap', icon: '🌯' }, description: 'Crispy chicken in fiery dynamite sauce wrapped with crunchy veggies', isVeg: false, isBestseller: true, preparationTime: 10, tags: ['chicken', 'dynamite', 'spicy'], imageUrl: '/roll-and-wrap/Dynamite Chicken Wrap.jpeg' },
   { _id: 'item-kr1', name: 'Korean Chicken Fries', price: 219, category: { name: 'Korean', slug: 'korean', icon: '🍜' }, description: 'Crispy seasoned french fries topped with Korean glazed chicken chunks and scallions', isVeg: false, isBestseller: true, preparationTime: 10, tags: ['korean', 'chicken', 'fries', 'crispy'], imageUrl: '/korean/Korean Chicken Fries.jpeg' },
   { _id: 'item-kr2', name: 'Korean Chicken Burger', price: 219, category: { name: 'Korean', slug: 'korean', icon: '🍜' }, description: 'Crunchy chicken thigh dipped in sweet & spicy gochujang glaze with kimchi slaw', isVeg: false, isBestseller: true, preparationTime: 12, tags: ['korean', 'chicken', 'burger', 'spicy'], imageUrl: '/korean/Korean Chicken Burger.jpeg' },
   { _id: 'item-kr3', name: 'Korean Chicken Sandwich', price: 219, category: { name: 'Korean', slug: 'korean', icon: '🍜' }, description: 'Toasted gourmet sandwich stuffed with sweet-spicy Korean chicken and melted cheese', isVeg: false, isBestseller: false, preparationTime: 10, tags: ['korean', 'chicken', 'sandwich'], imageUrl: '/korean/Korean Chicken Sandwich.jpeg' },
@@ -75,37 +75,37 @@ const DEFAULT_ITEMS = [
   { _id: 'item-kr5', name: 'Korean Ramen veg noodles', price: 199, category: { name: 'Korean', slug: 'korean', icon: '🍜' }, description: 'Authentic Korean style spicy instant noodles with fresh mixed veggies and savory broth', isVeg: true, isBestseller: true, preparationTime: 10, tags: ['korean', 'ramen', 'veg', 'noodles'], imageUrl: '/korean/Korean Ramen veg noodles.jpeg' },
   { _id: 'item-kr6', name: 'Korean Ramen panner noodles', price: 219, category: { name: 'Korean', slug: 'korean', icon: '🍜' }, description: 'Fiery Korean broth ramen noodles topped with golden paneer cubes and herbs', isVeg: true, isBestseller: false, preparationTime: 12, tags: ['korean', 'ramen', 'paneer', 'noodles'], imageUrl: '/korean/Korean Ramen panner noodles.jpeg' },
   { _id: 'item-kr7', name: 'Korean Ramen chicken noodles', price: 219, category: { name: 'Korean', slug: 'korean', icon: '🍜' }, description: 'Hearty spicy Korean ramen loaded with tender chicken pieces, scallions and boiled egg', isVeg: false, isBestseller: true, preparationTime: 12, tags: ['korean', 'ramen', 'chicken', 'noodles'], imageUrl: '/korean/Korean Ramen chicken noodles.jpeg' },
-  { _id: 'item-pp1', name: 'Alfredo veg Pasta', price: 199, category: { name: 'Pasta & Pulao', slug: 'pasta-and-pulao', icon: '🍝' }, description: 'Creamy white sauce penne pasta loaded with garlic, herbs and sauteed garden veggies', isVeg: true, isBestseller: true, preparationTime: 12, tags: ['pasta', 'alfredo', 'creamy', 'veg'], imageUrl: '/pasta-and-pulao/Alfredo veg Pasta.jpeg' },
-  { _id: 'item-pp2', name: 'Alfredo Egg pasta', price: 229, category: { name: 'Pasta & Pulao', slug: 'pasta-and-pulao', icon: '🍝' }, description: 'Rich and velvety Alfredo pasta tossed with seasoned boiled egg slices and parmesan', isVeg: false, isBestseller: false, preparationTime: 12, tags: ['pasta', 'alfredo', 'egg'], imageUrl: '/pasta-and-pulao/Alfredo Egg pasta.jpeg' },
-  { _id: 'item-pp3', name: 'Alfredo Panner pasta', price: 219, category: { name: 'Pasta & Pulao', slug: 'pasta-and-pulao', icon: '🍝' }, description: 'Silky smooth Alfredo cream sauce pasta topped with spiced golden paneer cubes', isVeg: true, isBestseller: false, preparationTime: 12, tags: ['pasta', 'alfredo', 'paneer', 'veg'], imageUrl: '/pasta-and-pulao/Alfredo Panner pasta.jpeg' },
-  { _id: 'item-pp4', name: 'Alfredo chicken pasta', price: 219, category: { name: 'Pasta & Pulao', slug: 'pasta-and-pulao', icon: '🍝' }, description: 'Tender juicy chicken chunks in an indulgent creamy garlic cheese Alfredo sauce', isVeg: false, isBestseller: true, preparationTime: 14, tags: ['pasta', 'alfredo', 'chicken'], imageUrl: '/pasta-and-pulao/Alfredo chicken pasta.jpeg' },
-  { _id: 'item-pp5', name: 'Veg pulao', price: 199, category: { name: 'Pasta & Pulao', slug: 'pasta-and-pulao', icon: '🍝' }, description: 'Aromatic basmati rice simmered with whole spices, garden vegetables and ghee', isVeg: true, isBestseller: true, preparationTime: 12, tags: ['pulao', 'rice', 'veg', 'desi'], imageUrl: '/pasta-and-pulao/Veg pulao.jpeg' },
-  { _id: 'item-pp6', name: 'Egg pulao', price: 229, category: { name: 'Pasta & Pulao', slug: 'pasta-and-pulao', icon: '🍝' }, description: 'Fragrant spiced basmati rice pulao served with flavorful seasoned eggs and raita', isVeg: false, isBestseller: false, preparationTime: 12, tags: ['pulao', 'rice', 'egg'], imageUrl: '/pasta-and-pulao/Egg pulao.jpeg' },
-  { _id: 'item-pp7', name: 'Panner pulao', price: 249, category: { name: 'Pasta & Pulao', slug: 'pasta-and-pulao', icon: '🍝' }, description: 'Royal aromatic pulao cooked with golden roasted paneer cubes and fragrant herbs', isVeg: true, isBestseller: false, preparationTime: 14, tags: ['pulao', 'rice', 'paneer', 'veg'], imageUrl: '/pasta-and-pulao/Panner pulao.jpeg' },
-  { _id: 'item-pp8', name: 'Chicken pulao', price: 249, category: { name: 'Pasta & Pulao', slug: 'pasta-and-pulao', icon: '🍝' }, description: 'Succulent marinated chicken pieces slow-cooked with long grain basmati rice and rich spices', isVeg: false, isBestseller: true, preparationTime: 15, tags: ['pulao', 'rice', 'chicken'], imageUrl: '/pasta-and-pulao/Chicken pulao.jpeg' },
-  { _id: 'item-mj1', name: 'Lime & mint', price: 119, category: { name: 'Mojitos', slug: 'mojitos', icon: '🍹' }, description: 'Classic refreshing blend of zesty lime wedges, fresh garden mint and sparkling soda', isVeg: true, isBestseller: true, preparationTime: 5, tags: ['mojito', 'lime', 'mint', 'refreshing'], imageUrl: '/mojitos/Lime & Mint.jpeg' },
-  { _id: 'item-mj2', name: 'Watermelon mint', price: 119, category: { name: 'Mojitos', slug: 'mojitos', icon: '🍹' }, description: 'Sweet juicy watermelon crushed with fresh mint leaves and fizzy soda', isVeg: true, isBestseller: false, preparationTime: 5, tags: ['mojito', 'watermelon', 'mint'], imageUrl: '/mojitos/Watermelon mint.jpeg' },
-  { _id: 'item-mj3', name: 'Kiwi mojito', price: 119, category: { name: 'Mojitos', slug: 'mojitos', icon: '🍹' }, description: 'Tangy tropical kiwi fruit puree muddled with mint, lime and cracked ice', isVeg: true, isBestseller: false, preparationTime: 5, tags: ['mojito', 'kiwi', 'fruity'], imageUrl: '/mojitos/Kiwi mojito.jpeg' },
-  { _id: 'item-mj4', name: 'Mango mojito', price: 119, category: { name: 'Mojitos', slug: 'mojitos', icon: '🍹' }, description: 'Luscious ripe mango flavor shaken with mint, fresh lemon and bubbly soda', isVeg: true, isBestseller: true, preparationTime: 5, tags: ['mojito', 'mango', 'sweet'], imageUrl: '/mojitos/Mango mojito.jpeg' },
-  { _id: 'item-mj5', name: 'Black currant mojito', price: 119, category: { name: 'Mojitos', slug: 'mojitos', icon: '🍹' }, description: 'Rich bold blackcurrant berry infusion with cool mint and sparkling water', isVeg: true, isBestseller: false, preparationTime: 5, tags: ['mojito', 'blackcurrant', 'berry'], imageUrl: '/mojitos/Black currant mojito.jpeg' },
-  { _id: 'item-mj6', name: 'Strawberry mojito', price: 119, category: { name: 'Mojitos', slug: 'mojitos', icon: '🍹' }, description: 'Sweet fragrant strawberry crush muddled with fresh mint and crisp lime', isVeg: true, isBestseller: false, preparationTime: 5, tags: ['mojito', 'strawberry', 'berry'], imageUrl: '/mojitos/Strawberry mojito.jpeg' },
-  { _id: 'item-mj7', name: 'Blue Ocan', price: 129, category: { name: 'Mojitos', slug: 'mojitos', icon: '🍹' }, description: 'Vibrant blue curacao citrus cooler with mint, lime juice and effervescent soda', isVeg: true, isBestseller: true, preparationTime: 5, tags: ['mojito', 'blue-ocean', 'curacao'], imageUrl: '/mojitos/Blue Ocan.jpeg' },
-  { _id: 'item-mj8', name: 'Blueberry', price: 129, category: { name: 'Mojitos', slug: 'mojitos', icon: '🍹' }, description: 'Delicious wild blueberry puree blended with tangy lime and iced soda', isVeg: true, isBestseller: false, preparationTime: 5, tags: ['mojito', 'blueberry', 'berry'], imageUrl: '/mojitos/Blueberry.jpeg' },
-  { _id: 'item-mj9', name: 'Bubblegum', price: 129, category: { name: 'Mojitos', slug: 'mojitos', icon: '🍹' }, description: 'Fun nostalgic sweet bubblegum flavored refresher with mint and sparkling soda', isVeg: true, isBestseller: false, preparationTime: 5, tags: ['mojito', 'bubblegum', 'sweet'], imageUrl: '/mojitos/Bubblegum.jpeg' },
-  { _id: 'item-mj10', name: 'Cranberry', price: 129, category: { name: 'Mojitos', slug: 'mojitos', icon: '🍹' }, description: 'Crisp tart cranberry juice infused with crushed mint and bubbly lemon soda', isVeg: true, isBestseller: false, preparationTime: 5, tags: ['mojito', 'cranberry', 'tart'], imageUrl: '/mojitos/Cranberry.jpeg' },
-  { _id: 'item-ms1', name: 'Lotus Biscoff', price: 199, category: { name: 'Milkshakes', slug: 'milkshakes', icon: '🥤' }, description: 'Indulgent thick shake blended with creamy Lotus Biscoff spread and crunchy cookie crumble', isVeg: true, isBestseller: true, preparationTime: 7, tags: ['milkshake', 'biscoff', 'lotus'], imageUrl: '/milkshakes/Lotus Biscoff.jpeg' },
-  { _id: 'item-ms2', name: 'Oreo Thick Shake', price: 199, category: { name: 'Milkshakes', slug: 'milkshakes', icon: '🥤' }, description: 'Rich blended Oreo cookie milkshake topped with crushed cookies and whipped cream', isVeg: true, isBestseller: true, preparationTime: 7, tags: ['milkshake', 'oreo', 'chocolate'], imageUrl: '/milkshakes/Oreo Thick Shake.jpeg' },
-  { _id: 'item-ms3', name: 'Kitkat Blast', price: 199, category: { name: 'Milkshakes', slug: 'milkshakes', icon: '🥤' }, description: 'Explosive KitKat chocolate wafer blended into a thick luscious milkshake', isVeg: true, isBestseller: false, preparationTime: 7, tags: ['milkshake', 'kitkat', 'chocolate'], imageUrl: '/milkshakes/Kitkat Blast.jpeg' },
-  { _id: 'item-ms4', name: 'Belgian Chocolate', price: 199, category: { name: 'Milkshakes', slug: 'milkshakes', icon: '🥤' }, description: 'Premium dark Belgian chocolate blended into a velvety thick creamy milkshake', isVeg: true, isBestseller: false, preparationTime: 7, tags: ['milkshake', 'chocolate', 'belgian'], imageUrl: '/milkshakes/Belgian Chocolate.jpeg' },
-  { _id: 'item-ms5', name: 'Mixed Berry', price: 229, category: { name: 'Milkshakes', slug: 'milkshakes', icon: '🥤' }, description: 'Fresh mixed strawberry, blueberry and raspberry swirled into a vibrant creamy shake', isVeg: true, isBestseller: false, preparationTime: 8, tags: ['milkshake', 'berry', 'fruit'], imageUrl: '/milkshakes/Mixed Berry.jpeg' },
-  { _id: 'item-ms6', name: 'Orange Citrus', price: 229, category: { name: 'Milkshakes', slug: 'milkshakes', icon: '🥤' }, description: 'Zesty fresh orange citrus blended with creamy yogurt and a hint of vanilla', isVeg: true, isBestseller: false, preparationTime: 8, tags: ['milkshake', 'orange', 'citrus'], imageUrl: '/milkshakes/Orange Citrus.jpeg' },
-  { _id: 'item-ms7', name: 'Starberry', price: 229, category: { name: 'Milkshakes', slug: 'milkshakes', icon: '🥤' }, description: 'Exotic starfruit and strawberry fusion milkshake with a tropical creamy finish', isVeg: true, isBestseller: false, preparationTime: 8, tags: ['milkshake', 'starberry', 'tropical'], imageUrl: '/milkshakes/Starberry.jpeg' },
-  { _id: 'item-ms8', name: 'Mango', price: 229, category: { name: 'Milkshakes', slug: 'milkshakes', icon: '🥤' }, description: 'Thick luscious Alphonso mango blended with chilled milk for the ultimate summer shake', isVeg: true, isBestseller: true, preparationTime: 7, tags: ['milkshake', 'mango', 'tropical'], imageUrl: '/milkshakes/Mango.jpeg' },
-  { _id: 'item-db1', name: 'Ice scoop', price: 120, category: { name: 'Desserts & Beverages', slug: 'desserts-and-beverages', icon: '🍨' }, description: 'Creamy premium ice cream scoop served chilled — pick your favourite flavour', isVeg: true, isBestseller: true, preparationTime: 3, tags: ['dessert', 'ice cream', 'sweet'], imageUrl: '/desserts-and-beverages/Ice scoop.jpeg' },
-  { _id: 'item-db2', name: 'Choco Brownie', price: 129, category: { name: 'Desserts & Beverages', slug: 'desserts-and-beverages', icon: '🍨' }, description: 'Rich fudgy chocolate brownie baked to perfection with a gooey molten centre', isVeg: true, isBestseller: true, preparationTime: 5, tags: ['dessert', 'brownie', 'chocolate'], imageUrl: '/desserts-and-beverages/Choco Brownie.jpeg' },
-  { _id: 'item-db3', name: 'Brownie with ice cream', price: 199, category: { name: 'Desserts & Beverages', slug: 'desserts-and-beverages', icon: '🍨' }, description: 'Warm gooey chocolate brownie served with a scoop of chilled vanilla ice cream', isVeg: true, isBestseller: true, preparationTime: 5, tags: ['dessert', 'brownie', 'ice cream'], imageUrl: '/desserts-and-beverages/Brownie with ice cream.jpeg' },
-  { _id: 'item-db4', name: 'Hot Chocolate', price: 199, category: { name: 'Desserts & Beverages', slug: 'desserts-and-beverages', icon: '🍨' }, description: 'Velvety rich hot chocolate made with premium cocoa and steamed full-cream milk', isVeg: true, isBestseller: false, preparationTime: 5, tags: ['beverage', 'hot', 'chocolate'], imageUrl: '/desserts-and-beverages/Hot Chocolate.jpeg' },
-  { _id: 'item-db5', name: 'Cold coffee', price: 229, category: { name: 'Desserts & Beverages', slug: 'desserts-and-beverages', icon: '🍨' }, description: 'Chilled blended cold coffee made with strong espresso, milk and a hint of vanilla', isVeg: true, isBestseller: false, preparationTime: 5, tags: ['beverage', 'coffee', 'cold'], imageUrl: '/desserts-and-beverages/Cold coffee.jpeg' },
+  { _id: 'item-pp1', name: 'Alfredo veg Pasta', price: 199, category: { name: 'Pasta & Pulao', slug: 'pasta-pulao', icon: '🍝' }, description: 'Creamy white sauce penne pasta loaded with garlic, herbs and sauteed garden veggies', isVeg: true, isBestseller: true, preparationTime: 12, tags: ['pasta', 'alfredo', 'creamy', 'veg'], imageUrl: '/pasta-and-pulao/Alfredo veg Pasta.jpeg' },
+  { _id: 'item-pp2', name: 'Alfredo Egg pasta', price: 229, category: { name: 'Pasta & Pulao', slug: 'pasta-pulao', icon: '🍝' }, description: 'Rich and velvety Alfredo pasta tossed with seasoned boiled egg slices and parmesan', isVeg: false, isBestseller: false, preparationTime: 12, tags: ['pasta', 'alfredo', 'egg'], imageUrl: '/pasta-and-pulao/Alfredo Egg pasta.jpeg' },
+  { _id: 'item-pp3', name: 'Alfredo Panner pasta', price: 219, category: { name: 'Pasta & Pulao', slug: 'pasta-pulao', icon: '🍝' }, description: 'Silky smooth Alfredo cream sauce pasta topped with spiced golden paneer cubes', isVeg: true, isBestseller: false, preparationTime: 12, tags: ['pasta', 'alfredo', 'paneer', 'veg'], imageUrl: '/pasta-and-pulao/Alfredo Panner pasta.jpeg' },
+  { _id: 'item-pp4', name: 'Alfredo chicken pasta', price: 219, category: { name: 'Pasta & Pulao', slug: 'pasta-pulao', icon: '🍝' }, description: 'Tender juicy chicken chunks in an indulgent creamy garlic cheese Alfredo sauce', isVeg: false, isBestseller: true, preparationTime: 14, tags: ['pasta', 'alfredo', 'chicken'], imageUrl: '/pasta-and-pulao/Alfredo chicken pasta.jpeg' },
+  { _id: 'item-pp5', name: 'Veg pulao', price: 199, category: { name: 'Pasta & Pulao', slug: 'pasta-pulao', icon: '🍝' }, description: 'Aromatic basmati rice simmered with whole spices, garden vegetables and ghee', isVeg: true, isBestseller: true, preparationTime: 12, tags: ['pulao', 'rice', 'veg', 'desi'], imageUrl: '/pasta-and-pulao/Veg pulao.jpeg' },
+  { _id: 'item-pp6', name: 'Egg pulao', price: 229, category: { name: 'Pasta & Pulao', slug: 'pasta-pulao', icon: '🍝' }, description: 'Fragrant spiced basmati rice pulao served with flavorful seasoned eggs and raita', isVeg: false, isBestseller: false, preparationTime: 12, tags: ['pulao', 'rice', 'egg'], imageUrl: '/pasta-and-pulao/Egg pulao.jpeg' },
+  { _id: 'item-pp7', name: 'Panner pulao', price: 249, category: { name: 'Pasta & Pulao', slug: 'pasta-pulao', icon: '🍝' }, description: 'Royal aromatic pulao cooked with golden roasted paneer cubes and fragrant herbs', isVeg: true, isBestseller: false, preparationTime: 14, tags: ['pulao', 'rice', 'paneer', 'veg'], imageUrl: '/pasta-and-pulao/Panner pulao.jpeg' },
+  { _id: 'item-pp8', name: 'Chicken pulao', price: 249, category: { name: 'Pasta & Pulao', slug: 'pasta-pulao', icon: '🍝' }, description: 'Succulent marinated chicken pieces slow-cooked with long grain basmati rice and rich spices', isVeg: false, isBestseller: true, preparationTime: 15, tags: ['pulao', 'rice', 'chicken'], imageUrl: '/pasta-and-pulao/Chicken pulao.jpeg' },
+  { _id: 'item-mj1', name: 'Lime & mint', price: 119, category: { name: 'Mojito', slug: 'mojito', icon: '🍹' }, description: 'Classic refreshing blend of zesty lime wedges, fresh garden mint and sparkling soda', isVeg: true, isBestseller: true, preparationTime: 5, tags: ['mojito', 'lime', 'mint', 'refreshing'], imageUrl: '/mojitos/Lime & Mint.jpeg' },
+  { _id: 'item-mj2', name: 'Watermelon mint', price: 119, category: { name: 'Mojito', slug: 'mojito', icon: '🍹' }, description: 'Sweet juicy watermelon crushed with fresh mint leaves and fizzy soda', isVeg: true, isBestseller: false, preparationTime: 5, tags: ['mojito', 'watermelon', 'mint'], imageUrl: '/mojitos/Watermelon mint.jpeg' },
+  { _id: 'item-mj3', name: 'Kiwi mojito', price: 119, category: { name: 'Mojito', slug: 'mojito', icon: '🍹' }, description: 'Tangy tropical kiwi fruit puree muddled with mint, lime and cracked ice', isVeg: true, isBestseller: false, preparationTime: 5, tags: ['mojito', 'kiwi', 'fruity'], imageUrl: '/mojitos/Kiwi mojito.jpeg' },
+  { _id: 'item-mj4', name: 'Mango mojito', price: 119, category: { name: 'Mojito', slug: 'mojito', icon: '🍹' }, description: 'Luscious ripe mango flavor shaken with mint, fresh lemon and bubbly soda', isVeg: true, isBestseller: true, preparationTime: 5, tags: ['mojito', 'mango', 'sweet'], imageUrl: '/mojitos/Mango mojito.jpeg' },
+  { _id: 'item-mj5', name: 'Black currant mojito', price: 119, category: { name: 'Mojito', slug: 'mojito', icon: '🍹' }, description: 'Rich bold blackcurrant berry infusion with cool mint and sparkling water', isVeg: true, isBestseller: false, preparationTime: 5, tags: ['mojito', 'blackcurrant', 'berry'], imageUrl: '/mojitos/Black currant mojito.jpeg' },
+  { _id: 'item-mj6', name: 'Strawberry mojito', price: 119, category: { name: 'Mojito', slug: 'mojito', icon: '🍹' }, description: 'Sweet fragrant strawberry crush muddled with fresh mint and crisp lime', isVeg: true, isBestseller: false, preparationTime: 5, tags: ['mojito', 'strawberry', 'berry'], imageUrl: '/mojitos/Strawberry mojito.jpeg' },
+  { _id: 'item-mj7', name: 'Blue Ocan', price: 129, category: { name: 'Mojito', slug: 'mojito', icon: '🍹' }, description: 'Vibrant blue curacao citrus cooler with mint, lime juice and effervescent soda', isVeg: true, isBestseller: true, preparationTime: 5, tags: ['mojito', 'blue-ocean', 'curacao'], imageUrl: '/mojitos/Blue Ocan.jpeg' },
+  { _id: 'item-mj8', name: 'Blueberry', price: 129, category: { name: 'Mojito', slug: 'mojito', icon: '🍹' }, description: 'Delicious wild blueberry puree blended with tangy lime and iced soda', isVeg: true, isBestseller: false, preparationTime: 5, tags: ['mojito', 'blueberry', 'berry'], imageUrl: '/mojitos/Blueberry.jpeg' },
+  { _id: 'item-mj9', name: 'Bubblegum', price: 129, category: { name: 'Mojito', slug: 'mojito', icon: '🍹' }, description: 'Fun nostalgic sweet bubblegum flavored refresher with mint and sparkling soda', isVeg: true, isBestseller: false, preparationTime: 5, tags: ['mojito', 'bubblegum', 'sweet'], imageUrl: '/mojitos/Bubblegum.jpeg' },
+  { _id: 'item-mj10', name: 'Cranberry', price: 129, category: { name: 'Mojito', slug: 'mojito', icon: '🍹' }, description: 'Crisp tart cranberry juice infused with crushed mint and bubbly lemon soda', isVeg: true, isBestseller: false, preparationTime: 5, tags: ['mojito', 'cranberry', 'tart'], imageUrl: '/mojitos/Cranberry.jpeg' },
+  { _id: 'item-ms1', name: 'Lotus Biscoff', price: 199, category: { name: 'Milkshake', slug: 'milkshake', icon: '🥤' }, description: 'Indulgent thick shake blended with creamy Lotus Biscoff spread and crunchy cookie crumble', isVeg: true, isBestseller: true, preparationTime: 7, tags: ['milkshake', 'biscoff', 'lotus'], imageUrl: '/milkshakes/Lotus Biscoff.jpeg' },
+  { _id: 'item-ms2', name: 'Oreo Thick Shake', price: 199, category: { name: 'Milkshake', slug: 'milkshake', icon: '🥤' }, description: 'Rich blended Oreo cookie milkshake topped with crushed cookies and whipped cream', isVeg: true, isBestseller: true, preparationTime: 7, tags: ['milkshake', 'oreo', 'chocolate'], imageUrl: '/milkshakes/Oreo Thick Shake.jpeg' },
+  { _id: 'item-ms3', name: 'Kitkat Blast', price: 199, category: { name: 'Milkshake', slug: 'milkshake', icon: '🥤' }, description: 'Explosive KitKat chocolate wafer blended into a thick luscious milkshake', isVeg: true, isBestseller: false, preparationTime: 7, tags: ['milkshake', 'kitkat', 'chocolate'], imageUrl: '/milkshakes/Kitkat Blast.jpeg' },
+  { _id: 'item-ms4', name: 'Belgian Chocolate', price: 199, category: { name: 'Milkshake', slug: 'milkshake', icon: '🥤' }, description: 'Premium dark Belgian chocolate blended into a velvety thick creamy milkshake', isVeg: true, isBestseller: false, preparationTime: 7, tags: ['milkshake', 'chocolate', 'belgian'], imageUrl: '/milkshakes/Belgian Chocolate.jpeg' },
+  { _id: 'item-ms5', name: 'Mixed Berry', price: 229, category: { name: 'Milkshake', slug: 'milkshake', icon: '🥤' }, description: 'Fresh mixed strawberry, blueberry and raspberry swirled into a vibrant creamy shake', isVeg: true, isBestseller: false, preparationTime: 8, tags: ['milkshake', 'berry', 'fruit'], imageUrl: '/milkshakes/Mixed Berry.jpeg' },
+  { _id: 'item-ms6', name: 'Orange Citrus', price: 229, category: { name: 'Milkshake', slug: 'milkshake', icon: '🥤' }, description: 'Zesty fresh orange citrus blended with creamy yogurt and a hint of vanilla', isVeg: true, isBestseller: false, preparationTime: 8, tags: ['milkshake', 'orange', 'citrus'], imageUrl: '/milkshakes/Orange Citrus.jpeg' },
+  { _id: 'item-ms7', name: 'Starberry', price: 229, category: { name: 'Milkshake', slug: 'milkshake', icon: '🥤' }, description: 'Exotic starfruit and strawberry fusion milkshake with a tropical creamy finish', isVeg: true, isBestseller: false, preparationTime: 8, tags: ['milkshake', 'starberry', 'tropical'], imageUrl: '/milkshakes/Starberry.jpeg' },
+  { _id: 'item-ms8', name: 'Mango', price: 229, category: { name: 'Milkshake', slug: 'milkshake', icon: '🥤' }, description: 'Thick luscious Alphonso mango blended with chilled milk for the ultimate summer shake', isVeg: true, isBestseller: true, preparationTime: 7, tags: ['milkshake', 'mango', 'tropical'], imageUrl: '/milkshakes/Mango.jpeg' },
+  { _id: 'item-db1', name: 'Ice scoop', price: 120, category: { name: 'Desserts & Beverages', slug: 'desserts-beverages', icon: '🍰' }, description: 'Creamy premium ice cream scoop served chilled — pick your favourite flavour', isVeg: true, isBestseller: true, preparationTime: 3, tags: ['dessert', 'ice cream', 'sweet'], imageUrl: '/desserts-and-beverages/Ice scoop.jpeg' },
+  { _id: 'item-db2', name: 'Choco Brownie', price: 129, category: { name: 'Desserts & Beverages', slug: 'desserts-beverages', icon: '🍰' }, description: 'Rich fudgy chocolate brownie baked to perfection with a gooey molten centre', isVeg: true, isBestseller: true, preparationTime: 5, tags: ['dessert', 'brownie', 'chocolate'], imageUrl: '/desserts-and-beverages/Choco Brownie.jpeg' },
+  { _id: 'item-db3', name: 'Brownie with ice cream', price: 199, category: { name: 'Desserts & Beverages', slug: 'desserts-beverages', icon: '🍰' }, description: 'Warm gooey chocolate brownie served with a scoop of chilled vanilla ice cream', isVeg: true, isBestseller: true, preparationTime: 5, tags: ['dessert', 'brownie', 'ice cream'], imageUrl: '/desserts-and-beverages/Brownie with ice cream.jpeg' },
+  { _id: 'item-db4', name: 'Hot Chocolate', price: 199, category: { name: 'Desserts & Beverages', slug: 'desserts-beverages', icon: '🍰' }, description: 'Velvety rich hot chocolate made with premium cocoa and steamed full-cream milk', isVeg: true, isBestseller: false, preparationTime: 5, tags: ['beverage', 'hot', 'chocolate'], imageUrl: '/desserts-and-beverages/Hot Chocolate.jpeg' },
+  { _id: 'item-db5', name: 'Cold coffee', price: 229, category: { name: 'Desserts & Beverages', slug: 'desserts-beverages', icon: '🍰' }, description: 'Chilled blended cold coffee made with strong espresso, milk and a hint of vanilla', isVeg: true, isBestseller: false, preparationTime: 5, tags: ['beverage', 'coffee', 'cold'], imageUrl: '/desserts-and-beverages/Cold coffee.jpeg' },
 ];
 
 const filterAndSortLocal = (category, search, veg, sortBy) => {
@@ -144,20 +144,14 @@ export default function Menu() {
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({});
   const [dsaMeta, setDsaMeta] = useState(null);
-  const [searchInput, setSearchInput] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
   const [showPrices, setShowPrices] = useState(true);
 
-  // Extracted URL state data
-  const selectedCategory = searchParams.get('category') || 'all';
+  // Extracted URL state data — defaults to 'quick-bites' (first category)
+  const selectedCategory = searchParams.get('category') || 'quick-bites';
   const activePage = parseInt(searchParams.get('page') || '1');
-  const searchQuery = searchParams.get('search') || '';
   const sortBy = searchParams.get('sort') || searchParams.get('sortBy') || 'popularity';
   const onlyVeg = searchParams.get('veg') === 'true';
-
-  useEffect(() => {
-    setSearchInput(searchQuery);
-  }, [searchQuery]);
 
   useEffect(() => {
     document.title = 'Menu — Dood Cafe';
@@ -190,8 +184,7 @@ export default function Menu() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (selectedCategory !== 'all') params.set('category', selectedCategory);
-      if (searchQuery) params.set('search', searchQuery);
+      if (selectedCategory) params.set('category', selectedCategory);
       if (sortBy) {
         params.set('sort', sortBy);
         params.set('sortBy', sortBy);
@@ -214,19 +207,19 @@ export default function Menu() {
           setDsaMeta(responseData.meta.dsaEngine);
         }
       } else {
-        const fallbackList = filterAndSortLocal(selectedCategory, searchQuery, onlyVeg, sortBy);
+        const fallbackList = filterAndSortLocal(selectedCategory, '', onlyVeg, sortBy);
         setItems(fallbackList);
         setPagination({ pages: 1, total: fallbackList.length, page: 1 });
       }
     } catch (err) {
       console.warn('Backend API connection warning, using local dataset:', err);
-      const fallbackList = filterAndSortLocal(selectedCategory, searchQuery, onlyVeg, sortBy);
+      const fallbackList = filterAndSortLocal(selectedCategory, '', onlyVeg, sortBy);
       setItems(fallbackList);
       setPagination({ pages: 1, total: fallbackList.length, page: 1 });
     } finally {
       setLoading(false);
     }
-  }, [selectedCategory, searchQuery, sortBy, activePage, onlyVeg]);
+  }, [selectedCategory, sortBy, activePage, onlyVeg]);
 
   useEffect(() => {
     fetchMenuItems();
@@ -235,8 +228,7 @@ export default function Menu() {
 
   const handleCategoryChange = (slug) => {
     const p = new URLSearchParams(searchParams);
-    if (slug === 'all') p.delete('category');
-    else p.set('category', slug);
+    p.set('category', slug);
     p.delete('page');
     setSearchParams(p);
   };
@@ -272,22 +264,6 @@ export default function Menu() {
     }
   };
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    const p = new URLSearchParams(searchParams);
-    if (searchInput.trim()) p.set('search', searchInput.trim());
-    else p.delete('search');
-    p.delete('page');
-    setSearchParams(p);
-  };
-
-  const clearSearch = () => {
-    setSearchInput('');
-    const p = new URLSearchParams(searchParams);
-    p.delete('search');
-    setSearchParams(p);
-  };
-
   const handleSortChange = (e) => {
     const val = e.target.value;
     const p = new URLSearchParams(searchParams);
@@ -316,34 +292,10 @@ export default function Menu() {
         {/* Page Header */}
         <div className="page-header">
           <h1 className="page-title cursive-title">Our Menu</h1>
-          <p className="page-sub">Explore our wide range of premium food &amp; beverages</p>
         </div>
 
-        {/* Search & QuickSort Controls */}
-        <div className="menu-controls flex flex-wrap gap-3 items-center justify-between">
-          {/* MenuTrie Search Input */}
-          <form className="search-bar flex-1 min-w-[260px]" onSubmit={handleSearchSubmit} role="search">
-            <Search size={18} className="search-icon" />
-            <input
-              id="menu-search-input"
-              type="search"
-              className="search-input"
-              placeholder="Search menu items (e.g. fries, burger, roll)..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              aria-label="Search menu items"
-              maxLength={80}
-            />
-            {searchQuery && (
-              <button type="button" className="search-clear" onClick={clearSearch} title="Clear search">
-                <X size={16} />
-              </button>
-            )}
-            <button type="submit" className="search-btn" id="menu-search-btn">
-              Search
-            </button>
-          </form>
-
+        {/* QuickSort & Veg Controls */}
+        <div className="menu-controls flex flex-wrap gap-3 items-center justify-end">
           {/* QuickSort Selector */}
           <div className="sort-wrapper">
             <label htmlFor="menu-sort-select">
@@ -393,18 +345,9 @@ export default function Menu() {
             role="tablist"
             aria-label="Menu categories"
           >
-            <button
-              role="tab"
-              aria-selected={selectedCategory === 'all'}
-              className={`cat-tab ${selectedCategory === 'all' ? 'cat-tab-active' : ''}`}
-              onClick={() => handleCategoryChange('all')}
-            >
-              <span className="cat-icon">🍽️</span>
-              <span className="cat-name">All</span>
-            </button>
             {categories.map((cat) => (
               <button
-                key={cat._id}
+                key={cat._id || cat.id || cat.slug}
                 role="tab"
                 aria-selected={selectedCategory === cat.slug}
                 className={`cat-tab ${selectedCategory === cat.slug ? 'cat-tab-active' : ''}`}
@@ -428,36 +371,24 @@ export default function Menu() {
           </button>
         </div>
 
-        {/* Active Search & DSA Info Bar */}
-        {searchQuery && (
-          <div className="search-indicator flex items-center justify-between text-sm py-2 px-3 bg-stone-900/60 rounded-md border border-stone-800 my-3">
-            <span>
-              Trie Search results for "<strong>{searchQuery}</strong>"
-            </span>
-            <button className="search-clear-inline text-amber-400 hover:underline flex items-center gap-1" onClick={clearSearch}>
-              <X size={14} /> Clear Search
-            </button>
-          </div>
-        )}
-
         {/* Dynamic Grid Cards Displaying Photo, Name, and Price */}
         {loading ? (
-          <div className="menu-grid">
+          <div className="menu-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="skeleton-card" />
             ))}
           </div>
         ) : items.length === 0 ? (
           <div className="empty-state">
-            <span className="empty-icon">🔍</span>
+            <span className="empty-icon">🍽️</span>
             <h3>No menu items found</h3>
-            <p>Try a different search term or category filter</p>
+            <p>Try selecting a different category</p>
           </div>
         ) : (
-          <div className="menu-grid">
+          <div className="menu-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {items.map((item) => (
               <MenuCard
-                key={item._id}
+                key={item._id || item.id}
                 item={item}
                 showPrice={showPrices}
                 onItemClick={(it) => setSelectedItem(it)}
