@@ -95,13 +95,15 @@ app.use(requestIdMiddleware);
 // ─── 2. HTTP Security & Hardening ─────────────────────────────────────────────
 app.use(
   helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    crossOriginEmbedderPolicy: false,
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", 'https://fonts.googleapis.com'],
         fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-        imgSrc: ["'self'", 'data:', 'https:'],
+        imgSrc: ["'self'", 'data:', 'https:', 'http:'],
         objectSrc: ["'none'"],
         upgradeInsecureRequests: [],
       },

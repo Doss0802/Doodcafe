@@ -273,9 +273,7 @@ export default function MenuManagement() {
         fd.append('imageUrl', addUrl.trim());
         fd.append('image', addUrl.trim());
       }
-      const res = await axiosInstance.post('/admin/menu/add-item', fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const res = await axiosInstance.post('/admin/menu/add-item', fd);
       toast.success(res.data?.message || `"${addName}" added!`);
       setAddName(''); setAddPrice(''); setAddDesc('');
       setAddFile(null); setAddPreview(''); setAddUrl('');
@@ -327,9 +325,7 @@ export default function MenuManagement() {
         fd.append('imageUrl', updateUrl.trim());
         fd.append('image', updateUrl.trim());
       }
-      const res = await axiosInstance.put(`/admin/menu/update-item/${updateId}`, fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const res = await axiosInstance.put(`/admin/menu/update-item/${updateId}`, fd);
       const updated = res.data?.data;
       toast.success(res.data?.message || `"${updateName}" updated!`);
       if (updated) setItems((prev) => prev.map((i) => (i.id || i._id) === updateId ? updated : i));
