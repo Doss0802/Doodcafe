@@ -228,7 +228,7 @@ const MenuItem = require('./models/MenuItem');
 const seedCategories = async () => {
   const catCount = await Category.count();
   const itemCount = await MenuItem.count();
-  if (catCount !== 11 || itemCount < 84) {
+  if (catCount !== 11 || itemCount !== 84) {
     await MenuItem.destroy({ where: {}, truncate: true, cascade: true });
     await Category.destroy({ where: {}, truncate: true, cascade: true });
 
