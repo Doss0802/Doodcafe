@@ -85,6 +85,17 @@ export default function MenuCard({ item, onItemClick, showPrice = true }) {
             alt={item.name}
             className="menu-card-img"
             loading="lazy"
+            onError={(e) => {
+              const fallback = getItemImage(item);
+              if (fallback && e.currentTarget.src !== fallback) {
+                e.currentTarget.src = fallback;
+              } else {
+                e.currentTarget.style.display = 'none';
+                if (e.currentTarget.nextSibling) {
+                  e.currentTarget.nextSibling.style.display = 'flex';
+                }
+              }
+            }}
           />
         ) : (
           <div className="menu-card-img-placeholder">

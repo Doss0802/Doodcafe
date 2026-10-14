@@ -231,7 +231,9 @@ const MenuItem = require('./models/MenuItem');
 const seedCategories = async () => {
   const catCount = await Category.count();
   const itemCount = await MenuItem.count();
-  if (catCount !== 11 || itemCount !== 84) {
+  const sampleItem = await MenuItem.findOne({ where: { name: 'French fries' } });
+  const hasOutdatedPaths = sampleItem && (sampleItem.imageUrl?.includes('/src/images/') || sampleItem.imageUrl?.endsWith('.png'));
+  if (catCount !== 11 || itemCount !== 84 || hasOutdatedPaths) {
     await MenuItem.destroy({ where: {}, truncate: true, cascade: true });
     await Category.destroy({ where: {}, truncate: true, cascade: true });
 
