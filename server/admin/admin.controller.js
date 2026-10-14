@@ -1,3 +1,4 @@
+const { Op } = require('sequelize');
 const Order = require('../models/Order');
 const MenuItem = require('../models/MenuItem');
 const SiteSettings = require('../models/SiteSettings');
@@ -8,79 +9,64 @@ const { emitOrderStatusUpdate } = require('./admin.socket');
 /**
  * ─── 1. Comprehensive Revenue & Profit/Loss Trends (Daily, Weekly, Monthly) ───
  */
-/**
- * ─── 1. Comprehensive Revenue & Profit/Loss Trends (Daily, Weekly, Monthly) ───
- */
 const getDashboardTrends = async (req, res, next) => {
   try {
     const { period = 'daily' } = req.query;
     const now = new Date();
 
     let startDate;
-    let groupFormat;
-    let dateProject;
-
     if (period === 'weekly') {
-      // Last 8 weeks
       startDate = new Date(now);
       startDate.setDate(startDate.getDate() - 56);
-      groupFormat = {
-        year: { $isoWeekYear: '$createdAt' },
-        week: { $isoWeek: '$createdAt' },
-      };
-      dateProject = (doc) => `Wk ${doc._id.week}, ${doc._id.year}`;
+      startDate.setHours(0, 0, 0, 0);
     } else if (period === 'monthly') {
-      // Last 12 months
       startDate = new Date(now.getFullYear(), now.getMonth() - 11, 1);
-      groupFormat = {
-        year: { $year: '$createdAt' },
-        month: { $month: '$createdAt' },
-      };
-      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      dateProject = (doc) => `${monthNames[doc._id.month - 1]} ${doc._id.year}`;
     } else {
-      // Daily: Last 14 days
       startDate = new Date(now);
       startDate.setDate(startDate.getDate() - 13);
       startDate.setHours(0, 0, 0, 0);
-      groupFormat = {
-        year: { $year: '$createdAt' },
-        month: { $month: '$createdAt' },
-        day: { $dayOfMonth: '$createdAt' },
-      };
-      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      dateProject = (doc) => `${doc._id.day} ${monthNames[doc._id.month - 1]}`;
     }
 
-    const trendsAgg = await Order.aggregate([
-      {
-        $match: {
-          createdAt: { $gte: startDate },
-          status: { $ne: 'cancelled' },
-        },
+    const orders = await Order.findAll({
+      where: {
+        createdAt: { [Op.gte]: startDate },
+        status: { [Op.ne]: 'cancelled' },
       },
-      {
-        $group: {
-          _id: groupFormat,
-          revenue: { $sum: '$totalAmount' },
-          orderCount: { $sum: 1 },
-          firstOrderDate: { $min: '$createdAt' },
-        },
-      },
-      { $sort: { firstOrderDate: 1 } },
-    ]);
+      order: [['createdAt', 'ASC']],
+    });
 
-    // Estimated Cost of Goods Sold (COGS) at 38% for Cafe F&B margins
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const groups = {};
+
+    for (const ord of orders) {
+      const d = new Date(ord.createdAt);
+      let key;
+      if (period === 'weekly') {
+        const startOfYear = new Date(d.getFullYear(), 0, 1);
+        const pastDays = Math.floor((d - startOfYear) / (24 * 60 * 60 * 1000));
+        const weekNum = Math.ceil((pastDays + startOfYear.getDay() + 1) / 7);
+        key = `Wk ${weekNum}, ${d.getFullYear()}`;
+      } else if (period === 'monthly') {
+        key = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+      } else {
+        key = `${d.getDate()} ${monthNames[d.getMonth()]}`;
+      }
+
+      if (!groups[key]) {
+        groups[key] = { label: key, revenue: 0, orderCount: 0 };
+      }
+      groups[key].revenue += Number(ord.totalAmount || 0);
+      groups[key].orderCount += 1;
+    }
+
     const COGS_RATE = 0.38;
-
-    const dataPoints = trendsAgg.map((item) => {
+    const dataPoints = Object.values(groups).map((item) => {
       const revenue = Math.round(item.revenue || 0);
       const estimatedCost = Math.round(revenue * COGS_RATE);
       const grossProfit = revenue - estimatedCost;
       const avgOrderValue = item.orderCount > 0 ? Math.round(revenue / item.orderCount) : 0;
-
       return {
-        label: dateProject(item),
+        label: item.label,
         revenue,
         cost: estimatedCost,
         profit: grossProfit,
@@ -89,7 +75,6 @@ const getDashboardTrends = async (req, res, next) => {
       };
     });
 
-    // Summary aggregates
     const totalPeriodRevenue = dataPoints.reduce((s, p) => s + p.revenue, 0);
     const totalPeriodProfit = dataPoints.reduce((s, p) => s + p.profit, 0);
     const totalPeriodOrders = dataPoints.reduce((s, p) => s + p.orders, 0);
@@ -117,34 +102,52 @@ const getDashboardTrends = async (req, res, next) => {
 const getTopSellingItems = async (req, res, next) => {
   try {
     const { limit = 8 } = req.query;
+    const limitNum = parseInt(limit) || 8;
 
-    const topItems = await Order.aggregate([
-      { $match: { status: { $ne: 'cancelled' } } },
-      { $unwind: '$items' },
-      {
-        $group: {
-          _id: '$items.name',
-          totalQuantity: { $sum: '$items.quantity' },
-          totalRevenue: { $sum: { $multiply: ['$items.price', '$items.quantity'] } },
-          averagePrice: { $avg: '$items.price' },
-          ordersCount: { $sum: 1 },
-        },
-      },
-      { $sort: { totalQuantity: -1, totalRevenue: -1 } },
-      { $limit: parseInt(limit) || 8 },
-    ]);
+    const orders = await Order.findAll({
+      where: { status: { [Op.ne]: 'cancelled' } },
+      attributes: ['items'],
+    });
 
-    const maxSold = topItems.length > 0 ? Math.max(...topItems.map((i) => i.totalQuantity)) : 1;
+    const itemMap = {};
+    for (const ord of orders) {
+      let items = ord.items;
+      if (typeof items === 'string') {
+        try { items = JSON.parse(items); } catch { items = []; }
+      }
+      if (Array.isArray(items)) {
+        for (const it of items) {
+          const name = it.name || 'Unnamed Dish';
+          const qty = Number(it.quantity) || 1;
+          const price = Number(it.price) || 0;
+          if (!itemMap[name]) {
+            itemMap[name] = { name, totalQuantity: 0, totalRevenue: 0, prices: [], ordersCount: 0 };
+          }
+          itemMap[name].totalQuantity += qty;
+          itemMap[name].totalRevenue += price * qty;
+          itemMap[name].prices.push(price);
+          itemMap[name].ordersCount += 1;
+        }
+      }
+    }
 
-    const formatted = topItems.map((item, index) => ({
-      rank: index + 1,
-      name: item._id,
-      quantitySold: item.totalQuantity,
-      totalRevenue: Math.round(item.totalRevenue),
-      averagePrice: Math.round(item.averagePrice),
-      ordersCount: item.ordersCount,
-      popularityPercent: Math.round((item.totalQuantity / maxSold) * 100),
-    }));
+    const sortedItems = Object.values(itemMap)
+      .sort((a, b) => b.totalQuantity - a.totalQuantity || b.totalRevenue - a.totalRevenue)
+      .slice(0, limitNum);
+    const maxSold = sortedItems.length > 0 ? Math.max(...sortedItems.map((i) => i.totalQuantity)) : 1;
+
+    const formatted = sortedItems.map((item, index) => {
+      const avgPrice = item.prices.length > 0 ? item.prices.reduce((a, b) => a + b, 0) / item.prices.length : 0;
+      return {
+        rank: index + 1,
+        name: item.name,
+        quantitySold: item.totalQuantity,
+        totalRevenue: Math.round(item.totalRevenue),
+        averagePrice: Math.round(avgPrice),
+        ordersCount: item.ordersCount,
+        popularityPercent: Math.round((item.totalQuantity / maxSold) * 100),
+      };
+    });
 
     return ApiResponse.success(res, {
       statusCode: 200,
@@ -163,22 +166,26 @@ const getLiveOrders = async (req, res, next) => {
     const { status, page = 1, limit = 50 } = req.query;
     const pageNum = Math.max(1, parseInt(page));
     const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
-    const skip = (pageNum - 1) * limitNum;
+    const offset = (pageNum - 1) * limitNum;
 
-    const filter = {};
+    const where = {};
     if (status && status !== 'all') {
-      filter.status = status;
+      where.status = status;
     }
 
-    const [orders, total] = await Promise.all([
-      Order.find(filter)
-        .populate('user', 'name email phone')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limitNum)
-        .lean(),
-      Order.countDocuments(filter),
-    ]);
+    const { count: total, rows: orders } = await Order.findAndCountAll({
+      where,
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'name', 'email', 'phone'],
+        },
+      ],
+      order: [['createdAt', 'DESC']],
+      limit: limitNum,
+      offset,
+    });
 
     return ApiResponse.success(res, {
       statusCode: 200,
@@ -210,11 +217,15 @@ const updateOrderStatus = async (req, res, next) => {
       });
     }
 
-    const order = await Order.findByIdAndUpdate(
-      id,
-      { status },
-      { new: true, runValidators: true }
-    ).populate('user', 'name email phone');
+    const order = await Order.findByPk(id, {
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'name', 'email', 'phone'],
+        },
+      ],
+    });
 
     if (!order) {
       return ApiResponse.error(res, {
@@ -223,13 +234,20 @@ const updateOrderStatus = async (req, res, next) => {
       });
     }
 
+    order.status = status;
+    await order.save();
+
+    const orderJson = order.toJSON();
     // Broadcast update to all connected Socket.io clients in real time
-    emitOrderStatusUpdate(order);
+    emitOrderStatusUpdate(orderJson);
+    if (req.io) {
+      req.io.emit('orderStatusUpdated', orderJson);
+    }
 
     return ApiResponse.success(res, {
       statusCode: 200,
       message: `Order status updated to "${status}"`,
-      data: order,
+      data: orderJson,
     });
   } catch (error) {
     next(error);
@@ -243,75 +261,68 @@ const getOverviewKPIs = async (req, res, next) => {
   try {
     const now = new Date();
 
-    // 1. Daily: Today from 00:00:00
     const todayStart = new Date(now);
     todayStart.setHours(0, 0, 0, 0);
 
-    // 2. Weekly: Past 7 days
     const weekStart = new Date(now);
     weekStart.setDate(weekStart.getDate() - 7);
     weekStart.setHours(0, 0, 0, 0);
 
-    // 3. Monthly: Past 30 days
     const monthStart = new Date(now);
     monthStart.setDate(monthStart.getDate() - 30);
     monthStart.setHours(0, 0, 0, 0);
 
     const [
-      todayAgg,
-      weekAgg,
-      monthAgg,
-      totalRevenueAgg,
+      todayOrders,
+      weekOrders,
+      monthOrders,
+      allOrders,
       totalOrdersCount,
       totalCustomers,
       totalMenuItems,
     ] = await Promise.all([
-      // Daily
-      Order.aggregate([
-        { $match: { createdAt: { $gte: todayStart }, status: { $ne: 'cancelled' } } },
-        { $group: { _id: null, revenue: { $sum: '$totalAmount' }, count: { $sum: 1 } } },
-      ]),
-      // Weekly (7 days)
-      Order.aggregate([
-        { $match: { createdAt: { $gte: weekStart }, status: { $ne: 'cancelled' } } },
-        { $group: { _id: null, revenue: { $sum: '$totalAmount' }, count: { $sum: 1 } } },
-      ]),
-      // Monthly (30 days)
-      Order.aggregate([
-        { $match: { createdAt: { $gte: monthStart }, status: { $ne: 'cancelled' } } },
-        { $group: { _id: null, revenue: { $sum: '$totalAmount' }, count: { $sum: 1 } } },
-      ]),
-      // All-Time
-      Order.aggregate([
-        { $match: { status: { $ne: 'cancelled' } } },
-        { $group: { _id: null, total: { $sum: '$totalAmount' } } },
-      ]),
-      Order.countDocuments(),
-      User.countDocuments({ role: 'customer' }),
-      MenuItem.countDocuments({ available: true }),
+      Order.findAll({
+        where: { createdAt: { [Op.gte]: todayStart }, status: { [Op.ne]: 'cancelled' } },
+        attributes: ['totalAmount'],
+      }),
+      Order.findAll({
+        where: { createdAt: { [Op.gte]: weekStart }, status: { [Op.ne]: 'cancelled' } },
+        attributes: ['totalAmount'],
+      }),
+      Order.findAll({
+        where: { createdAt: { [Op.gte]: monthStart }, status: { [Op.ne]: 'cancelled' } },
+        attributes: ['totalAmount'],
+      }),
+      Order.findAll({
+        where: { status: { [Op.ne]: 'cancelled' } },
+        attributes: ['totalAmount'],
+      }),
+      Order.count(),
+      User.count({ where: { role: 'customer' } }),
+      MenuItem.count({ where: { available: true } }),
     ]);
 
-    const todaySales = todayAgg[0]?.revenue || 0;
-    const todayOrdersCount = todayAgg[0]?.count || 0;
+    const todaySales = todayOrders.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
+    const todayOrdersCount = todayOrders.length;
 
-    const weeklySales = weekAgg[0]?.revenue || 0;
-    const weeklyOrdersCount = weekAgg[0]?.count || 0;
+    const weeklySales = weekOrders.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
+    const weeklyOrdersCount = weekOrders.length;
 
-    const monthlySales = monthAgg[0]?.revenue || 0;
-    const monthlyOrdersCount = monthAgg[0]?.count || 0;
+    const monthlySales = monthOrders.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
+    const monthlyOrdersCount = monthOrders.length;
 
-    const totalRevenue = totalRevenueAgg[0]?.total || 0;
+    const totalRevenue = allOrders.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
 
     return ApiResponse.success(res, {
       statusCode: 200,
       data: {
-        todaySales,
+        todaySales: Math.round(todaySales),
         todayOrdersCount,
-        weeklySales,
+        weeklySales: Math.round(weeklySales),
         weeklyOrdersCount,
-        monthlySales,
+        monthlySales: Math.round(monthlySales),
         monthlyOrdersCount,
-        totalRevenue,
+        totalRevenue: Math.round(totalRevenue),
         totalOrders: totalOrdersCount,
         totalCustomers,
         totalMenuItems,
@@ -321,7 +332,6 @@ const getOverviewKPIs = async (req, res, next) => {
     next(error);
   }
 };
-
 
 /**
  * ─── 6. Get Global Menu Settings (Price Visibility Toggle) ────────────────────
@@ -358,11 +368,9 @@ const updateMenuSettings = async (req, res, next) => {
       });
     }
 
-    const settings = await SiteSettings.findOneAndUpdate(
-      { key: 'global' },
-      { show_prices_to_public },
-      { new: true, upsert: true, runValidators: true }
-    );
+    const settings = await SiteSettings.getSettings();
+    settings.show_prices_to_public = show_prices_to_public;
+    await settings.save();
 
     return ApiResponse.success(res, {
       statusCode: 200,
@@ -384,24 +392,28 @@ const getMenuManagerItems = async (req, res, next) => {
     const { page = 1, limit = 50, category } = req.query;
     const pageNum = Math.max(1, parseInt(page));
     const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
-    const skip = (pageNum - 1) * limitNum;
+    const offset = (pageNum - 1) * limitNum;
 
-    const filter = {};
+    const where = {};
     if (category && category !== 'all') {
       const Category = require('../models/Category');
-      const cat = await Category.findOne({ slug: category }).select('_id').lean();
-      if (cat) filter.category = cat._id;
+      const cat = await Category.findOne({ where: { slug: category } });
+      if (cat) where.categoryId = cat.id;
     }
 
-    const [items, total] = await Promise.all([
-      MenuItem.find(filter)
-        .populate('category', 'name slug icon')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limitNum)
-        .lean(),
-      MenuItem.countDocuments(filter),
-    ]);
+    const { count: total, rows: items } = await MenuItem.findAndCountAll({
+      where,
+      include: [
+        {
+          association: 'category',
+          attributes: ['id', 'name', 'slug', 'icon'],
+          required: false,
+        },
+      ],
+      order: [['createdAt', 'DESC']],
+      limit: limitNum,
+      offset,
+    });
 
     return ApiResponse.success(res, {
       statusCode: 200,
@@ -427,7 +439,6 @@ const updateMenuItemAdmin = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    // Only allow safe, explicit fields to be patched — no role / system fields
     const ALLOWED_FIELDS = ['price', 'imageUrl', 'image', 'name', 'description', 'available', 'isBestseller', 'isVeg', 'preparationTime', 'tags', 'show_prices_to_public'];
     const updateData = {};
 
@@ -455,23 +466,24 @@ const updateMenuItemAdmin = async (req, res, next) => {
       updateData.price = price;
     }
 
-    const updatedItem = await MenuItem.findByIdAndUpdate(
-      id,
-      { $set: updateData },
-      { new: true, runValidators: true }
-    ).populate('category', 'name slug icon');
+    const item = await MenuItem.findByPk(id, {
+      include: [{ association: 'category', attributes: ['id', 'name', 'slug', 'icon'], required: false }],
+    });
 
-    if (!updatedItem) {
+    if (!item) {
       return ApiResponse.error(res, {
         statusCode: 404,
         message: 'Menu item not found',
       });
     }
 
+    Object.assign(item, updateData);
+    await item.save();
+
     return ApiResponse.success(res, {
       statusCode: 200,
       message: 'Menu item updated successfully',
-      data: updatedItem,
+      data: item,
     });
   } catch (error) {
     next(error);

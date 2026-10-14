@@ -1,15 +1,22 @@
-/**
- * Socket.io / WebSocket connection logic — DISABLED for fallback refactor.
- * Data fetching is handled directly via axios and useEffect in AdminDashboard.jsx.
- */
-
-/*
 import { io } from 'socket.io-client';
 
 let socket = null;
 
-export const connectAdminSocket = ({ onNewOrder, onStatusUpdate, onConnectChange }) => {
-  const SERVER_URL = import.meta.env.VITE_SOCKET_URL || window.location.origin;
+export const getSocketServerUrl = () => {
+  if (import.meta.env.VITE_SOCKET_URL) return import.meta.env.VITE_SOCKET_URL;
+  if (import.meta.env.VITE_API_URL) {
+    try {
+      const url = new URL(import.meta.env.VITE_API_URL);
+      return url.origin;
+    } catch {
+      // fallback
+    }
+  }
+  return window.location.origin;
+};
+
+export const connectAdminSocket = ({ onNewOrder, onStatusUpdate, onConnectChange } = {}) => {
+  const SERVER_URL = getSocketServerUrl();
 
   if (!socket) {
     socket = io(SERVER_URL, {
@@ -17,6 +24,7 @@ export const connectAdminSocket = ({ onNewOrder, onStatusUpdate, onConnectChange
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 10,
       reconnectionDelay: 2000,
+      withCredentials: true,
     });
   }
 
@@ -24,6 +32,7 @@ export const connectAdminSocket = ({ onNewOrder, onStatusUpdate, onConnectChange
   socket.off('disconnect');
   socket.off('connect_error');
   socket.off('new-order');
+  socket.off('newOrderNotification');
   socket.off('order-status-updated');
 
   socket.on('connect', () => {
@@ -40,6 +49,7 @@ export const connectAdminSocket = ({ onNewOrder, onStatusUpdate, onConnectChange
   });
 
   if (onNewOrder) {
+    socket.on('newOrderNotification', onNewOrder);
     socket.on('new-order', onNewOrder);
   }
 
@@ -62,8 +72,3 @@ export const disconnectAdminSocket = () => {
     socket = null;
   }
 };
-*/
-
-export const connectAdminSocket = () => null;
-export const disconnectAdminSocket = () => null;
-

@@ -30,6 +30,7 @@ const emitNewOrder = (order) => {
     return;
   }
   ioInstance.emit('new-order', order);
+  ioInstance.emit('newOrderNotification', order);
 };
 
 const emitOrderStatusUpdate = (order) => {

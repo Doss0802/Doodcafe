@@ -1,4 +1,4 @@
-﻿const { validationResult } = require('express-validator');
+const { validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const Order = require('../models/Order');
 const MenuItem = require('../models/MenuItem');
@@ -111,12 +111,25 @@ const placeOrder = async (req, res, next) => {
       status: initialStatus,
     });
 
+    const newOrder = {
+      ...order.toJSON(),
+      user: {
+        id: req.user.id,
+        name: req.user.name,
+        email: req.user.email,
+        phone: req.user.phone,
+      },
+    };
+
+    // Broadcast newly inserted relational SQL order row straight to admin panel streams
+    if (req.io) {
+      req.io.emit('newOrderNotification', newOrder);
+      req.io.emit('new-order', newOrder);
+    }
+
     // Real-time live-sync: Broadcast new order to Admin Panel
     try {
-      const populatedOrder = await Order.findByPk(order.id, {
-        include: [{ association: 'user', attributes: ['name', 'email', 'phone'] }],
-      });
-      emitNewOrder(populatedOrder ? populatedOrder.toJSON() : order.toJSON());
+      emitNewOrder(newOrder);
     } catch (socketErr) {
       // Socket emission error is non-fatal
     }

@@ -76,6 +76,13 @@ const io = new Server(httpServer, {
 });
 
 initAdminSocket(io);
+app.set('io', io);
+
+// Attach Socket.io instance to every request for controller access
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
 
 // Trust reverse proxy for correct client IP detection in rate limiting
 app.set('trust proxy', 1);

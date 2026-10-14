@@ -5,9 +5,12 @@ import {
   RefreshCw, Radio, Sparkles, X, UserRound, MapPin, ExternalLink, Navigation, Compass
 } from 'lucide-react';
 import axiosInstance from '../../api/axiosInstance';
-// Socket.io disabled — using axios polling instead
-// import { connectAdminSocket, disconnectAdminSocket } from './adminSocket';
+import { connectAdminSocket, disconnectAdminSocket } from './adminSocket';
 import toast from 'react-hot-toast';
+
+if (!toast.info) {
+  toast.info = (msg, options) => toast(msg, { icon: 'ℹ️', ...options });
+}
 
 const POLL_INTERVAL_MS = 30_000; // auto-refresh every 30 seconds
 
@@ -78,7 +81,7 @@ function CustomerDetailModal({ order, onClose }) {
         <div className="adm-modal-header">
           <div className="adm-modal-title-group">
             <span className="adm-modal-order-badge">
-              Order #{order.orderNumber || order._id?.slice(-5)}
+              Order #{order.orderNumber || (order.id || order._id)?.slice(-5)}
             </span>
             <span
               className="adm-status-badge"
@@ -384,7 +387,8 @@ export default function AdminDashboard() {
   const [trends, setTrends] = useState({ summary: {}, points: [] });
   const [trendPeriod, setTrendPeriod] = useState('daily');
   const [topItems, setTopItems] = useState([]);
-  const [liveOrders, setLiveOrders] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [isSocketConnected, setIsSocketConnected] = useState(false);
   const [orderFilter, setOrderFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -414,7 +418,7 @@ export default function AdminDashboard() {
         setTopItems(topRes.value.data.data);
       }
       if (ordersRes.status === 'fulfilled' && Array.isArray(ordersRes.value?.data?.data)) {
-        setLiveOrders(ordersRes.value.data.data);
+        setOrders(ordersRes.value.data.data);
       }
 
       setLastUpdated(new Date());
@@ -439,6 +443,40 @@ export default function AdminDashboard() {
     }
   };
 
+  // ── Effect: Real-Time WebSocket Hook for Kitchen & Customer Order Stream ───
+  useEffect(() => {
+    const socket = connectAdminSocket({
+      onConnectChange: (connected) => {
+        setIsSocketConnected(connected);
+      },
+      onStatusUpdate: (updatedOrder) => {
+        const targetId = updatedOrder.id || updatedOrder._id;
+        setOrders((prevOrders) =>
+          prevOrders.map((ord) =>
+            ((ord.id && ord.id === targetId) || (ord._id && ord._id === targetId))
+              ? { ...ord, ...updatedOrder }
+              : ord
+          )
+        );
+      },
+    });
+
+    if (socket) {
+      socket.on('newOrderNotification', (freshOrderPayload) => {
+        // Append new incoming database rows to local orders stream state immediately
+        setOrders((prevOrders) => [freshOrderPayload, ...prevOrders]);
+        toast.info(`🍔 New Order Received: Order #${freshOrderPayload.id}`);
+      });
+    }
+
+    return () => {
+      if (socket) {
+        socket.off('newOrderNotification');
+      }
+      disconnectAdminSocket();
+    };
+  }, []);
+
   // ── Effect: initial fetch + 30-second polling interval ─────────
   useEffect(() => {
     document.title = 'Admin Panel & Dashboard — Dood Cafe';
@@ -446,13 +484,23 @@ export default function AdminDashboard() {
     // Immediate first load
     fetchDashboardData();
 
-    // Poll every 30 seconds to pick up new orders without WebSockets
+    // Backup poll every 30 seconds
     const pollTimer = setInterval(() => {
       fetchDashboardData();
     }, POLL_INTERVAL_MS);
 
     return () => clearInterval(pollTimer);
   }, [fetchDashboardData]);
+
+  // Relational order filtering tab controller
+  const displayedOrders = (orders || []).filter((ord) => {
+    if (!ord) return false;
+    if (orderFilter === 'all') return true;
+    if (orderFilter === 'pending') {
+      return ord.status === 'pending' || ord.status === 'confirmed';
+    }
+    return ord.status === orderFilter;
+  });
 
   // Dynamic Sales Metrics according to selected period
   const currentSalesAmount =
@@ -495,13 +543,15 @@ export default function AdminDashboard() {
           <div>
             <div className="adm-title-row">
               <h1 className="page-title" style={{ margin: 0 }}>Admin Dashboard</h1>
-              {/* Polling status badge */}
-              <div className={`adm-socket-badge ${lastUpdated ? 'adm-socket-live' : 'adm-socket-offline'}`}>
+              {/* WebSocket & sync status badge */}
+              <div className={`adm-socket-badge ${isSocketConnected || lastUpdated ? 'adm-socket-live' : 'adm-socket-offline'}`}>
                 <Radio size={14} className="adm-socket-icon" />
                 <span>
-                  {lastUpdated
-                    ? `Live Sync: ${lastUpdated.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`
-                    : 'Loading data...'}
+                  {isSocketConnected
+                    ? 'WebSocket Stream Live'
+                    : (lastUpdated
+                      ? `Live Sync: ${lastUpdated.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`
+                      : 'Connecting...')}
                 </span>
               </div>
             </div>
@@ -661,7 +711,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Live Orders List */}
-          {liveOrders.length === 0 ? (
+          {displayedOrders.length === 0 ? (
             <div className="adm-empty-orders">
               <ShoppingBag size={32} />
               <p>No active orders found for this filter.</p>
@@ -681,23 +731,27 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {liveOrders.map((ord) => {
+                  {displayedOrders.map((ord) => {
+                    const orderId = ord.id || ord._id;
                     const statusMeta = STATUS_CONFIG[ord.status] || STATUS_CONFIG.pending;
                     const customerName = ord.user?.name || 'Customer';
                     const customerPhone = ord.user?.phone || 'No phone';
+                    const items = Array.isArray(ord.items)
+                      ? ord.items
+                      : (typeof ord.items === 'string' ? JSON.parse(ord.items || '[]') : []);
 
                     return (
-                      <tr key={ord._id} className="adm-order-row">
+                      <tr key={orderId} className="adm-order-row">
                         <td className="adm-ord-id-col">
                           <div className="adm-ord-id-row">
                             <div className="adm-ord-header-line">
-                              <strong className="adm-ord-num-lbl">Order #{ord.orderNumber || 1}</strong>
+                              <strong className="adm-ord-num-lbl">Order #{ord.orderNumber || (orderId ? String(orderId).slice(-5) : '1')}</strong>
                               <button
-                                id={`customer-info-btn-${ord._id}`}
+                                id={`customer-info-btn-${orderId}`}
                                 className="adm-view-details-btn"
                                 onClick={() => setSelectedOrder(ord)}
                                 title="View Customer Information & Order Details"
-                                aria-label={`View Customer Info for Order #${ord.orderNumber || 1}`}
+                                aria-label={`View Customer Info for Order #${ord.orderNumber || (orderId ? String(orderId).slice(-5) : '1')}`}
                               >
                                 <UserRound size={13} />
                                 <span>Customer Info</span>
@@ -716,7 +770,7 @@ export default function AdminDashboard() {
                         </td>
                         <td className="adm-items-col">
                           <div className="adm-items-list">
-                            {ord.items?.map((it, i) => (
+                            {items.map((it, i) => (
                               <span key={i} className="adm-item-tag">
                                 {it.name} <strong className="adm-qty">×{it.quantity}</strong>
                               </span>
@@ -732,7 +786,7 @@ export default function AdminDashboard() {
                           </span>
                         </td>
                         <td className="adm-total-col">
-                          <strong>₹{ord.totalAmount}</strong>
+                          <strong>₹{Number(ord.totalAmount || 0).toLocaleString('en-IN')}</strong>
                         </td>
                         <td>
                           <span
@@ -746,7 +800,7 @@ export default function AdminDashboard() {
                           {statusMeta.next ? (
                             <button
                               className="btn btn-primary-sm adm-next-btn"
-                              onClick={() => handleStatusChange(ord._id, statusMeta.next)}
+                              onClick={() => handleStatusChange(orderId, statusMeta.next)}
                             >
                               Mark {STATUS_CONFIG[statusMeta.next]?.label}
                             </button>

@@ -67,7 +67,7 @@ router.patch(
   '/orders/:id/status',
   sensitiveLimiter,
   [
-    param('id').isMongoId().withMessage('Invalid order ID'),
+    param('id').notEmpty().withMessage('Invalid order ID'),
     body('status')
       .isIn(['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled'])
       .withMessage('Invalid order status'),
@@ -116,7 +116,7 @@ router.patch(
   '/menu-items/:id',
   sensitiveLimiter,
   [
-    param('id').isMongoId().withMessage('Invalid menu item ID'),
+    param('id').notEmpty().withMessage('Invalid menu item ID'),
     body('price').optional().isFloat({ min: 0 }).withMessage('Price must be a non-negative number'),
     body('imageUrl').optional().isString().trim(),
     body('image').optional().isString(),
