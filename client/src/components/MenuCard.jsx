@@ -1,6 +1,7 @@
 import { Plus, Minus, Trash2, Leaf, Star, Clock } from 'lucide-react';
 import useCartStore from '../store/cartStore';
 import { getItemImage } from '../utils/imageMapper';
+import { resolveImageUrl } from '../utils/resolveImageUrl';
 import { flyToCart } from '../utils/flyToCart';
 import toast from 'react-hot-toast';
 
@@ -9,17 +10,9 @@ export default function MenuCard({ item, onItemClick, showPrice = true }) {
 
   const cartItem = items.find((i) => i._id === item._id || i.id === item.id);
 
-  // Resolve image: DB paths like '/images/...' are served by Express at API_BASE.
-  // Local Vite-served paths (starting with '/quick-bites/', etc.) work as-is.
-  // Absolute http URLs are passed through unchanged.
-  const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api')
-    .replace(/\/api$/, '');
+  // ─── Dynamic Port 5174 -> Port 5000 Resolution Bridge ───────────────────────
   const rawSrc = item.image || item.imageUrl || getItemImage(item) || '';
-  const imageSrc = rawSrc.startsWith('http')
-    ? rawSrc
-    : rawSrc.startsWith('/images/') || rawSrc.startsWith('/src/images/') || rawSrc.startsWith('/uploads/')
-    ? `${API_BASE}${rawSrc}`
-    : rawSrc; // local Vite public-folder or fallback
+  const imageSrc = resolveImageUrl(rawSrc);
 
   const handleAdd = (e) => {
     e.stopPropagation();

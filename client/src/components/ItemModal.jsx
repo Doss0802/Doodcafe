@@ -2,6 +2,7 @@ import { X, Plus, Minus, Leaf, Star, Clock, ShoppingBag, Check } from 'lucide-re
 import { useState } from 'react';
 import useCartStore from '../store/cartStore';
 import { getItemImage } from '../utils/imageMapper';
+import { resolveImageUrl } from '../utils/resolveImageUrl';
 import { flyToCart } from '../utils/flyToCart';
 import toast from 'react-hot-toast';
 
@@ -11,14 +12,16 @@ export default function ItemModal({ item, onClose, showPrice = true }) {
 
   if (!item) return null;
 
+  const rawImage = item.imageUrl || item.image || getItemImage(item) || '';
+  const resolvedImageSrc = resolveImageUrl(rawImage);
+
   const handleAddToCart = (e) => {
     for (let i = 0; i < quantity; i++) {
       addItem(item);
     }
 
     const modalImg = document.querySelector('.modal-img');
-    const imageSrc = item.imageUrl || item.image || getItemImage(item);
-    flyToCart(modalImg || e?.currentTarget, imageSrc, item.category?.icon || '🍽️');
+    flyToCart(modalImg || e?.currentTarget, resolvedImageSrc, item.category?.icon || '🍽️');
 
     onClose();
   };
@@ -33,8 +36,18 @@ export default function ItemModal({ item, onClose, showPrice = true }) {
 
         {/* Modal Image / Hero Graphic */}
         <div className="modal-img-wrapper">
-          {item.imageUrl ? (
-            <img src={item.imageUrl} alt={item.name} className="modal-img" />
+          {resolvedImageSrc ? (
+            <img
+              src={resolvedImageSrc}
+              alt={item.name}
+              className="modal-img"
+              onError={(e) => {
+                const fallback = getItemImage(item);
+                if (fallback && e.currentTarget.src !== fallback) {
+                  e.currentTarget.src = fallback;
+                }
+              }}
+            />
           ) : (
             <div className="modal-img-placeholder">
               <span className="modal-placeholder-icon">{item.category?.icon || '🍽️'}</span>

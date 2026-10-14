@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import axiosInstance from '../../api/axiosInstance';
 import toast from 'react-hot-toast';
+import { resolveImageUrl } from '../../utils/resolveImageUrl';
 
 /* ─── Reusable Field Components ────────────────────────────── */
 const FieldLabel = ({ children, required }) => (
@@ -689,7 +690,7 @@ export default function MenuManagement() {
                     border border-rose-200 bg-rose-50/40">
                     {(selectedRemoveItem.image || selectedRemoveItem.imageUrl) ? (
                       <img
-                        src={selectedRemoveItem.image || selectedRemoveItem.imageUrl}
+                        src={resolveImageUrl(selectedRemoveItem.image || selectedRemoveItem.imageUrl)}
                         alt={selectedRemoveItem.name}
                         className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-xl
                           border border-stone-200 shrink-0"
@@ -864,7 +865,7 @@ export default function MenuManagement() {
                   <div>
                     <FieldLabel>Image Override (File Picker / URL)</FieldLabel>
                     <Dropzone
-                      preview={updatePreview || updateUrl}
+                      preview={updatePreview || resolveImageUrl(updateUrl)}
                       onFile={(f) => { setUpdateFile(f); setUpdatePreview(URL.createObjectURL(f)); }}
                       onClear={() => { setUpdateFile(null); setUpdatePreview(''); }}
                       inputId="update-file-input"
