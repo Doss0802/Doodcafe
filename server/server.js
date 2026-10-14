@@ -33,6 +33,7 @@ const usersRoutes = require('./routes/users.routes');
 const healthRoutes = require('./routes/health.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
 const adminRoutes = require('./admin/admin.routes');
+const adminMenuRoutes = require('./routes/adminMenu.route');
 const { initAdminSocket } = require('./admin/admin.socket');
 
 const app = express();
@@ -165,8 +166,9 @@ if (process.env.NODE_ENV !== 'test') {
   app.use(morgan(':method :url :status :res[content-length] - :response-time ms [ReqId: :res[x-request-id]]'));
 }
 
-// ─── 4. Rate Limiting ─────────────────────────────────────────────────────────
+// ─── 4. Rate Limiting & Static Files ──────────────────────────────────────────
 app.use('/api', apiLimiter);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ─── 5. API v1 Routes ─────────────────────────────────────────────────────────
 app.use('/api/v1/health', healthRoutes);
@@ -175,6 +177,8 @@ app.use('/api/v1/menu', menuRoutes);
 app.use('/api/v1/orders', orderRoutes);
 app.use('/api/v1/users', usersRoutes);
 app.use('/api/v1/admin/dashboard', dashboardRoutes);
+app.use('/api/v1/admin/menu', adminMenuRoutes);
+app.use('/api/v1/admin', adminMenuRoutes);
 app.use('/api/v1/admin', adminRoutes);
 
 // ─── Backward Compatibility: /api/* aliases ────────────────────────────────
@@ -184,6 +188,8 @@ app.use('/api/menu', menuRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/admin/dashboard', dashboardRoutes);
+app.use('/api/admin/menu', adminMenuRoutes);
+app.use('/api/admin', adminMenuRoutes);
 app.use('/api/admin', adminRoutes);
 
 

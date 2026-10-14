@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingCart, Menu, X, LogOut, User, ClipboardList, Coffee, UserCircle2 } from 'lucide-react';
+import { ShoppingCart, Menu, X, LogOut, User, ClipboardList, Coffee, UserCircle2, Utensils } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import useAuthStore from '../store/authStore';
 import useCartStore from '../store/cartStore';
@@ -79,6 +79,18 @@ export default function Navbar() {
               <span className="cursive-nav-text">{link.label}</span>
             </Link>
           ))}
+          {isAuthenticated && user?.role === 'admin' && (
+            <Link
+              to="/admin/menu-management"
+              className={`nav-link ${isActive('/admin/menu-management') ? 'nav-link-active' : ''}`}
+              id="nav-link-menu-management"
+            >
+              <span className="cursive-nav-text text-amber-500 font-bold flex items-center gap-1.5">
+                <Utensils size={15} />
+                Menu Management
+              </span>
+            </Link>
+          )}
         </nav>
 
         {/* Right side actions */}
@@ -154,7 +166,16 @@ export default function Navbar() {
                       onClick={() => setProfileOpen(false)}
                     >
                       <Coffee size={14} />
-                      Admin Panel
+                      Admin Stream
+                    </Link>
+                    <Link
+                      to="/admin/menu-management"
+                      className="dropdown-item dropdown-item-admin font-bold text-amber-600"
+                      role="menuitem"
+                      onClick={() => setProfileOpen(false)}
+                    >
+                      <Utensils size={14} />
+                      Menu Management
                     </Link>
                   </>
                 )}
@@ -211,7 +232,11 @@ export default function Navbar() {
               {isAuthenticated && user?.role === 'admin' && (
                 <>
                   <Link to="/admin" className="mobile-nav-link mobile-nav-admin" onClick={() => setMobileOpen(false)}>
-                    Admin Panel
+                    Admin Stream
+                  </Link>
+                  <Link to="/admin/menu-management" className="mobile-nav-link mobile-nav-admin font-bold text-amber-500 flex items-center gap-1.5" onClick={() => setMobileOpen(false)}>
+                    <Utensils size={14} />
+                    Menu Management
                   </Link>
                 </>
               )}

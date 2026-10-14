@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   TrendingUp, DollarSign, ShoppingBag, Flame, CheckCircle2,
-  RefreshCw, Radio, Sparkles, X, UserRound, MapPin, ExternalLink, Navigation, Compass
+  RefreshCw, Radio, Sparkles, X, UserRound, MapPin, ExternalLink, Navigation, Compass, Utensils
 } from 'lucide-react';
 import axiosInstance from '../../api/axiosInstance';
 import { connectAdminSocket, disconnectAdminSocket } from './adminSocket';
@@ -538,6 +538,25 @@ export default function AdminDashboard() {
 
       <div className="container">
 
+        {/* ── Admin Master Navigation Switcher Tabs ── */}
+        <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-1.5 flex gap-2 mb-6">
+          <Link
+            to="/admin"
+            className="flex-1 py-2.5 px-4 rounded-lg font-bold text-sm flex items-center justify-center gap-2 bg-amber-500 text-white shadow-sm"
+          >
+            <Radio size={16} />
+            <span>Orders & Kitchen Stream</span>
+          </Link>
+          <Link
+            to="/admin/menu-management"
+            id="admin-nav-menu-management"
+            className="flex-1 py-2.5 px-4 rounded-lg font-bold text-sm flex items-center justify-center gap-2 text-stone-600 hover:bg-stone-100 transition-colors"
+          >
+            <Utensils size={16} />
+            <span>Menu Management (Multi-Panel)</span>
+          </Link>
+        </div>
+
         {/* ── Top Bar / Header ── */}
         <div className="adm-header">
           <div>
@@ -559,6 +578,13 @@ export default function AdminDashboard() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Link
+              to="/admin/menu-management"
+              className="btn btn-primary-sm inline-flex items-center gap-1.5 font-bold shadow-sm"
+            >
+              <Utensils size={15} />
+              Menu Management
+            </Link>
             <button
               className="btn btn-secondary adm-refresh-btn"
               onClick={() => fetchDashboardData(true)}
