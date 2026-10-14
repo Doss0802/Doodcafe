@@ -7,9 +7,19 @@ import toast from 'react-hot-toast';
 export default function MenuCard({ item, onItemClick, showPrice = true }) {
   const { items, addItem, updateQuantity, removeItem } = useCartStore();
 
-  const cartItem = items.find((i) => i._id === item._id);
-  // Prefer DB-served image (item.image or item.imageUrl), fall back to local mapper
-  const imageSrc = item.image || item.imageUrl || getItemImage(item);
+  const cartItem = items.find((i) => i._id === item._id || i.id === item.id);
+
+  // Resolve image: DB paths like '/images/...' are served by Express at API_BASE.
+  // Local Vite-served paths (starting with '/quick-bites/', etc.) work as-is.
+  // Absolute http URLs are passed through unchanged.
+  const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api')
+    .replace(/\/api$/, '');
+  const rawSrc = item.image || item.imageUrl || getItemImage(item) || '';
+  const imageSrc = rawSrc.startsWith('http')
+    ? rawSrc
+    : rawSrc.startsWith('/images/') || rawSrc.startsWith('/src/images/') || rawSrc.startsWith('/uploads/')
+    ? `${API_BASE}${rawSrc}`
+    : rawSrc; // local Vite public-folder or fallback
 
   const handleAdd = (e) => {
     e.stopPropagation();
