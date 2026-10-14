@@ -18,7 +18,7 @@ const Category = sequelize.define('Category', {
   },
   slug: {
     type: DataTypes.STRING(50),
-    allowNull: false,
+    allowNull: true,
     unique: true,
     set(value) {
       if (value) this.setDataValue('slug', value.toLowerCase().trim());
@@ -46,6 +46,20 @@ const Category = sequelize.define('Category', {
   timestamps: true,
   freezeTableName: true,
   tableName: 'categories',
+  hooks: {
+    beforeValidate: (category) => {
+      if (!category.slug && category.name) {
+        category.slug = category.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      }
+    },
+    beforeBulkCreate: (categories) => {
+      categories.forEach((cat) => {
+        if (!cat.slug && cat.name) {
+          cat.slug = cat.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        }
+      });
+    },
+  },
   indexes: [
     { fields: ['displayOrder', 'isActive'] },
   ],

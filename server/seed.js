@@ -8,17 +8,18 @@ const Category = require('./models/Category');
 const MenuItem = require('./models/MenuItem');
 
 const categories = [
-  { name: 'Quick Bites', slug: 'quick-bites', icon: '🍟', displayOrder: 1 },
-  { name: 'Loaded Fries', slug: 'loaded-fries', icon: '🧀', displayOrder: 2 },
+  { name: 'All', slug: 'all', icon: '🍿', displayOrder: 0 },
+  { name: 'Quick Bites', slug: 'quick-bites', icon: '🍿', displayOrder: 1 },
+  { name: 'Loaded Fries', slug: 'loaded-fries', icon: '🍟', displayOrder: 2 },
   { name: 'Crispy chicken', slug: 'crispy-chicken', icon: '🍗', displayOrder: 3 },
   { name: 'Burger', slug: 'burger', icon: '🍔', displayOrder: 4 },
   { name: 'Sandwich', slug: 'sandwich', icon: '🥪', displayOrder: 5 },
-  { name: 'Roll & Wrap', slug: 'roll-and-wrap', icon: '🌯', displayOrder: 6 },
+  { name: 'Roll & Wrap', slug: 'roll-wrap', icon: '🌯', displayOrder: 6 },
   { name: 'Korean', slug: 'korean', icon: '🍜', displayOrder: 7 },
-  { name: 'Pasta & Pulao', slug: 'pasta-and-pulao', icon: '🍝', displayOrder: 8 },
+  { name: 'Pasta & Pulao', slug: 'pasta-pulao', icon: '🍛', displayOrder: 8 },
   { name: 'Mojitos', slug: 'mojitos', icon: '🍹', displayOrder: 9 },
   { name: 'Milkshakes', slug: 'milkshakes', icon: '🥤', displayOrder: 10 },
-  { name: 'Desserts & Beverages', slug: 'desserts-and-beverages', icon: '🍨', displayOrder: 11 },
+  { name: 'Desserts & Beverages', slug: 'desserts-beverages', icon: '🥤', displayOrder: 11 },
 ];
 
 const getMenuItems = (catMap) => [

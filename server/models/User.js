@@ -27,9 +27,21 @@ const User = sequelize.define('User', {
       if (value) this.setDataValue('email', value.toLowerCase().trim());
     },
   },
-  passwordHash: {
+  password: {
     type: DataTypes.STRING,
+    field: 'passwordHash',
     allowNull: false,
+  },
+  passwordHash: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return this.getDataValue('password');
+    },
+    set(value) {
+      if (value) {
+        this.setDataValue('password', value);
+      }
+    },
   },
   role: {
     type: DataTypes.ENUM('customer', 'manager', 'admin'),
@@ -55,15 +67,6 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     allowNull: true,
   },
-  password: {
-    type: DataTypes.VIRTUAL,
-    set(value) {
-      if (value) {
-        this.setDataValue('password', value);
-        this.setDataValue('passwordHash', value);
-      }
-    },
-  },
   _id: {
     type: DataTypes.VIRTUAL,
     get() {
@@ -81,13 +84,17 @@ const User = sequelize.define('User', {
   tableName: 'users',
   hooks: {
     beforeCreate: async (user) => {
-      if (user.passwordHash && !user.passwordHash.startsWith('$2a$') && !user.passwordHash.startsWith('$2b$')) {
-        user.passwordHash = await bcrypt.hash(user.passwordHash, 10);
+      const pwd = user.password || user.passwordHash;
+      if (pwd && !pwd.startsWith('$2a$') && !pwd.startsWith('$2b$')) {
+        user.password = await bcrypt.hash(pwd, 10);
       }
     },
     beforeUpdate: async (user) => {
-      if (user.changed('passwordHash') && user.passwordHash && !user.passwordHash.startsWith('$2a$') && !user.passwordHash.startsWith('$2b$')) {
-        user.passwordHash = await bcrypt.hash(user.passwordHash, 10);
+      if (user.changed('password') || user.changed('passwordHash')) {
+        const pwd = user.password || user.passwordHash;
+        if (pwd && !pwd.startsWith('$2a$') && !pwd.startsWith('$2b$')) {
+          user.password = await bcrypt.hash(pwd, 10);
+        }
       }
     },
   },
@@ -103,7 +110,9 @@ User.countDocuments = function (filter = {}) {
 
 // Compare password instance method
 User.prototype.matchPassword = async function (enteredPassword) {
-  return bcrypt.compare(enteredPassword, this.passwordHash);
+  const hash = this.password || this.passwordHash;
+  if (!hash) return false;
+  return bcrypt.compare(enteredPassword, hash);
 };
 
 // Handle failed login attempt for lockout protection

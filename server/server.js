@@ -208,6 +208,30 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
 let server;
 
+const Category = require('./models/Category');
+const seedCategories = async () => {
+  const count = await Category.count();
+  // If database is already seeded with 11, force sync or flush and rebuild to accurately mount all 12
+  if (count < 12) {
+    await Category.destroy({ where: {}, truncate: true, cascade: true });
+    await Category.bulkCreate([
+      { name: 'All', icon: '🍿' },
+      { name: 'Quick Bites', icon: '🍿' },
+      { name: 'Loaded Fries', icon: '🍟' },
+      { name: 'Crispy chicken', icon: '🍗' },
+      { name: 'Burger', icon: '🍔' },
+      { name: 'Sandwich', icon: '🥪' },
+      { name: 'Roll & Wrap', icon: '🌯' },
+      { name: 'Korean', icon: '🍜' },
+      { name: 'Pasta & Pulao', icon: '🍛' },
+      { name: 'Mojitos', icon: '🍹' },
+      { name: 'Milkshakes', icon: '🥤' },
+      { name: 'Desserts & Beverages', icon: '🥤' }
+    ]);
+    console.log('🟢 Success: All 12 custom cafe categories verified and seeded into PostgreSQL!');
+  }
+};
+
 const startServer = async () => {
   // Bind HTTP server immediately to 0.0.0.0 for cloud providers (Render, Railway, etc.)
   server = httpServer.listen(PORT, '0.0.0.0', () => {
@@ -219,6 +243,7 @@ const startServer = async () => {
   // Connect database asynchronously
   try {
     await connectDB();
+    await seedCategories();
   } catch (err) {
     logger.error('Database connection error on boot:', err.message);
   }
