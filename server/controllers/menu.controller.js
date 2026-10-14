@@ -1,3 +1,4 @@
+﻿const { Op } = require('sequelize');
 const MenuItem = require('../models/MenuItem');
 const Category = require('../models/Category');
 const SiteSettings = require('../models/SiteSettings');
@@ -9,21 +10,22 @@ const { filterMenuItems, quickSortMenuItems, binarySearchPriceRange } = require(
 // @access Public
 const getCategories = async (req, res, next) => {
   try {
-    const categories = await Category.find({ isActive: true })
-      .select('name slug icon displayOrder')
-      .sort({ displayOrder: 1 })
-      .lean();
+    const categories = await Category.findAll({
+      where: { isActive: true },
+      attributes: ['id', 'name', 'slug', 'icon', 'displayOrder'],
+      order: [['displayOrder', 'ASC'], ['name', 'ASC']],
+    });
 
     return ApiResponse.success(res, {
       statusCode: 200,
-      data: categories,
+      data: categories.map((c) => c.toJSON()),
     });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc   Get available menu items with Mongoose lookup & CatalogDSA (MenuTrie, QuickSort, Binary Search)
+// @desc   Get available menu items with Sequelize lookup & CatalogDSA (MenuTrie, QuickSort, Binary Search)
 // @route  GET /api/v1/menu/items & GET /api/menu
 // @access Public
 const getMenuItems = async (req, res, next) => {
@@ -43,20 +45,39 @@ const getMenuItems = async (req, res, next) => {
 
     const sortBy = sort || sortByQuery || 'popularity';
 
+    // Resolve category slug -> UUID via Sequelize
     let categoryId = null;
     if (category && category !== 'all') {
-      const cat = await Category.findOne({ slug: category }).select('_id').lean();
-      if (cat) categoryId = cat._id.toString();
+      const cat = await Category.findOne({
+        where: { slug: category },
+        attributes: ['id', 'slug'],
+      });
+      if (cat) categoryId = cat.id;
     }
 
-    // ── MONGOOSE LOOKUP: Fetch available candidate items ──────────────────────
-    const rawItems = await MenuItem.find({ available: true })
-      .populate('category', 'name slug icon')
-      .lean();
+    // Sequelize: Fetch all available items with their category association
+    const rawRows = await MenuItem.findAll({
+      where: { available: true },
+      include: [
+        {
+          model: Category,
+          as: 'category',
+          attributes: ['id', 'name', 'slug', 'icon'],
+        },
+      ],
+    });
+
+    // Convert Sequelize instances to plain objects for in-memory DSA pipeline
+    const rawItems = rawRows.map((item) => {
+      const plain = item.toJSON();
+      // Ensure _id alias is present for CatalogDSA Trie compatibility
+      plain._id = plain.id;
+      return plain;
+    });
 
     // ── DSA STEP 1: Trie Search Tree & Criteria Filtering ─────────────────────
     const filteredItems = filterMenuItems(rawItems, {
-      category: categoryId || (category !== 'all' ? category : null),
+      category: categoryId || (category && category !== 'all' ? category : null),
       veg,
       bestseller,
       available: true,
@@ -115,9 +136,15 @@ const getMenuItems = async (req, res, next) => {
 // @access Public
 const getMenuItem = async (req, res, next) => {
   try {
-    const item = await MenuItem.findById(req.params.id)
-      .populate('category', 'name slug icon')
-      .lean();
+    const item = await MenuItem.findByPk(req.params.id, {
+      include: [
+        {
+          model: Category,
+          as: 'category',
+          attributes: ['id', 'name', 'slug', 'icon'],
+        },
+      ],
+    });
 
     if (!item) {
       return ApiResponse.error(res, {
@@ -128,13 +155,12 @@ const getMenuItem = async (req, res, next) => {
 
     return ApiResponse.success(res, {
       statusCode: 200,
-      data: item,
+      data: item.toJSON(),
     });
   } catch (error) {
     next(error);
   }
 };
-
 
 // @desc   Get public-facing menu settings (e.g. price visibility flag)
 // @route  GET /api/v1/menu/settings

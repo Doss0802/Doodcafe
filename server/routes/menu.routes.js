@@ -44,7 +44,7 @@ const menuQueryValidation = [
 ];
 
 const menuItemIdValidation = [
-  param('id').isMongoId().withMessage('Invalid menu item ID format'),
+  param('id').isUUID().withMessage('Invalid menu item ID format'),
 ];
 
 // ─── GET /api/menu & GET /api/v1/menu (DSA-powered Trie Search, QuickSort, Filtering)
