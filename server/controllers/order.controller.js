@@ -1,4 +1,5 @@
-const { validationResult } = require('express-validator');
+﻿const { validationResult } = require('express-validator');
+const { Op } = require('sequelize');
 const Order = require('../models/Order');
 const MenuItem = require('../models/MenuItem');
 const Category = require('../models/Category');
@@ -46,77 +47,76 @@ const placeOrder = async (req, res, next) => {
     for (const item of items) {
       let menuItem = null;
 
-      // 1. Try finding by menuItemId if valid ObjectId
-      if (item.menuItemId && mongoose.Types.ObjectId.isValid(item.menuItemId)) {
-        menuItem = await MenuItem.findById(item.menuItemId).lean();
+      // 1. Try finding by menuItemId (UUID) using Sequelize findByPk
+      if (item.menuItemId && typeof item.menuItemId === 'string' && item.menuItemId.trim()) {
+        menuItem = await MenuItem.findByPk(item.menuItemId);
       }
 
-      // 2. Try finding by item name regex
+      // 2. Try finding by item name (case-insensitive via iLike)
       if (!menuItem && item.name) {
-        menuItem = await MenuItem.findOne({ name: new RegExp('^' + item.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') }).lean();
+        menuItem = await MenuItem.findOne({
+          where: { name: { [Op.iLike]: item.name.trim() } },
+        });
       }
 
       // 3. Try finding any available MenuItem in database
       if (!menuItem) {
-        menuItem = await MenuItem.findOne({ available: true }).lean();
+        menuItem = await MenuItem.findOne({ where: { available: true } });
       }
 
-      // 4. Auto-create fallback MenuItem in database if none exists
+      // 4. Auto-create fallback Category + MenuItem if none exists
       if (!menuItem) {
-        let category = await Category.findOne().lean();
+        let category = await Category.findOne();
         if (!category) {
-          category = await Category.create({ name: 'Quick Bites', slug: 'quick-bites', icon: '🍟', displayOrder: 1 });
+          category = await Category.create({
+            name: 'Quick Bites',
+            slug: 'quick-bites',
+            icon: '🍟',
+            displayOrder: 1,
+          });
         }
         menuItem = await MenuItem.create({
           name: item.name || 'French Fries',
           price: item.price !== undefined ? Number(item.price) : 99,
-          category: category._id,
+          categoryId: category.id,
           description: 'Crispy golden fries seasoned with classic salt',
           available: true,
         });
-        menuItem = menuItem.toObject();
       }
 
       const qty = item.quantity && Number(item.quantity) > 0 ? Number(item.quantity) : 1;
       const price = item.price !== undefined ? Number(item.price) : menuItem.price;
       const name = item.name || menuItem.name;
-      const lineTotal = price * qty;
-      totalAmount += lineTotal;
+      totalAmount += price * qty;
 
-      enrichedItems.push({
-        menuItem: menuItem._id,
-        name: name,
-        price: price,
-        quantity: qty,
-      });
+      enrichedItems.push({ menuItemId: menuItem.id, name, price, quantity: qty });
     }
-
-    const userOrderCount = await Order.countDocuments({ user: req.user._id });
-    const orderNumber = userOrderCount + 1;
 
     const fallbackLocation = 'Coimbatore, Tamil Nadu';
     const fallbackCoords = { lat: 11.0168, lng: 76.9558 };
 
+    // Sequelize Order.create — field names match PostgreSQL schema exactly
     const order = await Order.create({
-      user: req.user._id,
-      orderNumber,
-      items: enrichedItems,
-      totalAmount,
+      userId: req.user.id,
+      items: enrichedItems,                   // DataTypes.JSON — Sequelize handles serialization
+      totalAmount: parseFloat(totalAmount.toFixed(2)),
       orderType: resolvedOrderType,
       paymentMode: resolvedPaymentMode,
-      customer_location: customer_location || deliveryAddress || fallbackLocation,
-      deliveryAddress: deliveryAddress || customer_location || fallbackLocation,
-      coordinates: coordinates && typeof coordinates.lat === 'number' && typeof coordinates.lng === 'number'
+      customer_location: (customer_location || deliveryAddress || fallbackLocation).substring(0, 200),
+      deliveryAddress: (deliveryAddress || customer_location || fallbackLocation).substring(0, 250),
+      coordinates: (coordinates && typeof coordinates.lat === 'number' && typeof coordinates.lng === 'number')
         ? coordinates
         : fallbackCoords,
-      specialInstructions,
+      specialInstructions: specialInstructions || '',
       status: initialStatus,
     });
 
     // Real-time live-sync: Broadcast new order to Admin Panel
     try {
-      const populatedOrder = await Order.findById(order._id).populate('user', 'name email phone').lean();
-      emitNewOrder(populatedOrder || order.toObject());
+      const populatedOrder = await Order.findByPk(order.id, {
+        include: [{ association: 'user', attributes: ['name', 'email', 'phone'] }],
+      });
+      emitNewOrder(populatedOrder ? populatedOrder.toJSON() : order.toJSON());
     } catch (socketErr) {
       // Socket emission error is non-fatal
     }
@@ -124,7 +124,7 @@ const placeOrder = async (req, res, next) => {
     return ApiResponse.success(res, {
       statusCode: 201,
       message: 'Order placed successfully',
-      data: order,
+      data: order.toJSON(),
     });
   } catch (error) {
     next(error);
@@ -139,26 +139,21 @@ const getMyOrders = async (req, res, next) => {
     const { page = 1, limit = 10 } = req.query;
     const pageNum = Math.max(1, parseInt(page));
     const limitNum = Math.min(50, Math.max(1, parseInt(limit)));
-    const skip = (pageNum - 1) * limitNum;
+    const offset = (pageNum - 1) * limitNum;
 
-    const [orders, total] = await Promise.all([
-      Order.find({ user: req.user._id })
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limitNum)
-        .lean(),
-      Order.countDocuments({ user: req.user._id }),
-    ]);
+    const { count: total, rows: orders } = await Order.findAndCountAll({
+      where: { userId: req.user.id },
+      order: [['createdAt', 'DESC']],
+      limit: limitNum,
+      offset,
+    });
 
-    // Automatically ensure takeaway orders reflect delivered status and clean sequential order numbers in history
+    // Normalize status and sequential order numbers for history display
     const normalizedOrders = orders.map((o, idx) => {
-      const computedNumber = o.orderNumber || (total - (skip + idx));
-      const status = (o.orderType === 'takeaway' && o.status !== 'cancelled') ? 'delivered' : o.status;
-      return {
-        ...o,
-        orderNumber: computedNumber,
-        status,
-      };
+      const plain = o.toJSON();
+      const computedNumber = plain.orderNumber || (total - (offset + idx));
+      const status = (plain.orderType === 'takeaway' && plain.status !== 'cancelled') ? 'delivered' : plain.status;
+      return { ...plain, orderNumber: computedNumber, status };
     });
 
     return ApiResponse.success(res, {
@@ -184,33 +179,30 @@ const getMyOrders = async (req, res, next) => {
 const getOrderById = async (req, res, next) => {
   try {
     const order = await Order.findOne({
-      _id: req.params.id,
-      user: req.user._id,
-    }).lean();
+      where: { id: req.params.id, userId: req.user.id },
+    });
 
     if (!order) {
-      return ApiResponse.error(res, {
-        statusCode: 404,
-        message: 'Order not found',
+      return ApiResponse.error(res, { statusCode: 404, message: 'Order not found' });
+    }
+
+    const plain = order.toJSON();
+
+    if (plain.orderType === 'takeaway' && plain.status !== 'cancelled') {
+      plain.status = 'delivered';
+    }
+
+    if (!plain.orderNumber) {
+      const earlierOrdersCount = await Order.count({
+        where: {
+          userId: req.user.id,
+          createdAt: { [Op.lt]: plain.createdAt },
+        },
       });
+      plain.orderNumber = earlierOrdersCount + 1;
     }
 
-    if (order.orderType === 'takeaway' && order.status !== 'cancelled') {
-      order.status = 'delivered';
-    }
-
-    if (!order.orderNumber) {
-      const earlierOrdersCount = await Order.countDocuments({
-        user: req.user._id,
-        createdAt: { $lt: order.createdAt },
-      });
-      order.orderNumber = earlierOrdersCount + 1;
-    }
-
-    return ApiResponse.success(res, {
-      statusCode: 200,
-      data: order,
-    });
+    return ApiResponse.success(res, { statusCode: 200, data: plain });
   } catch (error) {
     next(error);
   }
@@ -221,12 +213,12 @@ const getOrderById = async (req, res, next) => {
 // @access Private
 const cancelOrder = async (req, res, next) => {
   try {
-    const order = await Order.findOne({ _id: req.params.id, user: req.user._id });
+    const order = await Order.findOne({
+      where: { id: req.params.id, userId: req.user.id },
+    });
+
     if (!order) {
-      return ApiResponse.error(res, {
-        statusCode: 404,
-        message: 'Order not found',
-      });
+      return ApiResponse.error(res, { statusCode: 404, message: 'Order not found' });
     }
 
     if (!['pending', 'confirmed'].includes(order.status)) {
@@ -242,7 +234,7 @@ const cancelOrder = async (req, res, next) => {
     return ApiResponse.success(res, {
       statusCode: 200,
       message: 'Order cancelled successfully',
-      data: order,
+      data: order.toJSON(),
     });
   } catch (error) {
     next(error);

@@ -69,7 +69,7 @@ const orderValidation = [
 ];
 
 const idValidation = [
-  param('id').isMongoId().withMessage('Invalid order ID format'),
+  param('id').isUUID().withMessage('Invalid order ID format'),
 ];
 
 const paginationValidation = [
