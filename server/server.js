@@ -17,6 +17,15 @@ const sanitizeInputMiddleware = require('./middleware/sanitizeInput');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const { errorHandler } = require('./middleware/errorHandler');
 
+// ─── Sequelize Models — must be required before connectDB/sync runs ──────────
+require('./models/User');
+require('./models/Category');
+require('./models/MenuItem');
+require('./models/Order');
+require('./models/Finance');
+require('./models/Inventory');
+require('./models/SiteSettings');
+
 const authRoutes = require('./routes/auth.routes');
 const menuRoutes = require('./routes/menu.routes');
 const orderRoutes = require('./routes/order.routes');

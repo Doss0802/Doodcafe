@@ -12,21 +12,34 @@ const errorHandler = (err, req, res, next) => {
     stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
   });
 
-  // Handle specific Mongoose error types
-  if (err.name === 'CastError') {
-    statusCode = 400;
-    message = `Invalid format for resource parameter: ${err.path}`;
-  } else if (err.code === 11000) {
+  // ── Sequelize error type mapping ──────────────────────────────────────────
+  if (err.name === 'SequelizeUniqueConstraintError') {
     statusCode = 409;
-    const field = Object.keys(err.keyValue)[0];
+    const field = err.errors && err.errors[0] ? err.errors[0].path : 'field';
     message = `A resource with this ${field} already exists.`;
-  } else if (err.name === 'ValidationError') {
+    errors = err.errors ? err.errors.map((e) => e.message) : null;
+  } else if (err.name === 'SequelizeValidationError') {
     statusCode = 400;
-    errors = Object.values(err.errors).map((e) => e.message);
     message = 'Validation failed for request parameters.';
+    errors = err.errors ? err.errors.map((e) => e.message) : null;
+  } else if (err.name === 'SequelizeDatabaseError') {
+    statusCode = 500;
+    message = process.env.NODE_ENV === 'production'
+      ? 'A database error occurred. Please try again.'
+      : err.message;
+  } else if (err.name === 'SequelizeForeignKeyConstraintError') {
+    statusCode = 400;
+    message = 'Referenced resource does not exist or cannot be deleted while in use.';
+  } else if (err.name === 'SequelizeConnectionError' || err.name === 'SequelizeConnectionRefusedError') {
+    statusCode = 503;
+    message = 'Database connection unavailable. Please try again shortly.';
+  // ── Legacy JWT error mapping ───────────────────────────────────────────────
   } else if (err.name === 'JsonWebTokenError') {
     statusCode = 401;
     message = 'Malformed or invalid authentication token.';
+  } else if (err.name === 'TokenExpiredError') {
+    statusCode = 401;
+    message = 'Access token is expired. Please log in again.';
   }
 
   return ApiResponse.error(res, {

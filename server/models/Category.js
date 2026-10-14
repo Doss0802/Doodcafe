@@ -44,6 +44,7 @@ const Category = sequelize.define('Category', {
   },
 }, {
   timestamps: true,
+  freezeTableName: true,
   tableName: 'categories',
   indexes: [
     { fields: ['displayOrder', 'isActive'] },

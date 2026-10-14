@@ -82,6 +82,7 @@ const MenuItem = sequelize.define('MenuItem', {
   },
 }, {
   timestamps: true,
+  freezeTableName: true,
   tableName: 'menu_items',
   indexes: [
     { fields: ['categoryId', 'available', 'price'] },
