@@ -1,5 +1,5 @@
 /**
- * Bridges frontend Vite client (port 5174) with Express API backend (port 5000).
+ * Bridges frontend Vite client with Express API backend across environments (Dev, Render, Hostinger).
  * Relative paths stored in PostgreSQL (e.g. '/images/Quick Bites/French fries.jpeg', '/uploads/...')
  * are prepended with the backend API origin so the browser requests them directly from the Express server.
  */
@@ -14,8 +14,15 @@ export const resolveImageUrl = (rawSrc) => {
     return rawSrc;
   }
 
-  const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api')
-    .replace(/\/api\/?$/, '');
+  const envApi = import.meta.env.VITE_API_URL;
+  let API_BASE = '';
+  if (envApi && envApi.startsWith('http')) {
+    API_BASE = envApi.replace(/\/api\/?$/, '');
+  } else if (!envApi && import.meta.env.DEV) {
+    API_BASE = 'http://localhost:5000';
+  } else if (envApi && !envApi.startsWith('http')) {
+    API_BASE = '';
+  }
 
   if (
     rawSrc.startsWith('/images/') ||

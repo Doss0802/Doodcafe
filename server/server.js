@@ -174,6 +174,8 @@ app.use('/api', apiLimiter);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Serve client image assets directly from the server so DB image paths resolve
 app.use('/images', express.static(path.join(__dirname, '../client/src/images')));
+app.use('/images', express.static(path.join(__dirname, '../client/public')));
+app.use('/images', express.static(path.join(__dirname, '../client/dist')));
 app.use('/src/images', express.static(path.join(__dirname, '../client/src/images')));
 
 // ─── 5. API v1 Routes ─────────────────────────────────────────────────────────
@@ -199,16 +201,33 @@ app.use('/api/admin', adminMenuRoutes);
 app.use('/api/admin', adminRoutes);
 
 
-// ─── 6. Base Health Route ────────────────────────────────────────────────────
-app.get('/', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Dood Cafe API is up and running',
-    version: 'v1',
-    docs: '/api/v1/health',
-    meta: { timestamp: new Date().toISOString(), requestId: req.id },
+// ─── 6. Client Production Bundle Serving (Hostinger / Unified Deployment) ────
+const clientDist = path.join(__dirname, '../client/dist');
+if (fs.existsSync(clientDist)) {
+  app.use(express.static(clientDist));
+  app.get('*', (req, res, next) => {
+    if (
+      req.path.startsWith('/api') ||
+      req.path.startsWith('/images') ||
+      req.path.startsWith('/uploads') ||
+      req.path.startsWith('/src/images')
+    ) {
+      return next();
+    }
+    res.sendFile(path.join(clientDist, 'index.html'));
   });
-});
+} else {
+  // Base Health Route fallback when client is hosted separately
+  app.get('/', (req, res) => {
+    res.status(200).json({
+      success: true,
+      message: 'Dood Cafe API is up and running',
+      version: 'v1',
+      docs: '/api/v1/health',
+      meta: { timestamp: new Date().toISOString(), requestId: req.id },
+    });
+  });
+}
 
 // ─── 7. 404 Handler ───────────────────────────────────────────────────────────
 app.use((req, res) => {

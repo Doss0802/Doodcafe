@@ -45,7 +45,7 @@ const getMenuItems = async (req, res, next) => {
 
     const sortBy = sort || sortByQuery || 'popularity';
 
-    // Resolve category slug -> UUID via Sequelize
+    // Resolve category slug 
     let categoryId = null;
     if (category && category !== 'all') {
       const cat = await Category.findOne({
