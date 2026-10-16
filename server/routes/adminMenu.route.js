@@ -24,16 +24,18 @@ const storage = multer.diskStorage({
   },
 });
 
+const ALLOWED_MIMES = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']);
+const ALLOWED_EXTS = /\.(jpeg|jpg|png|webp|gif)$/i;
+
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit (was 10MB — reduced to match upload.js)
   fileFilter: (req, file, cb) => {
-    const allowed = /jpeg|jpg|png|webp|gif|svg/;
     const ext = path.extname(file.originalname).toLowerCase();
-    if (allowed.test(ext)) {
+    if (ALLOWED_MIMES.has(file.mimetype.toLowerCase()) && ALLOWED_EXTS.test(ext)) {
       cb(null, true);
     } else {
-      cb(new Error('Only image files (jpg, png, webp, gif, svg) are allowed'));
+      cb(new Error('Only image files (jpg, png, webp, gif) are allowed. SVG is not permitted.'));
     }
   },
 });

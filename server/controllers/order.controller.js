@@ -22,7 +22,7 @@ const placeOrder = async (req, res, next) => {
 
     let { items, paymentMode, specialInstructions, orderType, customer_location, deliveryAddress, coordinates } = req.body;
     const resolvedOrderType = ['takeaway', 'delivery'].includes(orderType) ? orderType : 'takeaway';
-    const initialStatus = 'delivered';
+    const initialStatus = 'pending';
     const resolvedPaymentMode = (paymentMode && ['cash', 'upi'].includes(paymentMode)) ? paymentMode : 'cash';
 
     // Delivery Geofence: Enforce Coimbatore boundary check for delivery orders

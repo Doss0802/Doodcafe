@@ -1,5 +1,6 @@
 require('dotenv').config();
 const path = require('path');
+const fs = require('fs');
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
@@ -138,13 +139,12 @@ app.use(
         !origin ||
         allowedOrigins.includes(origin) ||
         /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin) ||
-        /\.onrender\.com$/i.test(origin) ||
-        origin.endsWith('.onrender.com') ||
-        origin.includes('onrender.com')
+        /\.onrender\.com$/i.test(origin)
       ) {
         return callback(null, true);
       }
-      return callback(null, true);
+      // Reject all other origins explicitly
+      return callback(new Error(`CORS: Origin ${origin} not allowed`), false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -205,7 +205,8 @@ app.use('/api/admin', adminRoutes);
 const clientDist = path.join(__dirname, '../client/dist');
 if (fs.existsSync(clientDist)) {
   app.use(express.static(clientDist));
-  app.get('*', (req, res, next) => {
+  // Express 5 requires named wildcard params — bare '*' is invalid in path-to-regexp v8+
+  app.get('/{*path}', (req, res, next) => {
     if (
       req.path.startsWith('/api') ||
       req.path.startsWith('/images') ||
