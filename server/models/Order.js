@@ -41,16 +41,40 @@ const Order = sequelize.define('Order', {
     },
   },
   orderType: {
-    type: DataTypes.ENUM('takeaway', 'delivery'),
+    type: DataTypes.ENUM('takeaway', 'delivery', 'dine-in'),
     defaultValue: 'takeaway',
   },
   status: {
-    type: DataTypes.ENUM('pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled'),
-    defaultValue: 'delivered',
+    type: DataTypes.ENUM('pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled', 'handed_over'),
+    defaultValue: 'pending',
   },
   paymentMode: {
     type: DataTypes.ENUM('cash', 'upi'),
     defaultValue: 'cash',
+  },
+  paymentStatus: {
+    type: DataTypes.STRING(20),
+    defaultValue: 'pending',
+  },
+  customerName: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+  },
+  customerPhone: {
+    type: DataTypes.STRING(20),
+    allowNull: true,
+  },
+  billNumber: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+  },
+  handedOverAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  handedOverBy: {
+    type: DataTypes.UUID,
+    allowNull: true,
   },
   customer_location: {
     type: DataTypes.STRING(200),
@@ -91,19 +115,27 @@ const Order = sequelize.define('Order', {
     { fields: ['status', 'createdAt'] },
     { fields: ['createdAt'] },
     { fields: ['orderType', 'createdAt'] },
+    { fields: ['billNumber'] },
+    { fields: ['paymentStatus'] },
   ],
   hooks: {
     beforeCreate: async (order) => {
-      if (order.orderType === 'takeaway' && (!order.status || order.status === 'pending')) {
-        order.status = 'delivered';
+      if (!order.status) {
+        order.status = 'pending';
+      }
+      if (!order.paymentStatus) {
+        order.paymentStatus = 'pending';
       }
       if (!order.orderNumber) {
         try {
-          const userOrderCount = await Order.count({ where: { userId: order.userId } });
-          order.orderNumber = userOrderCount + 1;
+          const maxOrder = await Order.max('orderNumber');
+          order.orderNumber = Math.max(1001, (Number(maxOrder) || 1000) + 1);
         } catch (e) {
-          order.orderNumber = 1;
+          order.orderNumber = 1001;
         }
+      }
+      if (!order.billNumber) {
+        order.billNumber = `ORD-${order.orderNumber}`;
       }
     },
   },

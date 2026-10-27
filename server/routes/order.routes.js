@@ -33,12 +33,26 @@ const orderValidation = [
     .withMessage('Price cannot be negative'),
   body('orderType')
     .optional()
-    .isIn(['takeaway', 'delivery'])
-    .withMessage('Invalid order type. Only takeaway and delivery are supported.'),
+    .isIn(['takeaway', 'delivery', 'dine-in'])
+    .withMessage('Invalid order type. Only takeaway, delivery, and dine-in are supported.'),
   body('paymentMode')
     .optional()
     .isIn(['cash', 'upi'])
     .withMessage('Invalid payment mode. Only cash and upi are supported.'),
+  body('paymentStatus')
+    .optional()
+    .isIn(['paid', 'pending', 'cod'])
+    .withMessage('Invalid payment status. Must be paid, pending, or cod.'),
+  body('customerName')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Customer name must be between 1 and 100 characters'),
+  body('customerPhone')
+    .optional()
+    .trim()
+    .matches(/^[6-9]\d{9}$/)
+    .withMessage('Please provide a valid 10-digit Indian mobile number'),
   body('customer_location')
     .optional()
     .trim()

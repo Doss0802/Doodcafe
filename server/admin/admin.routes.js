@@ -17,17 +17,55 @@ const validate = require('../middleware/validate');
 
 const router = express.Router();
 
-// Middleware: strictly protect and require admin role
-router.use(protect, requireRole('admin'));
+// Middleware: protect all routes
+router.use(protect);
 
 /**
- * 1. Overview KPIs (Daily, Weekly, Monthly, All-time)
+ * 1. Live Customer Orders Stream (Admin + Manager + Staff)
+ * @route GET /api/admin/live-orders
+ */
+router.get(
+  '/live-orders',
+  requireRole('admin', 'manager', 'staff'),
+  [
+    query('status')
+      .optional()
+      .isIn(['all', 'pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled', 'handed_over'])
+      .withMessage('Invalid order status'),
+  ],
+  validate,
+  getLiveOrders
+);
+
+/**
+ * 2. Update Order Status (Admin + Manager + Staff)
+ * @route PATCH /api/admin/orders/:id/status
+ */
+router.patch(
+  '/orders/:id/status',
+  requireRole('admin', 'manager', 'staff'),
+  sensitiveLimiter,
+  [
+    param('id').notEmpty().withMessage('Invalid order ID'),
+    body('status')
+      .isIn(['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled', 'handed_over'])
+      .withMessage('Invalid order status'),
+  ],
+  validate,
+  updateOrderStatus
+);
+
+// All subsequent routes require Admin role ONLY (staff receives 403)
+router.use(requireRole('admin', 'manager'));
+
+/**
+ * 3. Overview KPIs (Daily, Weekly, Monthly, All-time)
  * @route GET /api/admin/kpis
  */
 router.get('/kpis', getOverviewKPIs);
 
 /**
- * 2. Revenue & Profit Trends
+ * 4. Revenue & Profit Trends
  * @route GET /api/admin/trends
  */
 router.get(
@@ -38,7 +76,7 @@ router.get(
 );
 
 /**
- * 3. Top Selling Menu Items
+ * 5. Top Selling Menu Items
  * @route GET /api/admin/top-items
  */
 router.get(
@@ -46,34 +84,6 @@ router.get(
   [query('limit').optional().isInt({ min: 1, max: 50 }).withMessage('Limit must be between 1 and 50')],
   validate,
   getTopSellingItems
-);
-
-/**
- * 4. Live Customer Orders Stream
- * @route GET /api/admin/live-orders
- */
-router.get(
-  '/live-orders',
-  [query('status').optional().isIn(['all', 'pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled']).withMessage('Invalid order status')],
-  validate,
-  getLiveOrders
-);
-
-/**
- * 5. Update Order Status
- * @route PATCH /api/admin/orders/:id/status
- */
-router.patch(
-  '/orders/:id/status',
-  sensitiveLimiter,
-  [
-    param('id').notEmpty().withMessage('Invalid order ID'),
-    body('status')
-      .isIn(['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled'])
-      .withMessage('Invalid order status'),
-  ],
-  validate,
-  updateOrderStatus
 );
 
 /**

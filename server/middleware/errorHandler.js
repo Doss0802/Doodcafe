@@ -12,6 +12,11 @@ const errorHandler = (err, req, res, next) => {
     stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
   });
 
+  // ── Multer error handling ───────────────────────────────────────────────
+  if (err.name === 'MulterError') {
+    statusCode = 400;
+  }
+
   // ── Sequelize error type mapping ──────────────────────────────────────────
   if (err.name === 'SequelizeUniqueConstraintError') {
     statusCode = 409;

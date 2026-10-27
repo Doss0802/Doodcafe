@@ -57,7 +57,7 @@ doodcafe/
 Set these environment variables in Hostinger's Node.js Environment section or create `server/.env`:
 
 ```env
-DATABASE_URL=postgresql://dossadmin:C2KKRiuW9EdrgF8QTWlovyTH5nazy2na@://render.com
+DATABASE_URL=postgresql://<DB_USER>:<DB_PASSWORD>@<DB_HOST>:<DB_PORT>/<DB_NAME>
 JWT_ACCESS_SECRET=your_super_secret_access_key_change_in_production
 JWT_REFRESH_SECRET=your_super_secret_refresh_key_change_in_production
 NODE_ENV=production

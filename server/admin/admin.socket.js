@@ -1,3 +1,6 @@
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
+
 let ioInstance = null;
 
 /**
@@ -5,6 +8,38 @@ let ioInstance = null;
  */
 const initAdminSocket = (io) => {
   ioInstance = io;
+
+  // Socket Authentication Middleware: strictly allow role admin, manager, staff
+  io.use(async (socket, next) => {
+    try {
+      const token =
+        socket.handshake.auth?.token ||
+        socket.handshake.query?.token ||
+        socket.handshake.headers?.authorization?.replace(/^Bearer\s+/, '');
+
+      if (!token) {
+        return next(new Error('Authentication required for real-time socket'));
+      }
+
+      const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+      const user = await User.findByPk(decoded.id, {
+        attributes: ['id', 'name', 'role', 'isActive'],
+      });
+
+      if (!user || !user.isActive) {
+        return next(new Error('User account not found or inactive'));
+      }
+
+      if (!['admin', 'manager', 'staff'].includes(user.role)) {
+        return next(new Error('Forbidden: insufficient permissions for order stream socket'));
+      }
+
+      socket.user = user;
+      next();
+    } catch (err) {
+      return next(new Error('Invalid or expired socket credentials'));
+    }
+  });
 
   io.on('connection', (socket) => {
     socket.on('join-admin', () => {
@@ -20,9 +55,7 @@ const initAdminSocket = (io) => {
 };
 
 /**
- * Emit a real-time event to all connected admin clients.
- * Broadcasts to every connected socket (not just admin-room) so the
- * admin page receives it whether or not join-admin was already sent.
+ * Emit a real-time event to all connected authenticated clients.
  */
 const emitNewOrder = (order) => {
   if (!ioInstance) {
@@ -46,4 +79,3 @@ module.exports = {
   emitOrderStatusUpdate,
   getIo,
 };
-

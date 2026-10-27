@@ -1,0 +1,214 @@
+{
+  "timestamp": "2026-10-16T08:08:12.312Z",
+  "total": 41,
+  "passed": 41,
+  "failed": 0,
+  "passRate": 100,
+  "results": [
+    {
+      "name": "FIX-001/FIX-002: Server responds (fs import + Express 5 wildcard fixed)",
+      "pass": true,
+      "detail": "GET /api/v1/health → 200"
+    },
+    {
+      "name": "Health endpoint returns success JSON",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Root / returns JSON (not crash)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "404 handler: unknown route returns 404 JSON",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "CORS ALLOWS: http://localhost:5173",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "CORS ALLOWS: http://localhost:5174",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "CORS ALLOWS: http://127.0.0.1:5173",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "CORS ALLOWS: https://doodcafe.onrender.com",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "CORS BLOCKS: https://evil.com",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "CORS BLOCKS: https://attacker.io",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "CORS BLOCKS: http://notlocalhost:9999",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "CORS BLOCKS: https://doodcafe.evil.com",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "CORS BLOCKS: https://fakedoodcafe.onrender.com.evil.io",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "POST /auth/register: valid data → 201",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "POST /auth/register: weak password → 400",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "POST /auth/register: duplicate email → 409",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "POST /auth/login: wrong password → 401",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "GET /auth/me: no token → 401",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "GET /auth/me: valid token → 200 with user data",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "JWT: tampered token → 401",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "XSS in name field: script tags stripped",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "POST /orders: no auth → 401",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "FIX-004: POST /orders: new order status is PENDING (not delivered)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "POST /orders: invalid orderType → rejected or defaulted safely",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "GET /orders/my: returns user orders array",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "PATCH /orders/:id/cancel: cannot cancel non-pending delivered order",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Upload: valid JPEG → 200 OK",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "FIX-005: Upload SVG (can embed JS) → BLOCKED 400",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "FIX-005: Upload PHP MIME with .jpg extension → BLOCKED 400",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Upload without auth → 401",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Upload with customer token → 403",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "GET /menu: returns array of items",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "GET /menu: each item has required fields",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Header present: x-content-type-options",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Header present: x-frame-options",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Header present: strict-transport-security",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Header present: x-request-id",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "CSP header is set",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SQL-like payload in email field → 400 (validation)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Oversized body (>10MB) → rejected",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "HPP: duplicate query params handled cleanly",
+      "pass": true,
+      "detail": ""
+    }
+  ]
+}

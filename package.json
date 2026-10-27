@@ -13,7 +13,9 @@
     "test:backend": "npm run test:backend --prefix server",
     "server": "npm start --prefix server",
     "client": "npm run dev --prefix client",
-    "dev": "concurrently \"npm run server\" \"npm run client\""
+    "predev": "node scripts/free-ports.js",
+    "dev": "concurrently -k -n server,client -c yellow,cyan \"npm run server\" \"npm run client\"",
+    "stop": "node scripts/free-ports.js"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

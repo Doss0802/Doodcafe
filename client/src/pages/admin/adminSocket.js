@@ -15,8 +15,11 @@ export const getSocketServerUrl = () => {
   return window.location.origin;
 };
 
+export const getAdminSocket = () => socket;
+
 export const connectAdminSocket = ({ onNewOrder, onStatusUpdate, onConnectChange } = {}) => {
   const SERVER_URL = getSocketServerUrl();
+  const token = localStorage.getItem('accessToken');
 
   if (!socket) {
     socket = io(SERVER_URL, {
@@ -25,7 +28,10 @@ export const connectAdminSocket = ({ onNewOrder, onStatusUpdate, onConnectChange
       reconnectionAttempts: 10,
       reconnectionDelay: 2000,
       withCredentials: true,
+      auth: { token },
     });
+  } else if (token && socket.auth) {
+    socket.auth.token = token;
   }
 
   socket.off('connect');

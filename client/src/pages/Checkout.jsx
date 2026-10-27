@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CreditCard, MessageSquare, CheckCircle, Package, MapPin, Navigation, ExternalLink } from 'lucide-react';
+import { CreditCard, MessageSquare, CheckCircle, Package, MapPin, Navigation, ExternalLink, User, Phone, Utensils } from 'lucide-react';
 import useCartStore from '../store/cartStore';
 import useAuthStore from '../store/authStore';
 import axiosInstance from '../api/axiosInstance';
@@ -25,8 +25,18 @@ export default function Checkout() {
   const [zipCode, setZipCode] = useState('641001');
   const [coordinates, setCoordinates] = useState({ lat: 11.0168, lng: 76.9558 }); // Default: Coimbatore central coordinates
   const [hasLiveCoords, setHasLiveCoords] = useState(false);
-  const [selectedOrderType, setSelectedOrderType] = useState('takeaway');
+  const [selectedOrderType, setSelectedOrderType] = useState('takeaway'); // 'takeaway' | 'dine-in' | 'delivery'
   const [isOutOfDeliveryBoundary, setIsOutOfDeliveryBoundary] = useState(false);
+
+  // Customer Contact Fields (Required for Staff Verification)
+  const [customerName, setCustomerName] = useState(user?.name || '');
+  const [customerPhone, setCustomerPhone] = useState(user?.phone || '');
+  const [paymentOption, setPaymentOption] = useState('cod'); // 'cod' | 'paid' | 'pending'
+
+  useEffect(() => {
+    if (user?.name && !customerName) setCustomerName(user.name);
+    if (user?.phone && !customerPhone) setCustomerPhone(user.phone);
+  }, [user]);
 
   // Post-order Invoice Modal State
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
@@ -133,11 +143,27 @@ export default function Checkout() {
 
   const handlePlaceOrder = async (e) => {
     e.preventDefault();
+    if (placing) return; // Prevent double-submit
 
-    // Programmatic Geofence Check: Block delivery and order actions if outside Coimbatore
-    if (isOutOfDeliveryBoundary || !city || !city.toLowerCase().includes('coimbatore')) {
-      toast.error('Delivery currently available in Coimbatore city limits only');
+    // 1. Customer Name Validation
+    if (!customerName || !customerName.trim()) {
+      toast.error('Please enter customer full name');
       return;
+    }
+
+    // 2. 10-Digit Indian Mobile Number Validation
+    const cleanPhone = (customerPhone || '').replace(/\D/g, '');
+    if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+      toast.error('Please enter a valid 10-digit Indian mobile number (e.g. 9876543210)');
+      return;
+    }
+
+    // 3. Geofence Check: Only enforced for delivery orders
+    if (selectedOrderType === 'delivery') {
+      if (isOutOfDeliveryBoundary || !city || !city.toLowerCase().includes('coimbatore')) {
+        toast.error('Delivery currently available in Coimbatore city limits only');
+        return;
+      }
     }
 
     setPlacing(true);
@@ -150,18 +176,23 @@ export default function Checkout() {
         return item;
       });
 
-      // Construct rich customer location string combining reverse geocoded address & maps link
+      // Construct rich customer location string
       const addressParts = [street, city, stateName, zipCode].filter(Boolean);
       const textAddress = addressParts.length > 0 ? addressParts.join(', ') : 'Dood Cafe Counter — Coimbatore, Tamil Nadu';
       const mapsUrl = `https://www.google.com/maps?q=${coordinates.lat},${coordinates.lng}`;
       const customerLocationString = `${textAddress} | Maps: ${mapsUrl}`;
 
+      const resolvedMode = paymentOption === 'paid' ? 'upi' : 'cash';
+
       const payload = {
         items: orderItems,
         orderType: selectedOrderType,
-        paymentMode: ['cash', 'upi'].includes(paymentMode) ? paymentMode : 'cash',
-        customer_location: customerLocationString,
-        deliveryAddress: textAddress,
+        customerName: customerName.trim(),
+        customerPhone: cleanPhone,
+        paymentMode: resolvedMode,
+        paymentStatus: paymentOption,
+        customer_location: selectedOrderType === 'dine-in' ? 'Dood Cafe Counter — Dine-in' : customerLocationString,
+        deliveryAddress: selectedOrderType === 'dine-in' ? 'Dood Cafe — Dine-in' : textAddress,
         coordinates: { lat: coordinates.lat, lng: coordinates.lng },
         specialInstructions,
       };
@@ -173,10 +204,11 @@ export default function Checkout() {
       const invoicePayload = {
         _id: createdOrder._id,
         orderNumber: createdOrder.orderNumber,
-        customerName: user?.name || 'Valued Customer',
-        customerPhone: user?.phone || 'Not Provided',
+        billNumber: createdOrder.billNumber,
+        customerName: createdOrder.customerName || customerName.trim(),
+        customerPhone: createdOrder.customerPhone || cleanPhone,
         customerEmail: user?.email || '',
-        customerLocation: textAddress,
+        customerLocation: selectedOrderType === 'dine-in' ? 'Dood Cafe — Dine-in' : textAddress,
         orderTimestamp: createdOrder.createdAt ? new Date(createdOrder.createdAt) : new Date(),
         formattedDate: new Date().toLocaleString('en-IN', {
           dateStyle: 'medium',
@@ -185,6 +217,7 @@ export default function Checkout() {
         items: (createdOrder.items && createdOrder.items.length > 0 ? createdOrder.items : orderItems),
         totalAmount: createdOrder.totalAmount || totalAmount,
         paymentMode: payload.paymentMode,
+        paymentStatus: payload.paymentStatus,
         orderType: payload.orderType,
         specialInstructions,
       };
@@ -212,6 +245,53 @@ export default function Checkout() {
           <h1 className="page-title">Checkout & Order Placement</h1>
 
           <form onSubmit={handlePlaceOrder} id="checkout-form">
+            {/* ── Customer Contact Information (Required for counter staff) ── */}
+            <div className="checkout-address-card" style={{ marginBottom: '1.25rem' }}>
+              <div className="checkout-address-header" style={{ marginBottom: '0.75rem' }}>
+                <div>
+                  <h3 className="checkout-section-title">
+                    <User size={17} className="checkout-pin-icon" />
+                    Customer Contact Details
+                  </h3>
+                  <p className="checkout-section-sub">
+                    Provide customer name & mobile number for order verification and parcel handover.
+                  </p>
+                </div>
+              </div>
+              <div className="address-inputs-grid">
+                <div className="form-field">
+                  <label htmlFor="customer-name" className="input-label">
+                    Customer Name <span style={{ color: '#EF4444' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="customer-name"
+                    className="form-input"
+                    placeholder="e.g. John Doe"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    required
+                    maxLength={100}
+                  />
+                </div>
+                <div className="form-field">
+                  <label htmlFor="customer-phone" className="input-label">
+                    10-Digit Mobile Number <span style={{ color: '#EF4444' }}>*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    id="customer-phone"
+                    className="form-input"
+                    placeholder="e.g. 9876543210"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    required
+                    maxLength={10}
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* ── Order Type Selection ── */}
             <div className="form-group">
               <label className="form-label"><Package size={15} /> Order Type</label>
@@ -223,6 +303,14 @@ export default function Checkout() {
                   onClick={() => setSelectedOrderType('takeaway')}
                 >
                   📦 Takeaway
+                </button>
+                <button
+                  type="button"
+                  id="checkout-type-dinein"
+                  className={`order-type-btn ${selectedOrderType === 'dine-in' ? 'order-type-active' : ''}`}
+                  onClick={() => setSelectedOrderType('dine-in')}
+                >
+                  🍽️ Dine-in
                 </button>
                 <button
                   type="button"
@@ -387,20 +475,25 @@ export default function Checkout() {
               </div>
             </div>
 
-            {/* ── Payment Mode ── */}
+            {/* ── Payment Mode & Status Selection ── */}
             <div className="form-group" style={{ marginTop: '1.5rem' }}>
-              <label className="form-label"><CreditCard size={15} /> Payment Mode</label>
+              <label className="form-label"><CreditCard size={15} /> Payment Mode & Option</label>
               <div className="payment-group">
                 {[
-                  { value: 'cash', label: '💵 Cash' },
-                  { value: 'upi', label: '📱 UPI' },
+                  { value: 'cod', label: '💵 Cash on Delivery / Counter (COD)' },
+                  { value: 'paid', label: '📱 UPI / Online (Paid)' },
+                  { value: 'pending', label: '⏳ Pay at Counter (Pending)' },
                 ].map(({ value, label }) => (
                   <button
                     key={value}
                     type="button"
                     id={`payment-${value}`}
-                    className={`payment-btn ${paymentMode === value ? 'payment-btn-active' : ''}`}
-                    onClick={() => setPaymentMode(value)}
+                    className={`payment-btn ${paymentOption === value ? 'payment-btn-active' : ''}`}
+                    onClick={() => {
+                      setPaymentOption(value);
+                      if (value === 'paid') setPaymentMode('upi');
+                      else setPaymentMode('cash');
+                    }}
                   >
                     {label}
                   </button>
@@ -438,8 +531,8 @@ export default function Checkout() {
               form="checkout-form"
               id="place-order-btn"
               className="btn btn-primary btn-full checkout-summary-btn"
-              disabled={placing || isOutOfDeliveryBoundary || !city || !city.toLowerCase().includes('coimbatore')}
-              title={isOutOfDeliveryBoundary || !city || !city.toLowerCase().includes('coimbatore') ? 'Delivery currently available in Coimbatore city limits only' : ''}
+              disabled={placing || (selectedOrderType === 'delivery' && (isOutOfDeliveryBoundary || !city || !city.toLowerCase().includes('coimbatore')))}
+              title={selectedOrderType === 'delivery' && (isOutOfDeliveryBoundary || !city || !city.toLowerCase().includes('coimbatore')) ? 'Delivery currently available in Coimbatore city limits only' : ''}
             >
               {placing ? (
                 <span className="loading-spinner" />

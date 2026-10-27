@@ -1,6 +1,6 @@
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingCart, Menu, X, LogOut, User, ClipboardList, Coffee, UserCircle2, Utensils } from 'lucide-react';
+import { ShoppingCart, Menu, X, LogOut, User, ClipboardList, Coffee, UserCircle2, Utensils, ClipboardCheck } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import useCartStore from '../store/cartStore';
 import toast from 'react-hot-toast';
@@ -79,6 +79,18 @@ export default function Navbar() {
               <span className="cursive-nav-text">{link.label}</span>
             </Link>
           ))}
+          {isAuthenticated && ['admin', 'manager', 'staff'].includes(user?.role) && (
+            <Link
+              to="/staff/orders"
+              className={`nav-link ${isActive('/staff/orders') ? 'nav-link-active' : ''}`}
+              id="nav-link-staff-orders"
+            >
+              <span className="cursive-nav-text text-amber-500 font-bold flex items-center gap-1.5">
+                <ClipboardCheck size={15} />
+                Staff Orders
+              </span>
+            </Link>
+          )}
           {isAuthenticated && user?.role === 'admin' && (
             <Link
               to="/admin/menu-management"
@@ -157,6 +169,18 @@ export default function Navbar() {
                   <ClipboardList size={14} />
                   <span className="cursive-nav-text">My Orders</span>
                 </Link>
+                {isAuthenticated && ['admin', 'manager', 'staff'].includes(user?.role) && (
+                  <Link
+                    to="/staff/orders"
+                    className="dropdown-item dropdown-item-admin font-bold text-amber-600"
+                    role="menuitem"
+                    onClick={() => setProfileOpen(false)}
+                    id="dropdown-staff-orders"
+                  >
+                    <ClipboardCheck size={14} />
+                    Staff Orders
+                  </Link>
+                )}
                 {isAuthenticated && user?.role === 'admin' && (
                   <>
                     <Link
@@ -229,6 +253,12 @@ export default function Navbar() {
               <Link to="/orders" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
                 <span className="cursive-nav-text">My Orders</span>
               </Link>
+              {isAuthenticated && ['admin', 'manager', 'staff'].includes(user?.role) && (
+                <Link to="/staff/orders" className="mobile-nav-link mobile-nav-admin font-bold text-amber-500 flex items-center gap-1.5" onClick={() => setMobileOpen(false)}>
+                  <ClipboardCheck size={14} />
+                  Staff Orders
+                </Link>
+              )}
               {isAuthenticated && user?.role === 'admin' && (
                 <>
                   <Link to="/admin" className="mobile-nav-link mobile-nav-admin" onClick={() => setMobileOpen(false)}>

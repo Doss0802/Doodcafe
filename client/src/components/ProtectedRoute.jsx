@@ -107,7 +107,7 @@ function AuthLoadingSpinner() {
 }
 
 /* ── ProtectedRoute ──────────────────────────────────────────── */
-export function ProtectedRoute({ children, adminOnly = false }) {
+export function ProtectedRoute({ children, adminOnly = false, staffOnly = false, allowedRoles = null }) {
   const { isAuthenticated, user, clearAuth } = useAuthStore();
   const location = useLocation();
 
@@ -161,7 +161,13 @@ export function ProtectedRoute({ children, adminOnly = false }) {
   }
 
   // ── Guard 4: Role-based access control ───────────────────────
+  if (allowedRoles && Array.isArray(allowedRoles) && !allowedRoles.includes(user?.role)) {
+    return <ForbiddenPage />;
+  }
   if (adminOnly && !['admin', 'manager'].includes(user?.role)) {
+    return <ForbiddenPage />;
+  }
+  if (staffOnly && !['admin', 'manager', 'staff'].includes(user?.role)) {
     return <ForbiddenPage />;
   }
 

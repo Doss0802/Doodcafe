@@ -1,11 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  TrendingUp, DollarSign, ShoppingBag, Flame, CheckCircle2,
-  RefreshCw, Radio, Sparkles, X, UserRound, MapPin, ExternalLink, Navigation, Compass, Utensils
+  TrendingUp,
+  DollarSign,
+  Flame,
+  RefreshCw,
+  Sparkles,
+  Utensils,
+  Package,
+  ArrowRight,
 } from 'lucide-react';
 import axiosInstance from '../../api/axiosInstance';
-import { connectAdminSocket, disconnectAdminSocket } from './adminSocket';
 import toast from 'react-hot-toast';
 
 if (!toast.info) {
@@ -14,230 +19,8 @@ if (!toast.info) {
 
 const POLL_INTERVAL_MS = 30_000; // auto-refresh every 30 seconds
 
-/* ── Status Meta Helper ───────────────────────────────────────── */
-const STATUS_CONFIG = {
-  pending: { label: 'Placed', color: '#D97706', bg: '#FEF3C7', next: 'preparing' },
-  confirmed: { label: 'Placed', color: '#D97706', bg: '#FEF3C7', next: 'preparing' },
-  preparing: { label: 'Preparing', color: '#2563EB', bg: '#EFF6FF', next: 'ready' },
-  ready: { label: 'Ready for Pickup', color: '#059669', bg: '#ECFDF5', next: 'delivered' },
-  delivered: { label: 'Completed', color: '#10B981', bg: '#ECFDF5', next: null },
-  cancelled: { label: 'Cancelled', color: '#EF4444', bg: '#FEF2F2', next: null },
-};
-
-/* ── Customer Detail Modal ────────────────────────────────────── */
-function CustomerDetailModal({ order, onClose }) {
-  useEffect(() => {
-    if (!order) return;
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    document.body.style.overflow = 'hidden';
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'unset';
-    };
-  }, [order, onClose]);
-
-  if (!order) return null;
-
-  const customerName = order.user?.name || 'Unknown Customer';
-  const customerPhone = order.user?.phone || null;
-  const customerEmail = order.user?.email || null;
-  const statusMeta = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
-
-  // Extract raw location and map link
-  const rawLocation = order.customer_location || order.deliveryAddress || '';
-  let textAddress = rawLocation;
-  let mapsLink = null;
-
-  if (rawLocation.includes('Maps:')) {
-    const parts = rawLocation.split('Maps:');
-    textAddress = parts[0].replace(/\|$/, '').trim();
-    mapsLink = parts[1]?.trim();
-  } else if (order.coordinates?.lat && order.coordinates?.lng) {
-    mapsLink = `https://www.google.com/maps?q=${order.coordinates.lat},${order.coordinates.lng}`;
-  }
-
-  // Fallback map embed
-  const embedUrl = order.coordinates?.lat && order.coordinates?.lng
-    ? `https://maps.google.com/maps?q=${order.coordinates.lat},${order.coordinates.lng}&hl=en&z=13&output=embed`
-    : (textAddress && textAddress !== 'Dood Cafe Counter — Takeaway / Self Pickup'
-      ? `https://maps.google.com/maps?q=${encodeURIComponent(textAddress)}&hl=en&z=13&output=embed`
-      : null);
-
-  const displayLocation = textAddress || (order.orderType === 'takeaway' ? 'Dood Cafe Counter — Takeaway / Self Pickup' : order.orderType || 'Takeaway Pickup');
-
-  // Close on backdrop click
-  const handleBackdrop = (e) => {
-    if (e.target === e.currentTarget) onClose();
-  };
-
-  return (
-    <div className="adm-modal-backdrop" onClick={handleBackdrop} role="dialog" aria-modal="true">
-      <div className="adm-modal-panel">
-
-        {/* ── Modal Header ── */}
-        <div className="adm-modal-header">
-          <div className="adm-modal-title-group">
-            <span className="adm-modal-order-badge">
-              Order #{order.orderNumber || (order.id || order._id)?.slice(-5)}
-            </span>
-            <span
-              className="adm-status-badge"
-              style={{ color: statusMeta.color, background: statusMeta.bg }}
-            >
-              {statusMeta.label}
-            </span>
-            <span className="adm-order-type-tag">
-              {order.orderType === 'delivery' ? '🛵 Live Delivery' : '📦 Takeaway'}
-            </span>
-          </div>
-          <button className="adm-modal-close" onClick={onClose} aria-label="Close customer details modal">
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* ── Customer Profile ── */}
-        <div className="adm-modal-section">
-          <h4 className="adm-modal-section-title">
-            <UserRound size={15} /> Customer Profile
-          </h4>
-          <div className="adm-modal-profile-card">
-            <div className="adm-modal-avatar">
-              {customerName.charAt(0).toUpperCase()}
-            </div>
-            <div className="adm-modal-profile-info">
-              <h3 className="adm-modal-cust-name">{customerName}</h3>
-              {customerPhone ? (
-                <div className="adm-modal-contact-line">
-                  <span className="adm-modal-contact-lbl">Phone:</span>
-                  <a href={`tel:${customerPhone}`} className="adm-modal-phone-link" title={`Call ${customerName}`}>
-                    📞 {customerPhone}
-                  </a>
-                </div>
-              ) : (
-                <span className="adm-modal-no-phone">📞 No phone number provided</span>
-              )}
-              {customerEmail && (
-                <div className="adm-modal-contact-line">
-                  <span className="adm-modal-contact-lbl">Email:</span>
-                  <span className="adm-modal-email">✉ {customerEmail}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* ── Detailed Reverse-Geocoded Order Location & Map Link ── */}
-        <div className="adm-modal-section">
-          <div className="adm-modal-section-head-row">
-            <h4 className="adm-modal-section-title">
-              <MapPin size={15} /> Detailed Order Location & GPS Coordinates
-            </h4>
-            {mapsLink && (
-              <a
-                href={mapsLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="adm-modal-ext-gps-link"
-                title="Open live coordinates in Google Maps"
-              >
-                <span>Live GPS Map</span>
-                <ExternalLink size={12} />
-              </a>
-            )}
-          </div>
-          <div className="adm-modal-location-box">
-            <p className="adm-modal-location-text">{displayLocation}</p>
-            {order.coordinates?.lat && order.coordinates?.lng && (
-              <span className="adm-modal-coords-pill">
-                <Navigation size={11} /> Coordinates: {order.coordinates.lat.toFixed(5)}, {order.coordinates.lng.toFixed(5)}
-              </span>
-            )}
-            <span className="adm-modal-location-sub">
-              Order Dispatch Type: {order.orderType === 'delivery' ? '🛵 Live Delivery Destination' : '📦 Counter Pickup (Takeaway)'}
-            </span>
-          </div>
-
-          {/* Embedded Map Visual for Admin */}
-          {embedUrl && (
-            <div className="adm-modal-map-preview">
-              <iframe
-                title="Customer Order Location Map"
-                src={embedUrl}
-                className="adm-modal-map-iframe"
-                loading="lazy"
-              />
-            </div>
-          )}
-        </div>
-
-        {/* ── Order Meta ── */}
-        <div className="adm-modal-section">
-          <h4 className="adm-modal-section-title">🗓 Order Metadata</h4>
-          <div className="adm-modal-meta-row">
-            <span className="adm-modal-meta-label">Placed At</span>
-            <span>{new Date(order.createdAt).toLocaleString('en-IN', {
-              day: '2-digit', month: 'short', year: 'numeric',
-              hour: '2-digit', minute: '2-digit', hour12: true,
-            })}</span>
-          </div>
-          <div className="adm-modal-meta-row">
-            <span className="adm-modal-meta-label">Payment Mode</span>
-            <span className="adm-pay-badge">{(order.paymentMode || 'cash').toUpperCase()}</span>
-          </div>
-        </div>
-
-        {/* ── Detailed Cafe Items Breakdown with Prices ── */}
-        <div className="adm-modal-section">
-          <h4 className="adm-modal-section-title">🧾 Itemized Cafe Items & Pricing</h4>
-          <div className="adm-modal-items-head">
-            <span>Item Name</span>
-            <span>Qty</span>
-            <span>Unit Price</span>
-            <span>Line Total</span>
-          </div>
-          {order.items?.map((it, i) => (
-            <div key={i} className="adm-modal-item-row">
-              <span className="adm-modal-item-name">{it.name}</span>
-              <span className="adm-modal-item-qty">×{it.quantity}</span>
-              <span className="adm-modal-item-unit">₹{Number(it.price || 0).toLocaleString('en-IN')}</span>
-              <span className="adm-modal-item-total">₹{(Number(it.price || 0) * Number(it.quantity || 1)).toLocaleString('en-IN')}</span>
-            </div>
-          ))}
-          <div className="adm-modal-order-total">
-            <span>Total Payable Amount</span>
-            <span />
-            <span />
-            <span className="adm-modal-total-amount">₹{Number(order.totalAmount || 0).toLocaleString('en-IN')}</span>
-          </div>
-        </div>
-
-        {/* ── Special Instructions ── */}
-        {order.specialInstructions && (
-          <div className="adm-modal-section">
-            <h4 className="adm-modal-section-title">💬 Customer Note / Special Instructions</h4>
-            <div className="adm-modal-special-note">
-              <em>{order.specialInstructions}</em>
-            </div>
-          </div>
-        )}
-
-        {/* ── Footer close ── */}
-        <div className="adm-modal-footer">
-          <button className="btn btn-secondary adm-modal-close-btn" onClick={onClose}>
-            Close
-          </button>
-        </div>
-
-      </div>
-    </div>
-  );
-}
-
 /* ── Interactive Trend Chart Component ────────────────────────── */
-function TrendChart({ points = [], period = 'daily' }) {
+function TrendChart({ points = [], _period = 'daily' }) {
   const [hoveredPoint, setHoveredPoint] = useState(null);
 
   if (!points || !Array.isArray(points) || points.length === 0) {
@@ -273,7 +56,7 @@ function TrendChart({ points = [], period = 'daily' }) {
             <span className="adm-hover-orders">{hoveredPoint.orders || 0} orders</span>
           </div>
         ) : (
-          <span className="adm-hover-hint">✦ Hover over bars to view detailed revenue & profit breakdown</span>
+          <span className="adm-hover-hint"></span>
         )}
       </div>
 
@@ -387,15 +170,10 @@ export default function AdminDashboard() {
   const [trends, setTrends] = useState({ summary: {}, points: [] });
   const [trendPeriod, setTrendPeriod] = useState('daily');
   const [topItems, setTopItems] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [isSocketConnected, setIsSocketConnected] = useState(false);
-  const [orderFilter, setOrderFilter] = useState('all');
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
-  const [selectedOrder, setSelectedOrder] = useState(null); // modal target
 
-  // ── Fetch all dashboard data via axios with allSettled resilience ──────────────────────────
+  // ── Fetch dashboard analytics via axios with allSettled resilience ──
   const fetchDashboardData = useCallback(async (showToast = false) => {
     try {
       setRefreshing(true);
@@ -403,10 +181,9 @@ export default function AdminDashboard() {
         axiosInstance.get('/admin/kpis'),
         axiosInstance.get(`/admin/trends?period=${trendPeriod}`),
         axiosInstance.get('/admin/top-items?limit=8'),
-        axiosInstance.get(`/admin/live-orders?status=${orderFilter}`),
       ]);
 
-      const [kpisRes, trendsRes, topRes, ordersRes] = results;
+      const [kpisRes, trendsRes, topRes] = results;
 
       if (kpisRes.status === 'fulfilled' && kpisRes.value?.data?.data) {
         setKpis(kpisRes.value.data.data);
@@ -417,9 +194,6 @@ export default function AdminDashboard() {
       if (topRes.status === 'fulfilled' && Array.isArray(topRes.value?.data?.data)) {
         setTopItems(topRes.value.data.data);
       }
-      if (ordersRes.status === 'fulfilled' && Array.isArray(ordersRes.value?.data?.data)) {
-        setOrders(ordersRes.value.data.data);
-      }
 
       setLastUpdated(new Date());
       if (showToast) toast.success('Dashboard data refreshed');
@@ -427,55 +201,9 @@ export default function AdminDashboard() {
       console.error('[AdminDashboard] Failed to load metrics:', err);
       toast.error('Could not reach server — retrying in 30s');
     } finally {
-      setLoading(false);
       setRefreshing(false);
     }
-  }, [trendPeriod, orderFilter]);
-
-  // ── Update order status action ──────────────────────────────────
-  const handleStatusChange = async (orderId, newStatus) => {
-    try {
-      await axiosInstance.patch(`/admin/orders/${orderId}/status`, { status: newStatus });
-      toast.success(`Order marked as ${STATUS_CONFIG[newStatus]?.label || newStatus}`);
-      fetchDashboardData(false);
-    } catch (err) {
-      toast.error('Failed to update status');
-    }
-  };
-
-  // ── Effect: Real-Time WebSocket Hook for Kitchen & Customer Order Stream ───
-  useEffect(() => {
-    const socket = connectAdminSocket({
-      onConnectChange: (connected) => {
-        setIsSocketConnected(connected);
-      },
-      onStatusUpdate: (updatedOrder) => {
-        const targetId = updatedOrder.id || updatedOrder._id;
-        setOrders((prevOrders) =>
-          prevOrders.map((ord) =>
-            ((ord.id && ord.id === targetId) || (ord._id && ord._id === targetId))
-              ? { ...ord, ...updatedOrder }
-              : ord
-          )
-        );
-      },
-    });
-
-    if (socket) {
-      socket.on('newOrderNotification', (freshOrderPayload) => {
-        // Append new incoming database rows to local orders stream state immediately
-        setOrders((prevOrders) => [freshOrderPayload, ...prevOrders]);
-        toast.info(`🍔 New Order Received: Order #${freshOrderPayload.id}`);
-      });
-    }
-
-    return () => {
-      if (socket) {
-        socket.off('newOrderNotification');
-      }
-      disconnectAdminSocket();
-    };
-  }, []);
+  }, [trendPeriod]);
 
   // ── Effect: initial fetch + 30-second polling interval ─────────
   useEffect(() => {
@@ -491,16 +219,6 @@ export default function AdminDashboard() {
 
     return () => clearInterval(pollTimer);
   }, [fetchDashboardData]);
-
-  // Relational order filtering tab controller
-  const displayedOrders = (orders || []).filter((ord) => {
-    if (!ord) return false;
-    if (orderFilter === 'all') return true;
-    if (orderFilter === 'pending') {
-      return ord.status === 'pending' || ord.status === 'confirmed';
-    }
-    return ord.status === orderFilter;
-  });
 
   // Dynamic Sales Metrics according to selected period
   const currentSalesAmount =
@@ -533,9 +251,6 @@ export default function AdminDashboard() {
 
   return (
     <main className="adm-page">
-      {/* ── Customer Detail Modal ── */}
-      <CustomerDetailModal order={selectedOrder} onClose={() => setSelectedOrder(null)} />
-
       <div className="container">
 
         {/* ── Admin Master Navigation Switcher Tabs ── */}
@@ -544,8 +259,15 @@ export default function AdminDashboard() {
             to="/admin"
             className="flex-1 py-2.5 px-4 rounded-lg font-bold text-sm flex items-center justify-center gap-2 bg-amber-500 text-white shadow-sm"
           >
-            <Radio size={16} />
-            <span>Orders & Kitchen Stream</span>
+            <TrendingUp size={16} />
+            <span>Dashboard Overview</span>
+          </Link>
+          <Link
+            to="/staff/orders"
+            className="flex-1 py-2.5 px-4 rounded-lg font-bold text-sm flex items-center justify-center gap-2 text-stone-600 hover:bg-stone-100 transition-colors"
+          >
+            <Package size={16} />
+            <span>Staff Orders & Kitchen</span>
           </Link>
           <Link
             to="/admin/menu-management"
@@ -553,7 +275,7 @@ export default function AdminDashboard() {
             className="flex-1 py-2.5 px-4 rounded-lg font-bold text-sm flex items-center justify-center gap-2 text-stone-600 hover:bg-stone-100 transition-colors"
           >
             <Utensils size={16} />
-            <span>Menu Management (Multi-Panel)</span>
+            <span>Menu Management</span>
           </Link>
         </div>
 
@@ -562,19 +284,16 @@ export default function AdminDashboard() {
           <div>
             <div className="adm-title-row">
               <h1 className="page-title" style={{ margin: 0 }}>Admin Dashboard</h1>
-              {/* WebSocket & sync status badge */}
-              <div className={`adm-socket-badge ${isSocketConnected || lastUpdated ? 'adm-socket-live' : 'adm-socket-offline'}`}>
-                <Radio size={14} className="adm-socket-icon" />
+              {/* Sync status badge */}
+              <div className="adm-socket-badge adm-socket-live">
+                <RefreshCw size={13} className={refreshing ? 'adm-spin' : ''} />
                 <span>
-                  {isSocketConnected
-                    ? 'WebSocket Stream Live'
-                    : (lastUpdated
-                      ? `Live Sync: ${lastUpdated.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`
-                      : 'Connecting...')}
+                  {lastUpdated
+                    ? `Synced: ${lastUpdated.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`
+                    : 'Loading...'}
                 </span>
               </div>
             </div>
-            <p className="adm-sub">Database order history, aggregated sales trends & kitchen stream</p>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -657,7 +376,6 @@ export default function AdminDashboard() {
             <div className="adm-card-head">
               <div>
                 <h3 className="adm-card-title">Order Revenue & Profit/Loss Trends</h3>
-                <p className="adm-card-sub">Daily, weekly, and monthly revenue performance</p>
               </div>
 
               {/* Period Switcher */}
@@ -707,142 +425,6 @@ export default function AdminDashboard() {
             <TopItemsLeaderboard items={topItems} />
           </div>
 
-        </div>
-
-        {/* ── Bottom Section: Real-Time Live Order Stream ── */}
-        <div className="adm-card adm-orders-card">
-          <div className="adm-card-head">
-            <div className="adm-live-title-box">
-              <div className="adm-pulse-dot" />
-              <h3 className="adm-card-title">Live Kitchen & Customer Order Stream</h3>
-            </div>
-
-            {/* Order Status Filters */}
-            <div className="adm-filter-pills">
-              {[
-                { key: 'all', label: 'All Orders' },
-                { key: 'pending', label: 'Placed' },
-                { key: 'preparing', label: 'Preparing' },
-                { key: 'ready', label: 'Ready for Pickup' },
-              ].map((f) => (
-                <button
-                  key={f.key}
-                  className={`adm-filter-pill ${orderFilter === f.key ? 'adm-pill-active' : ''}`}
-                  onClick={() => setOrderFilter(f.key)}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Live Orders List */}
-          {displayedOrders.length === 0 ? (
-            <div className="adm-empty-orders">
-              <ShoppingBag size={32} />
-              <p>No active orders found for this filter.</p>
-            </div>
-          ) : (
-            <div className="adm-orders-table-wrap">
-              <table className="adm-orders-table">
-                <thead>
-                  <tr>
-                    <th>Order</th>
-                    <th>Customer</th>
-                    <th>Items</th>
-                    <th>Payment</th>
-                    <th>Total</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {displayedOrders.map((ord) => {
-                    const orderId = ord.id || ord._id;
-                    const statusMeta = STATUS_CONFIG[ord.status] || STATUS_CONFIG.pending;
-                    const customerName = ord.user?.name || 'Customer';
-                    const customerPhone = ord.user?.phone || 'No phone';
-                    const items = Array.isArray(ord.items)
-                      ? ord.items
-                      : (typeof ord.items === 'string' ? JSON.parse(ord.items || '[]') : []);
-
-                    return (
-                      <tr key={orderId} className="adm-order-row">
-                        <td className="adm-ord-id-col">
-                          <div className="adm-ord-id-row">
-                            <div className="adm-ord-header-line">
-                              <strong className="adm-ord-num-lbl">Order #{ord.orderNumber || (orderId ? String(orderId).slice(-5) : '1')}</strong>
-                              <button
-                                id={`customer-info-btn-${orderId}`}
-                                className="adm-view-details-btn"
-                                onClick={() => setSelectedOrder(ord)}
-                                title="View Customer Information & Order Details"
-                                aria-label={`View Customer Info for Order #${ord.orderNumber || (orderId ? String(orderId).slice(-5) : '1')}`}
-                              >
-                                <UserRound size={13} />
-                                <span>Customer Info</span>
-                              </button>
-                            </div>
-                            <span className="adm-ord-time">
-                              {new Date(ord.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="adm-cust-col">
-                          <div className="adm-cust-info">
-                            <span className="adm-cust-name">{customerName}</span>
-                            <span className="adm-cust-contact">{customerPhone}</span>
-                          </div>
-                        </td>
-                        <td className="adm-items-col">
-                          <div className="adm-items-list">
-                            {items.map((it, i) => (
-                              <span key={i} className="adm-item-tag">
-                                {it.name} <strong className="adm-qty">×{it.quantity}</strong>
-                              </span>
-                            ))}
-                          </div>
-                          {ord.specialInstructions && (
-                            <p className="adm-inst-note">💬 {ord.specialInstructions}</p>
-                          )}
-                        </td>
-                        <td>
-                          <span className="adm-pay-badge">
-                            {(ord.paymentMode || 'cash').toUpperCase()}
-                          </span>
-                        </td>
-                        <td className="adm-total-col">
-                          <strong>₹{Number(ord.totalAmount || 0).toLocaleString('en-IN')}</strong>
-                        </td>
-                        <td>
-                          <span
-                            className="adm-status-badge"
-                            style={{ color: statusMeta.color, background: statusMeta.bg }}
-                          >
-                            {statusMeta.label}
-                          </span>
-                        </td>
-                        <td className="adm-action-col">
-                          {statusMeta.next ? (
-                            <button
-                              className="btn btn-primary-sm adm-next-btn"
-                              onClick={() => handleStatusChange(orderId, statusMeta.next)}
-                            >
-                              Mark {STATUS_CONFIG[statusMeta.next]?.label}
-                            </button>
-                          ) : (
-                            <span className="adm-done-tag">
-                              <CheckCircle2 size={15} /> Completed
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
         </div>
 
       </div>

@@ -35,7 +35,9 @@ const upload = multer({
     if (ALLOWED_MIMES.has(file.mimetype.toLowerCase()) && ALLOWED_EXTS.test(ext)) {
       cb(null, true);
     } else {
-      cb(new Error('Only image files (jpg, png, webp, gif) are allowed. SVG is not permitted.'));
+      const err = new Error('Only image files (jpg, png, webp, gif) are allowed. SVG is not permitted.');
+      err.statusCode = 400;
+      cb(err);
     }
   },
 });

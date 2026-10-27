@@ -20,12 +20,24 @@ const placeOrder = async (req, res, next) => {
       });
     }
 
-    let { items, paymentMode, specialInstructions, orderType, customer_location, deliveryAddress, coordinates } = req.body;
-    const resolvedOrderType = ['takeaway', 'delivery'].includes(orderType) ? orderType : 'takeaway';
+    let { items, paymentMode, paymentStatus, customerName, customerPhone, specialInstructions, orderType, customer_location, deliveryAddress, coordinates } = req.body;
+    const resolvedOrderType = ['takeaway', 'delivery', 'dine-in'].includes(orderType) ? orderType : 'takeaway';
     const initialStatus = 'pending';
     const resolvedPaymentMode = (paymentMode && ['cash', 'upi'].includes(paymentMode)) ? paymentMode : 'cash';
 
-    // Delivery Geofence: Enforce Coimbatore boundary check for delivery orders
+    const resolvedCustomerName = customerName ? customerName.trim() : (req.user?.name || 'Customer');
+    const resolvedCustomerPhone = customerPhone ? customerPhone.trim() : (req.user?.phone || '');
+
+    let resolvedPaymentStatus = 'pending';
+    if (paymentStatus && ['paid', 'pending', 'cod'].includes(paymentStatus)) {
+      resolvedPaymentStatus = paymentStatus;
+    } else if (resolvedPaymentMode === 'cash') {
+      resolvedPaymentStatus = 'cod';
+    } else if (resolvedPaymentMode === 'upi') {
+      resolvedPaymentStatus = 'paid';
+    }
+
+    // Delivery Geofence: Enforce Coimbatore boundary check for delivery orders only
     if (resolvedOrderType === 'delivery') {
       const locCheck = `${deliveryAddress || ''} ${customer_location || ''}`.toLowerCase();
       if (locCheck && !locCheck.includes('coimbatore')) {
@@ -102,8 +114,11 @@ const placeOrder = async (req, res, next) => {
       totalAmount: parseFloat(totalAmount.toFixed(2)),
       orderType: resolvedOrderType,
       paymentMode: resolvedPaymentMode,
-      customer_location: (customer_location || deliveryAddress || fallbackLocation).substring(0, 200),
-      deliveryAddress: (deliveryAddress || customer_location || fallbackLocation).substring(0, 250),
+      paymentStatus: resolvedPaymentStatus,
+      customerName: resolvedCustomerName,
+      customerPhone: resolvedCustomerPhone,
+      customer_location: (customer_location || deliveryAddress || (resolvedOrderType === 'dine-in' ? 'Dood Cafe — Dine-in' : fallbackLocation)).substring(0, 200),
+      deliveryAddress: (deliveryAddress || customer_location || (resolvedOrderType === 'dine-in' ? 'Dood Cafe — Dine-in' : fallbackLocation)).substring(0, 250),
       coordinates: (coordinates && typeof coordinates.lat === 'number' && typeof coordinates.lng === 'number')
         ? coordinates
         : fallbackCoords,
@@ -113,11 +128,15 @@ const placeOrder = async (req, res, next) => {
 
     const newOrder = {
       ...order.toJSON(),
+      customerName: resolvedCustomerName,
+      customerPhone: resolvedCustomerPhone,
+      paymentStatus: resolvedPaymentStatus,
+      billNumber: order.billNumber,
       user: {
         id: req.user.id,
-        name: req.user.name,
+        name: resolvedCustomerName,
         email: req.user.email,
-        phone: req.user.phone,
+        phone: resolvedCustomerPhone,
       },
     };
 

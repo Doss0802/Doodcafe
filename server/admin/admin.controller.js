@@ -209,7 +209,7 @@ const updateOrderStatus = async (req, res, next) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    const validStatuses = ['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled'];
+    const validStatuses = ['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled', 'handed_over'];
     if (!status || !validStatuses.includes(status)) {
       return ApiResponse.error(res, {
         statusCode: 400,

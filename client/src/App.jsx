@@ -19,6 +19,7 @@ import OrderTracking from './pages/OrderTracking';
 import Profile from './pages/Profile';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import MenuManagement from './pages/admin/MenuManagement';
+import StaffOrders from './pages/staff/StaffOrders';
 
 function App() {
   const { isAuthenticated, fetchMe } = useAuthStore();
@@ -53,6 +54,7 @@ function App() {
             <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin/dashboard" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin/menu-management" element={<ProtectedRoute adminOnly><MenuManagement /></ProtectedRoute>} />
+            <Route path="/staff/orders" element={<ProtectedRoute staffOnly><StaffOrders /></ProtectedRoute>} />
 
             {/* 404 */}
             <Route path="*" element={

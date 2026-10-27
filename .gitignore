@@ -10,3 +10,6 @@ dist-ssr
 *.log
 strix_runs/
 uploads/
+
+# DB backups (local dev only)
+backups/

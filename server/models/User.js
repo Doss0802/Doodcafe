@@ -44,7 +44,7 @@ const User = sequelize.define('User', {
     },
   },
   role: {
-    type: DataTypes.ENUM('customer', 'manager', 'admin'),
+    type: DataTypes.ENUM('customer', 'manager', 'admin', 'staff'),
     defaultValue: 'customer',
   },
   phone: {
@@ -123,7 +123,7 @@ User.prototype.incFailedLogin = async function () {
     return this.save();
   }
 
-  this.failedLoginAttempts += 1;
+  this.failedLoginAttempts = (Number(this.failedLoginAttempts) || 0) + 1;
   if (this.failedLoginAttempts >= 5 && !this.isLocked) {
     this.lockUntil = new Date(Date.now() + 15 * 60 * 1000);
   }
