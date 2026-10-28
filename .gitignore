@@ -1,15 +1,14 @@
 node_modules
-# Env files — root and ALL subdirectories
 .env
 .env.*
 **/.env
 **/.env.*
+!.env.example
 !**/.env.example
 dist
 dist-ssr
+backups/
+render-env.local.txt
 *.log
 strix_runs/
 uploads/
-
-# DB backups (local dev only)
-backups/

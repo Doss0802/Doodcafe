@@ -1,18 +1,25 @@
 const { Sequelize } = require('sequelize');
 
-const isLocal = !process.env.DATABASE_URL || process.env.DATABASE_URL.includes('localhost') || process.env.DATABASE_URL.includes('127.0.0.1');
+const rawDbUrl = process.env.DATABASE_URL;
+const isLocal = !rawDbUrl || rawDbUrl.includes('localhost') || rawDbUrl.includes('127.0.0.1');
+const useSSL = (process.env.NODE_ENV === 'production' || !isLocal) && !isLocal;
 
-const sequelize = new Sequelize(process.env.DATABASE_URL || 'postgres://postgres:Doss0802@localhost:5433/doodcafe', {
+const dbOptions = {
   dialect: 'postgres',
   logging: false,
-  ...(isLocal ? { port: 5433 } : {
-    dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false,
-      },
+};
+
+if (useSSL) {
+  dbOptions.dialectOptions = {
+    ssl: {
+      require: true,
+      rejectUnauthorized: false,
     },
-  }),
-});
+  };
+} else if (!rawDbUrl) {
+  dbOptions.port = 5433;
+}
+
+const sequelize = new Sequelize(rawDbUrl || 'postgres://postgres:Doss0802@localhost:5433/doodcafe', dbOptions);
 
 module.exports = sequelize;

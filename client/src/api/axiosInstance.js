@@ -1,7 +1,9 @@
 import axios from 'axios';
 
 // In development: falls back to local server. In production: uses VITE_API_URL from .env
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const cleanBase = rawApiUrl.replace(/\/+$/, '').replace(/\/api(\/v1)?\/?$/, '');
+const API_URL = `${cleanBase}/api`;
 
 const axiosInstance = axios.create({
   baseURL: API_URL,
@@ -12,9 +14,13 @@ const axiosInstance = axios.create({
 // Attach access token to every request
 axiosInstance.interceptors.request.use(
   (config) => {
-    // Strip duplicate /api prefix if caller passes /api/path while baseURL ends with /api
-    if (config.url?.startsWith('/api/')) {
-      config.url = config.url.replace(/^\/api/, '');
+    // Strip duplicate /api or /api/v1 prefix if caller passes it while baseURL already includes /api
+    if (config.url) {
+      if (config.url.startsWith('/api/v1/')) {
+        config.url = config.url.replace(/^\/api\/v1/, '/v1');
+      } else if (config.url.startsWith('/api/')) {
+        config.url = config.url.replace(/^\/api/, '');
+      }
     }
     const token = localStorage.getItem('accessToken');
     if (token) {

@@ -5,11 +5,10 @@ const connectDB = async () => {
   try {
     await sequelize.authenticate();
     logger.info('✅ PostgreSQL Connected via Sequelize');
-    // Synchronize models in development or when requested
-    if (process.env.NODE_ENV !== 'production') {
-      await sequelize.sync();
-      logger.info('✅ PostgreSQL tables synchronized');
-    }
+    // Synchronize models (create tables that don't exist yet).
+    // alter:false is safe — it never drops columns or data.
+    await sequelize.sync({ alter: false });
+    logger.info('✅ PostgreSQL tables synchronized');
     return sequelize;
   } catch (error) {
     logger.error(`❌ PostgreSQL connection failed: ${error.message}`);

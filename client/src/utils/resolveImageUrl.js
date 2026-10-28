@@ -17,7 +17,7 @@ export const resolveImageUrl = (rawSrc) => {
   const envApi = import.meta.env.VITE_API_URL;
   let API_BASE = '';
   if (envApi && envApi.startsWith('http')) {
-    API_BASE = envApi.replace(/\/api\/?$/, '');
+    API_BASE = envApi.replace(/\/api(\/v1)?\/?$/, '').replace(/\/+$/, '');
   } else if (!envApi && import.meta.env.DEV) {
     API_BASE = 'http://localhost:5000';
   } else if (envApi && !envApi.startsWith('http')) {

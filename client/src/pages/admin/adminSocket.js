@@ -12,6 +12,7 @@ export const getSocketServerUrl = () => {
       // fallback
     }
   }
+  if (import.meta.env.DEV) return 'http://localhost:5000';
   return window.location.origin;
 };
 

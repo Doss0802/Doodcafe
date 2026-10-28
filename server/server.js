@@ -42,9 +42,14 @@ const { initAdminSocket } = require('./admin/admin.socket');
 const app = express();
 const httpServer = http.createServer(app);
 
+const configuredClientOrigins = (process.env.CLIENT_ORIGIN || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
 // Allowed origins for CORS and Socket.io
 const WS_ALLOWED_ORIGINS = [
-  process.env.CLIENT_ORIGIN,
+  ...configuredClientOrigins,
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:5175',
@@ -120,7 +125,7 @@ app.use(
 // Dynamic CORS Origin Evaluator — explicitly supports http://localhost:5174 (local dev)
 // alongside 5173, 5175, live Render URLs (e.g., https://onrender.com), and CLIENT_ORIGIN.
 const allowedOrigins = [
-  process.env.CLIENT_ORIGIN,
+  ...configuredClientOrigins,
   'http://localhost:5173',
   'http://localhost:5174',  // primary frontend dev port
   'http://localhost:5175',
@@ -178,6 +183,9 @@ app.use('/images', express.static(path.join(__dirname, '../client/src/images')))
 app.use('/images', express.static(path.join(__dirname, '../client/public')));
 app.use('/images', express.static(path.join(__dirname, '../client/dist')));
 app.use('/src/images', express.static(path.join(__dirname, '../client/src/images')));
+
+// Direct root health endpoint for cloud monitors
+app.get('/health', (req, res) => res.status(200).json({ status: 'UP', message: 'Dood Cafe Backend Service Healthy' }));
 
 // ─── 5. API v1 Routes ─────────────────────────────────────────────────────────
 app.use('/api/v1/health', healthRoutes);
@@ -387,6 +395,20 @@ const seedCategories = async () => {
 };
 
 const startServer = async () => {
+  // Production env guard
+  if (process.env.NODE_ENV === 'production') {
+    const required = ['DATABASE_URL', 'JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'];
+    const placeholders = ['your-secret', 'your_jwt_secret', 'secret', 'placeholder', 'changeme', 'change_this', 'paste_internal_database_url_here'];
+    const missing = required.filter((k) => {
+      const val = process.env[k];
+      return !val || placeholders.includes(val.toLowerCase().trim());
+    });
+    if (missing.length) {
+      logger.error('Missing or invalid credentials for: ' + missing.join(', ') + '. Set them in Render > Environment.');
+      process.exit(1);
+    }
+  }
+
   // Bind HTTP server immediately to 0.0.0.0 for cloud providers (Render, Railway, etc.)
   server = httpServer.listen(PORT, '0.0.0.0', () => {
     logger.info(`Dood Cafe Production Server listening on 0.0.0.0:${PORT}`);

@@ -64,11 +64,10 @@ export default function StaffOrderStream({
             <button
               key={tab.id}
               onClick={() => setFilter(tab.id)}
-              className={`snap-start flex-shrink-0 min-h-[38px] px-3.5 py-1.5 rounded-lg transition flex items-center ${
-                filter === tab.id
-                  ? 'bg-white text-stone-900 shadow-xs font-bold'
-                  : 'text-stone-500 hover:text-stone-800'
-              }`}
+              className={`snap-start flex-shrink-0 min-h-[38px] px-3.5 py-1.5 rounded-lg transition flex items-center ${filter === tab.id
+                ? 'bg-white text-stone-900 shadow-xs font-bold'
+                : 'text-stone-500 hover:text-stone-800'
+                }`}
             >
               {tab.label}
             </button>
@@ -101,8 +100,8 @@ export default function StaffOrderStream({
               const items = Array.isArray(ord.items)
                 ? ord.items
                 : typeof ord.items === 'string'
-                ? JSON.parse(ord.items || '[]')
-                : [];
+                  ? JSON.parse(ord.items || '[]')
+                  : [];
 
               return (
                 <div
@@ -222,8 +221,8 @@ export default function StaffOrderStream({
                   const items = Array.isArray(ord.items)
                     ? ord.items
                     : typeof ord.items === 'string'
-                    ? JSON.parse(ord.items || '[]')
-                    : [];
+                      ? JSON.parse(ord.items || '[]')
+                      : [];
 
                   return (
                     <tr key={orderId} className="hover:bg-stone-50/70 transition-colors">
