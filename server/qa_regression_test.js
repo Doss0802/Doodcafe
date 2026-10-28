@@ -10,9 +10,14 @@
 const http = require('http');
 const path = require('path');
 const fs = require('fs');
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
 const BASE = 'http://localhost:5000';
 const API = `${BASE}/api/v1`;
+
+// Admin credentials read from env so tests stay correct after credential rotation
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@doodcafe.com';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Admin@123';
 
 let passed = 0;
 let failed = 0;
@@ -99,7 +104,7 @@ async function getAdminToken() {
     url: `${API}/auth/login`,
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: 'admin@doodcafe.com', password: 'Admin@123' }),
+    body: JSON.stringify({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD }),
   });
   adminToken = res.json?.data?.accessToken;
   return adminToken;
@@ -274,7 +279,7 @@ async function suite3_auth() {
       url: `${API}/auth/login`,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'admin@doodcafe.com', password: 'WRONGPASSWORD' }),
+      body: JSON.stringify({ email: ADMIN_EMAIL, password: 'WRONGPASSWORD' }),
     });
     return {
       pass: res.status === 401,

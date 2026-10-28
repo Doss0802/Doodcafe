@@ -635,7 +635,7 @@ export default function StaffOrders() {
           }`}
         >
           <ChefHat size={20} />
-          <span>Kitchen</span>
+          <span>Live Delivery</span>
         </button>
 
         <button
@@ -646,7 +646,7 @@ export default function StaffOrders() {
           }`}
         >
           <Radio size={20} />
-          <span>Stream</span>
+          <span>All Orders</span>
         </button>
       </nav>
 

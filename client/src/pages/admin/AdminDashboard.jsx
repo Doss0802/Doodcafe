@@ -7,8 +7,6 @@ import {
   RefreshCw,
   Sparkles,
   Utensils,
-  Package,
-  ArrowRight,
 } from 'lucide-react';
 import axiosInstance from '../../api/axiosInstance';
 import toast from 'react-hot-toast';
@@ -257,24 +255,21 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-1.5 flex gap-2 mb-6">
           <Link
             to="/admin"
-            className="flex-1 py-2.5 px-4 rounded-lg font-bold text-sm flex items-center justify-center gap-2 bg-amber-500 text-white shadow-sm"
+            className="flex-1 py-2.5 px-4 rounded-lg font-bold text-sm flex items-center justify-center bg-amber-500 text-white shadow-sm"
           >
-            <TrendingUp size={16} />
             <span>Dashboard Overview</span>
           </Link>
           <Link
             to="/staff/orders"
-            className="flex-1 py-2.5 px-4 rounded-lg font-bold text-sm flex items-center justify-center gap-2 text-stone-600 hover:bg-stone-100 transition-colors"
+            className="flex-1 py-2.5 px-4 rounded-lg font-bold text-sm flex items-center justify-center text-stone-600 hover:bg-stone-100 transition-colors"
           >
-            <Package size={16} />
-            <span>Staff Orders & Kitchen</span>
+            <span>Staff Orders & Live Delivery</span>
           </Link>
           <Link
             to="/admin/menu-management"
             id="admin-nav-menu-management"
-            className="flex-1 py-2.5 px-4 rounded-lg font-bold text-sm flex items-center justify-center gap-2 text-stone-600 hover:bg-stone-100 transition-colors"
+            className="flex-1 py-2.5 px-4 rounded-lg font-bold text-sm flex items-center justify-center text-stone-600 hover:bg-stone-100 transition-colors"
           >
-            <Utensils size={16} />
             <span>Menu Management</span>
           </Link>
         </div>

@@ -1,4 +1,4 @@
-import { ShoppingCart, Menu, X, LogOut, User, ClipboardList, Coffee, UserCircle2, Utensils, ClipboardCheck } from 'lucide-react';
+﻿import { ShoppingCart, Menu, X, LogOut, User, ClipboardList, Coffee, UserCircle2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
@@ -85,9 +85,8 @@ export default function Navbar() {
               className={`nav-link ${isActive('/staff/orders') ? 'nav-link-active' : ''}`}
               id="nav-link-staff-orders"
             >
-              <span className="cursive-nav-text text-amber-500 font-bold flex items-center gap-1.5">
-                <ClipboardCheck size={15} />
-                Staff Orders
+              <span className="cursive-nav-text text-amber-500 font-bold">
+                Staff Orders & Live Delivery
               </span>
             </Link>
           )}
@@ -97,8 +96,7 @@ export default function Navbar() {
               className={`nav-link ${isActive('/admin/menu-management') ? 'nav-link-active' : ''}`}
               id="nav-link-menu-management"
             >
-              <span className="cursive-nav-text text-amber-500 font-bold flex items-center gap-1.5">
-                <Utensils size={15} />
+              <span className="cursive-nav-text text-amber-500 font-bold">
                 Menu Management
               </span>
             </Link>
@@ -177,8 +175,7 @@ export default function Navbar() {
                     onClick={() => setProfileOpen(false)}
                     id="dropdown-staff-orders"
                   >
-                    <ClipboardCheck size={14} />
-                    Staff Orders
+                    Staff Orders & Live Delivery
                   </Link>
                 )}
                 {isAuthenticated && user?.role === 'admin' && (
@@ -189,8 +186,7 @@ export default function Navbar() {
                       role="menuitem"
                       onClick={() => setProfileOpen(false)}
                     >
-                      <Coffee size={14} />
-                      Admin Stream
+                      Dashboard Overview
                     </Link>
                     <Link
                       to="/admin/menu-management"
@@ -198,7 +194,6 @@ export default function Navbar() {
                       role="menuitem"
                       onClick={() => setProfileOpen(false)}
                     >
-                      <Utensils size={14} />
                       Menu Management
                     </Link>
                   </>
@@ -254,18 +249,16 @@ export default function Navbar() {
                 <span className="cursive-nav-text">My Orders</span>
               </Link>
               {isAuthenticated && ['admin', 'manager', 'staff'].includes(user?.role) && (
-                <Link to="/staff/orders" className="mobile-nav-link mobile-nav-admin font-bold text-amber-500 flex items-center gap-1.5" onClick={() => setMobileOpen(false)}>
-                  <ClipboardCheck size={14} />
-                  Staff Orders
+                <Link to="/staff/orders" className="mobile-nav-link mobile-nav-admin font-bold text-amber-500" onClick={() => setMobileOpen(false)}>
+                  Staff Orders & Live Delivery
                 </Link>
               )}
               {isAuthenticated && user?.role === 'admin' && (
                 <>
                   <Link to="/admin" className="mobile-nav-link mobile-nav-admin" onClick={() => setMobileOpen(false)}>
-                    Admin Stream
+                    Dashboard Overview
                   </Link>
-                  <Link to="/admin/menu-management" className="mobile-nav-link mobile-nav-admin font-bold text-amber-500 flex items-center gap-1.5" onClick={() => setMobileOpen(false)}>
-                    <Utensils size={14} />
+                  <Link to="/admin/menu-management" className="mobile-nav-link mobile-nav-admin font-bold text-amber-500" onClick={() => setMobileOpen(false)}>
                     Menu Management
                   </Link>
                 </>

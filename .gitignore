@@ -9,6 +9,8 @@ dist
 dist-ssr
 backups/
 render-env.local.txt
+*.local.js
+**/*.local.js
 *.log
 strix_runs/
 uploads/
