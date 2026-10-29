@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { CreditCard, MessageSquare, CheckCircle, Package, MapPin, Navigation, ExternalLink, User, Phone, Utensils } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { CreditCard, MessageSquare, CheckCircle, Package, MapPin, Navigation, ExternalLink, User, Phone, Utensils, QrCode } from 'lucide-react';
 import useCartStore from '../store/cartStore';
 import useAuthStore from '../store/authStore';
 import axiosInstance from '../api/axiosInstance';
@@ -15,6 +15,12 @@ export default function Checkout() {
   } = useCartStore();
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const urlTable = searchParams.get('table');
+  const urlType = searchParams.get('type');
+  const isTableLocked = Boolean(urlTable && String(urlTable).trim());
+
   const [placing, setPlacing] = useState(false);
   const [locating, setLocating] = useState(false);
 
@@ -25,7 +31,12 @@ export default function Checkout() {
   const [zipCode, setZipCode] = useState('641001');
   const [coordinates, setCoordinates] = useState({ lat: 11.0168, lng: 76.9558 }); // Default: Coimbatore central coordinates
   const [hasLiveCoords, setHasLiveCoords] = useState(false);
-  const [selectedOrderType, setSelectedOrderType] = useState('takeaway'); // 'takeaway' | 'dine-in' | 'delivery'
+  const [selectedOrderType, setSelectedOrderType] = useState(() => {
+    if (urlTable || urlType === 'dinein' || urlType === 'dine-in') return 'dine-in';
+    if (urlType === 'delivery') return 'delivery';
+    return 'takeaway';
+  });
+  const [tableNumber, setTableNumber] = useState(() => (urlTable ? String(urlTable).trim() : ''));
   const [isOutOfDeliveryBoundary, setIsOutOfDeliveryBoundary] = useState(false);
 
   // Customer Contact Fields (Required for Staff Verification)
@@ -158,7 +169,15 @@ export default function Checkout() {
       return;
     }
 
-    // 3. Geofence Check: Only enforced for delivery orders
+    // 3. Dine-in Table Validation (Required for Dine-in orders)
+    if (selectedOrderType === 'dine-in') {
+      if (!tableNumber || !String(tableNumber).trim()) {
+        toast.error('Please enter or select your Table Number for Dine-in');
+        return;
+      }
+    }
+
+    // 4. Geofence Check: Only enforced for delivery orders
     if (selectedOrderType === 'delivery') {
       if (isOutOfDeliveryBoundary || !city || !city.toLowerCase().includes('coimbatore')) {
         toast.error('Delivery currently available in Coimbatore city limits only');
@@ -183,16 +202,19 @@ export default function Checkout() {
       const customerLocationString = `${textAddress} | Maps: ${mapsUrl}`;
 
       const resolvedMode = paymentOption === 'paid' ? 'upi' : 'cash';
+      const resolvedTable = selectedOrderType === 'dine-in' ? String(tableNumber).trim() : null;
+      const dineInLocationText = `Dood Cafe Counter — Dine-in (Table ${resolvedTable})`;
 
       const payload = {
         items: orderItems,
         orderType: selectedOrderType,
+        tableNumber: resolvedTable,
         customerName: customerName.trim(),
         customerPhone: cleanPhone,
         paymentMode: resolvedMode,
         paymentStatus: paymentOption,
-        customer_location: selectedOrderType === 'dine-in' ? 'Dood Cafe Counter — Dine-in' : customerLocationString,
-        deliveryAddress: selectedOrderType === 'dine-in' ? 'Dood Cafe — Dine-in' : textAddress,
+        customer_location: selectedOrderType === 'dine-in' ? dineInLocationText : customerLocationString,
+        deliveryAddress: selectedOrderType === 'dine-in' ? `Dood Cafe — Dine-in (Table ${resolvedTable})` : textAddress,
         coordinates: { lat: coordinates.lat, lng: coordinates.lng },
         specialInstructions,
       };
@@ -205,10 +227,11 @@ export default function Checkout() {
         _id: createdOrder._id,
         orderNumber: createdOrder.orderNumber,
         billNumber: createdOrder.billNumber,
+        tableNumber: resolvedTable,
         customerName: createdOrder.customerName || customerName.trim(),
         customerPhone: createdOrder.customerPhone || cleanPhone,
         customerEmail: user?.email || '',
-        customerLocation: selectedOrderType === 'dine-in' ? 'Dood Cafe — Dine-in' : textAddress,
+        customerLocation: selectedOrderType === 'dine-in' ? `Dood Cafe — Dine-in (Table ${resolvedTable})` : textAddress,
         orderTimestamp: createdOrder.createdAt ? new Date(createdOrder.createdAt) : new Date(),
         formattedDate: new Date().toLocaleString('en-IN', {
           dateStyle: 'medium',
@@ -294,13 +317,21 @@ export default function Checkout() {
 
             {/* ── Order Type Selection ── */}
             <div className="form-group">
-              <label className="form-label"><Package size={15} /> Order Type</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="form-label" style={{ marginBottom: 0 }}><Package size={15} /> Order Type</label>
+                {isTableLocked && (
+                  <span className="text-xs font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300">
+                    🔒 Table {tableNumber} QR Locked
+                  </span>
+                )}
+              </div>
               <div className="order-type-group">
                 <button
                   type="button"
                   id="checkout-type-takeaway"
-                  className={`order-type-btn ${selectedOrderType === 'takeaway' ? 'order-type-active' : ''}`}
-                  onClick={() => setSelectedOrderType('takeaway')}
+                  disabled={isTableLocked}
+                  className={`order-type-btn ${selectedOrderType === 'takeaway' ? 'order-type-active' : ''} ${isTableLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                  onClick={() => !isTableLocked && setSelectedOrderType('takeaway')}
                 >
                   📦 Takeaway
                 </button>
@@ -315,15 +346,86 @@ export default function Checkout() {
                 <button
                   type="button"
                   id="checkout-type-delivery"
-                  className={`order-type-btn ${selectedOrderType === 'delivery' ? 'order-type-active' : ''}`}
-                  onClick={() => setSelectedOrderType('delivery')}
+                  disabled={isTableLocked}
+                  className={`order-type-btn ${selectedOrderType === 'delivery' ? 'order-type-active' : ''} ${isTableLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                  onClick={() => !isTableLocked && setSelectedOrderType('delivery')}
                 >
                   🛵 Live Delivery
                 </button>
               </div>
             </div>
 
-            {/* ── Address Entry Form Component with Live GPS Auto-Fill ── */}
+            {/* ── Dine-in Table Selection or Read-Only Scanned Card ── */}
+            {selectedOrderType === 'dine-in' && (
+              isTableLocked ? (
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-4 sm:p-5 flex items-center justify-between shadow-xs mb-4">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-xl bg-amber-500 text-white flex items-center justify-center font-extrabold text-2xl shadow-xs">
+                      🍽️
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-800 block">
+                        Dine-in Order Mode
+                      </span>
+                      <div className="text-lg sm:text-xl font-black text-stone-900 font-mono">
+                        Table No: {tableNumber}
+                      </div>
+                      <p className="text-xs text-amber-700/90 mt-0.5">
+                        Scanned via table QR. Food will be served hot directly to your table.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-bold bg-amber-200/90 text-amber-900 px-3 py-1 rounded-full border border-amber-300 whitespace-nowrap">
+                    QR Locked
+                  </span>
+                </div>
+              ) : (
+                <div className="bg-amber-50/60 border-2 border-amber-200 rounded-2xl p-4 sm:p-5 shadow-xs mb-4">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Utensils size={18} className="text-amber-600" />
+                    <label htmlFor="dinein-table-input" className="font-extrabold text-stone-900 text-sm sm:text-base">
+                      Table Number <span className="text-rose-500">*</span>
+                    </label>
+                  </div>
+                  <p className="text-xs text-stone-500 mb-3">
+                    Please select or type your cafe table number so counter staff can serve your dishes.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2.5">
+                    <select
+                      id="dinein-table-select"
+                      value={Array.from({ length: 30 }, (_, idx) => String(idx + 1)).includes(String(tableNumber).trim()) ? String(tableNumber).trim() : (tableNumber ? 'custom' : '')}
+                      onChange={(e) => {
+                        if (e.target.value !== 'custom') {
+                          setTableNumber(e.target.value);
+                        }
+                      }}
+                      className="px-3.5 py-3 rounded-xl border-2 border-stone-300 bg-white text-stone-900 font-bold text-sm focus:outline-none focus:ring-3 focus:ring-amber-500/20 focus:border-amber-500"
+                    >
+                      <option value="">-- Choose Table (1 - 30) --</option>
+                      {Array.from({ length: 30 }, (_, idx) => idx + 1).map((n) => (
+                        <option key={n} value={String(n)}>
+                          Table {n}
+                        </option>
+                      ))}
+                      <option value="custom">Other / Custom Table</option>
+                    </select>
+
+                    <input
+                      type="text"
+                      id="dinein-table-input"
+                      value={tableNumber}
+                      onChange={(e) => setTableNumber(e.target.value)}
+                      placeholder="e.g. 4 or T-12"
+                      required
+                      className="flex-1 px-3.5 py-3 rounded-xl border-2 border-stone-300 bg-white text-stone-900 font-bold text-sm focus:outline-none focus:ring-3 focus:ring-amber-500/20 focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+              )
+            )}
+
+            {/* ── Address Entry Form Component with Live GPS Auto-Fill (Hidden for Dine-in) ── */}
+            {selectedOrderType !== 'dine-in' && (
             <div className="checkout-address-card">
               <div className="checkout-address-header">
                 <div>
@@ -474,6 +576,7 @@ export default function Checkout() {
                 </div>
               </div>
             </div>
+            )}
 
             {/* ── Payment Mode & Status Selection ── */}
             <div className="form-group" style={{ marginTop: '1.5rem' }}>

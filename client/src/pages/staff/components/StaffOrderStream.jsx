@@ -23,18 +23,18 @@ export default function StaffOrderStream({
   const isTakeaway = (ord) => {
     const type = (ord?.orderType || ord?.type || '').toLowerCase();
     if (type === 'takeaway') return true;
-    if (!type && !ord?.tableNo && !ord?.deliveryAddress) return true;
+    if (!type && !ord?.tableNumber && !ord?.tableNo && !ord?.deliveryAddress) return true;
     return false;
   };
 
   const isDineIn = (ord) => {
     const type = (ord?.orderType || ord?.type || '').toLowerCase();
-    return type === 'dine-in' || type === 'dinein' || Boolean(ord?.tableNo);
+    return type === 'dine-in' || type === 'dinein' || Boolean(ord?.tableNumber) || Boolean(ord?.tableNo) || Boolean(ord?.deliveryAddress?.toLowerCase().includes('dine-in'));
   };
 
   const isDelivery = (ord) => {
     const type = (ord?.orderType || ord?.type || '').toLowerCase();
-    return type === 'delivery' || Boolean(ord?.deliveryAddress);
+    return type === 'delivery' || (Boolean(ord?.deliveryAddress) && !isDineIn(ord));
   };
 
   const displayedOrders = orders.filter((ord) => {
@@ -53,21 +53,22 @@ export default function StaffOrderStream({
   };
 
   const getOrderTypeMeta = (ord) => {
+    const tableNum = ord?.tableNumber || ord?.tableNo || ord?.deliveryAddress?.match(/Table\s+(\w+)/i)?.[1] || ord?.customer_location?.match(/Table\s+(\w+)/i)?.[1];
     if (isDineIn(ord)) {
       return {
-        label: `Dine-in${ord.tableNo ? ` · T-${ord.tableNo}` : ''}`,
-        className: 'bg-blue-50 text-blue-700 border-blue-200',
+        label: `Table ${tableNum || 'Dine-in'}`,
+        className: 'bg-blue-600 text-white border-blue-600 font-extrabold shadow-xs',
       };
     }
     if (isDelivery(ord)) {
       return {
         label: 'Live Delivery',
-        className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        className: 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold',
       };
     }
     return {
       label: 'Takeaway',
-      className: 'bg-amber-50 text-amber-700 border-amber-200',
+      className: 'bg-amber-50 text-amber-700 border-amber-200 font-bold',
     };
   };
 

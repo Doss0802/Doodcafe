@@ -8,6 +8,11 @@ const connectDB = async () => {
     // Synchronize models (create tables that don't exist yet).
     // alter:false is safe — it never drops columns or data.
     await sequelize.sync({ alter: false });
+    try {
+      await sequelize.query('ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "tableNumber" VARCHAR(20);');
+    } catch (_) {
+      // Column may already exist or table not created yet
+    }
     logger.info('✅ PostgreSQL tables synchronized');
     return sequelize;
   } catch (error) {

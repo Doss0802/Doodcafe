@@ -38,6 +38,7 @@ export default function InvoiceModal({ isOpen, onClose, invoiceData }) {
     totalAmount = 0,
     paymentMode = 'cash',
     orderType = 'takeaway',
+    tableNumber,
     specialInstructions = ''
   } = invoiceData;
 
@@ -237,7 +238,9 @@ ${trackingUrl}
 
               <div className="invoice-info-block">
                 <span className="invoice-info-label"><Package size={13} /> Order Fulfillment</span>
-                <span className="invoice-info-value capitalize-text">{orderType}</span>
+                <span className="invoice-info-value capitalize-text">
+                  {orderType} {tableNumber ? `· Table ${tableNumber}` : ''}
+                </span>
               </div>
 
               <div className="invoice-info-block full-col">

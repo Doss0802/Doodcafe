@@ -7,6 +7,10 @@ import {
   RefreshCw,
   Sparkles,
   Utensils,
+  QrCode,
+  Printer,
+  ExternalLink,
+  Coffee,
 } from 'lucide-react';
 import axiosInstance from '../../api/axiosInstance';
 import toast from 'react-hot-toast';
@@ -422,7 +426,188 @@ export default function AdminDashboard() {
 
         </div>
 
+        {/* ── Table QR Codes Generator Section ── */}
+        <TableQrCodesSection />
+
       </div>
     </main>
+  );
+}
+
+/* ── Table QR Codes Generator Component ───────────────────────────── */
+function TableQrCodesSection() {
+  const [tableCount, setTableCount] = useState(12);
+  const productionDomain = 'https://doodcafe-frontend.onrender.com';
+
+  const activeDomain =
+    typeof window !== 'undefined' && window.location.origin.includes('onrender.com')
+      ? window.location.origin
+      : productionDomain;
+
+  const count = Math.max(1, Math.min(100, parseInt(tableCount, 10) || 1));
+  const tableNumbers = Array.from({ length: count }, (_, i) => i + 1);
+
+  const handlePrintAll = () => {
+    window.print();
+  };
+
+  return (
+    <div className="adm-table-qr-section bg-white border border-stone-200 rounded-3xl p-6 sm:p-7 shadow-xs mt-8">
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden !important;
+          }
+          .adm-table-qr-section, .adm-table-qr-section * {
+            visibility: visible !important;
+          }
+          .adm-table-qr-section {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+          }
+          .adm-table-qr-print-hide {
+            display: none !important;
+          }
+          .adm-table-qr-grid {
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 1.5rem !important;
+          }
+          .adm-table-qr-card {
+            break-inside: avoid !important;
+            border: 2px solid #000 !important;
+            box-shadow: none !important;
+          }
+        }
+      `}</style>
+
+      {/* Section Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-stone-100">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold">
+              <QrCode size={20} />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-stone-900 text-lg sm:text-xl tracking-tight">
+                Table QR Codes
+              </h3>
+              <p className="text-xs text-stone-500 font-medium mt-0.5">
+                Generate and print table-specific QR codes for contactless dine-in ordering
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div className="flex items-center gap-3 adm-table-qr-print-hide flex-wrap">
+          <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-xl px-3 py-1.5 shadow-2xs">
+            <span className="text-xs font-bold text-stone-600">Total Tables:</span>
+            <input
+              type="number"
+              min="1"
+              max="100"
+              value={tableCount}
+              onChange={(e) => setTableCount(e.target.value)}
+              className="w-16 px-2 py-1 bg-white border border-stone-300 rounded-lg text-sm font-black text-stone-900 text-center focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={handlePrintAll}
+            className="px-4 py-2.5 bg-stone-900 hover:bg-black text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-xs transition active:scale-95 cursor-pointer"
+          >
+            <Printer size={15} />
+            <span>Print All QR Cards</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Target URL Info Banner */}
+      <div className="bg-stone-50 border border-stone-200/80 rounded-2xl px-4 py-3 mt-4 text-xs text-stone-600 flex items-center justify-between gap-3 flex-wrap adm-table-qr-print-hide">
+        <div>
+          <span className="font-bold text-stone-800">QR Encodes: </span>
+          <code className="text-amber-700 font-mono font-bold">{activeDomain}/checkout?type=dinein&table=N</code>
+        </div>
+        <span className="text-[11px] text-stone-400 font-medium">
+          Ready for cafe acrylic table display stands
+        </span>
+      </div>
+
+      {/* Grid of Printable Table Cards */}
+      <div className="adm-table-qr-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
+        {tableNumbers.map((num) => {
+          const qrTargetUrl = `${activeDomain}/checkout?type=dinein&table=${num}`;
+          const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrTargetUrl)}&margin=8`;
+
+          return (
+            <div
+              key={num}
+              className="adm-table-qr-card bg-white border-2 border-stone-200 hover:border-amber-400 rounded-3xl p-5 flex flex-col items-center text-center shadow-xs transition group"
+            >
+              {/* Brand Header */}
+              <div className="flex items-center gap-1.5 text-amber-600 font-black text-xs uppercase tracking-widest mb-1">
+                <Coffee size={14} />
+                <span>Dood Cafe</span>
+              </div>
+
+              {/* Table Number Title */}
+              <div className="text-2xl font-black text-stone-900 tracking-tight font-mono mb-0.5">
+                TABLE {num}
+              </div>
+              <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-3">
+                Scan with Phone Camera to Order
+              </p>
+
+              {/* QR Image Box */}
+              <div className="p-2.5 bg-white border border-stone-100 rounded-2xl shadow-2xs group-hover:scale-102 transition-transform">
+                <img
+                  src={qrImageUrl}
+                  alt={`QR code for Table ${num}`}
+                  width={180}
+                  height={180}
+                  className="rounded-xl block"
+                  loading="lazy"
+                />
+              </div>
+
+              {/* URL Preview */}
+              <span className="text-[10px] font-mono text-stone-400 mt-3 truncate max-w-full block">
+                /checkout?type=dinein&table={num}
+              </span>
+
+              {/* Quick Actions (Screen Only) */}
+              <div className="mt-3.5 pt-3 border-t border-stone-100 w-full flex items-center justify-between text-xs adm-table-qr-print-hide">
+                <a
+                  href={qrTargetUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-stone-500 hover:text-amber-600 font-bold inline-flex items-center gap-1 text-[11px] transition"
+                  title="Test link in new tab"
+                >
+                  <ExternalLink size={12} />
+                  <span>Test Link</span>
+                </a>
+                <a
+                  href={qrImageUrl}
+                  download={`DoodCafe_Table_${num}_QR.png`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-amber-600 hover:text-amber-700 font-bold text-[11px]"
+                >
+                  Download PNG
+                </a>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }

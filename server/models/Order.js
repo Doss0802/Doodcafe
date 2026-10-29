@@ -68,6 +68,19 @@ const Order = sequelize.define('Order', {
     type: DataTypes.STRING(50),
     allowNull: true,
   },
+  tableNumber: {
+    type: DataTypes.STRING(20),
+    allowNull: true,
+  },
+  tableNo: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return this.getDataValue('tableNumber');
+    },
+    set(val) {
+      this.setDataValue('tableNumber', val ? String(val) : null);
+    },
+  },
   handedOverAt: {
     type: DataTypes.DATE,
     allowNull: true,

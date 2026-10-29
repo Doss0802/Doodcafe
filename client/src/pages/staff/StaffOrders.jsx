@@ -884,16 +884,22 @@ function TakeawayOrderCard({
 /* ─── Dine-In Order Card Component (Read-Only) ─── */
 function DineInOrderCard({ order }) {
   const paymentClass = PAYMENT_BADGE_CLASSES[order.paymentStatus] || PAYMENT_BADGE_CLASSES.pending;
+  const tableNum = order.tableNumber || order.tableNo || order.deliveryAddress?.match(/Table\s+(\w+)/i)?.[1] || order.customer_location?.match(/Table\s+(\w+)/i)?.[1] || '1';
 
   return (
     <Card className="p-4 sm:p-5 flex flex-col justify-between hover:border-amber-300 transition">
       <div>
-        {/* Header: Order No & Payment Badge */}
+        {/* Header: Order No, Table Badge & Payment Badge */}
         <div className="flex items-start justify-between gap-2 pb-3 border-b border-stone-100">
           <div>
-            <span className="text-[10px] font-extrabold text-stone-400 uppercase tracking-widest block">
-              Bill / Order No
-            </span>
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span className="px-2.5 py-0.5 rounded-md text-xs font-black bg-blue-600 text-white shadow-xs">
+                Table {tableNum}
+              </span>
+              <span className="text-[10px] font-extrabold text-stone-400 uppercase tracking-widest">
+                Dine-in
+              </span>
+            </div>
             <div className="text-base sm:text-lg font-extrabold text-stone-900 tracking-tight font-mono">
               {order.billNumber || `#ORD-${order.orderNumber}`}
             </div>

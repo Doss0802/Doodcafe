@@ -1,4 +1,4 @@
-﻿import { ShoppingCart, Menu, X, LogOut, User, ClipboardList, Coffee, UserCircle2 } from 'lucide-react';
+import { ShoppingCart, Menu, X, LogOut, User, ClipboardList, Coffee, UserCircle2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../store/authStore';

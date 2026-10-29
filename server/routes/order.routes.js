@@ -80,6 +80,16 @@ const orderValidation = [
     .optional()
     .isFloat({ min: -180, max: 180 })
     .withMessage('Longitude must be between -180 and 180'),
+  body('tableNumber')
+    .optional({ nullable: true })
+    .trim()
+    .isLength({ max: 20 })
+    .withMessage('Table number cannot exceed 20 characters'),
+  body('tableNo')
+    .optional({ nullable: true })
+    .trim()
+    .isLength({ max: 20 })
+    .withMessage('Table number cannot exceed 20 characters'),
 ];
 
 const idValidation = [

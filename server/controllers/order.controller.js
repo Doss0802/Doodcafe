@@ -20,8 +20,10 @@ const placeOrder = async (req, res, next) => {
       });
     }
 
-    let { items, paymentMode, paymentStatus, customerName, customerPhone, specialInstructions, orderType, customer_location, deliveryAddress, coordinates } = req.body;
+    let { items, paymentMode, paymentStatus, customerName, customerPhone, specialInstructions, orderType, customer_location, deliveryAddress, coordinates, tableNumber, tableNo } = req.body;
     const resolvedOrderType = ['takeaway', 'delivery', 'dine-in'].includes(orderType) ? orderType : 'takeaway';
+    const rawTable = tableNumber || tableNo;
+    const resolvedTableNumber = resolvedOrderType === 'dine-in' && rawTable ? String(rawTable).trim() : null;
     const initialStatus = 'pending';
     const resolvedPaymentMode = (paymentMode && ['cash', 'upi'].includes(paymentMode)) ? paymentMode : 'cash';
 
@@ -115,10 +117,11 @@ const placeOrder = async (req, res, next) => {
       orderType: resolvedOrderType,
       paymentMode: resolvedPaymentMode,
       paymentStatus: resolvedPaymentStatus,
+      tableNumber: resolvedTableNumber,
       customerName: resolvedCustomerName,
       customerPhone: resolvedCustomerPhone,
-      customer_location: (customer_location || deliveryAddress || (resolvedOrderType === 'dine-in' ? 'Dood Cafe — Dine-in' : fallbackLocation)).substring(0, 200),
-      deliveryAddress: (deliveryAddress || customer_location || (resolvedOrderType === 'dine-in' ? 'Dood Cafe — Dine-in' : fallbackLocation)).substring(0, 250),
+      customer_location: (customer_location || deliveryAddress || (resolvedOrderType === 'dine-in' ? `Dood Cafe — Dine-in${resolvedTableNumber ? ` (Table ${resolvedTableNumber})` : ''}` : fallbackLocation)).substring(0, 200),
+      deliveryAddress: (deliveryAddress || customer_location || (resolvedOrderType === 'dine-in' ? `Dood Cafe — Dine-in${resolvedTableNumber ? ` (Table ${resolvedTableNumber})` : ''}` : fallbackLocation)).substring(0, 250),
       coordinates: (coordinates && typeof coordinates.lat === 'number' && typeof coordinates.lng === 'number')
         ? coordinates
         : fallbackCoords,
