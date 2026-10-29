@@ -17,8 +17,16 @@ export default function StaffOrderStream({
   _role = 'staff',
   highlightedOrderId = null,
 }) {
+  const [filter, setFilter] = useState('all'); // 'all' | 'takeaway' | 'dine-in' | 'delivery'
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [actionLoadingId, setActionLoadingId] = useState(null);
+
+  const isTakeaway = (ord) => {
+    const type = (ord?.orderType || ord?.type || '').toLowerCase();
+    if (type === 'takeaway') return true;
+    if (!type && !ord?.tableNumber && !ord?.tableNo && !ord?.deliveryAddress) return true;
+    return false;
+  };
 
   const isDineIn = (ord) => {
     const type = (ord?.orderType || ord?.type || '').toLowerCase();
@@ -41,6 +49,21 @@ export default function StaffOrderStream({
   const sortedOrders = [...orders]
     .filter(Boolean)
     .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+  const displayedOrders = sortedOrders.filter((ord) => {
+    if (!ord) return false;
+    if (filter === 'takeaway') return isTakeaway(ord);
+    if (filter === 'dine-in') return isDineIn(ord);
+    if (filter === 'delivery') return isDelivery(ord);
+    return true; // 'all' -> combined view
+  });
+
+  const counts = {
+    all: sortedOrders.length,
+    takeaway: sortedOrders.filter(isTakeaway).length,
+    'dine-in': sortedOrders.filter(isDineIn).length,
+    delivery: sortedOrders.filter(isDelivery).length,
+  };
 
   const getOrderTypeMeta = (ord) => {
     const tableNum =
@@ -93,10 +116,33 @@ export default function StaffOrderStream({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-1.5 rounded-xl bg-stone-100 text-stone-700 text-xs font-bold">
-            {sortedOrders.length} {sortedOrders.length === 1 ? 'Order' : 'Orders'} Total
-          </span>
+        {/* Filter Pills */}
+        <div className="flex overflow-x-auto gap-2 pb-1 snap-x no-scrollbar bg-stone-100 p-1 rounded-xl text-xs font-semibold">
+          {[
+            { id: 'all', label: 'All Orders' },
+            { id: 'takeaway', label: 'Takeaway' },
+            { id: 'dine-in', label: 'Dine-in' },
+            { id: 'delivery', label: 'Live Delivery' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setFilter(tab.id)}
+              className={`snap-start flex-shrink-0 min-h-[38px] px-3.5 py-1.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer ${
+                filter === tab.id
+                  ? 'bg-white text-stone-900 shadow-xs font-bold'
+                  : 'text-stone-500 hover:text-stone-800'
+              }`}
+            >
+              <span>{tab.label}</span>
+              <span
+                className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                  filter === tab.id ? 'bg-amber-100 text-amber-800' : 'bg-stone-200 text-stone-600'
+                }`}
+              >
+                {counts[tab.id] || 0}
+              </span>
+            </button>
+          ))}
         </div>
       </div>
 
@@ -106,17 +152,21 @@ export default function StaffOrderStream({
           <div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin" />
           <span className="text-xs font-medium">Listening for live orders…</span>
         </div>
-      ) : sortedOrders.length === 0 ? (
+      ) : displayedOrders.length === 0 ? (
         <div className="py-12 flex flex-col items-center justify-center text-stone-400 gap-2 text-center">
           <ShoppingBag size={36} className="text-stone-300 stroke-[1.5]" />
           <p className="text-sm font-semibold text-stone-600">No orders found</p>
-          <span className="text-xs text-stone-400">Incoming orders will appear here in real time.</span>
+          <span className="text-xs text-stone-400">
+            {filter === 'all'
+              ? 'Incoming orders will appear here in real time.'
+              : `No ${filter === 'delivery' ? 'live delivery' : filter} orders found.`}
+          </span>
         </div>
       ) : (
         <>
           {/* Mobile Card-Based Layout (below md) */}
           <div className="md:hidden space-y-3">
-            {sortedOrders.map((ord) => {
+            {displayedOrders.map((ord) => {
               const orderId = ord.id || ord._id;
               const isHighlighted = highlightedOrderId && String(orderId) === String(highlightedOrderId);
               const statusMeta = getStatusMeta(ord.status);
@@ -134,6 +184,7 @@ export default function StaffOrderStream({
                 <div
                   key={orderId}
                   id={`allorders-row-${orderId}`}
+                  data-order-id={orderId}
                   className={`border rounded-2xl p-4 bg-white space-y-3 shadow-xs transition-all duration-500 ${
                     isHighlighted ? 'border-amber-500 ring-4 ring-amber-400/50 bg-amber-50/40' : 'border-stone-200'
                   }`}
@@ -174,7 +225,7 @@ export default function StaffOrderStream({
                     <button
                       type="button"
                       onClick={() => setSelectedOrder(ord)}
-                      className="min-h-[44px] px-3 py-1.5 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-xl text-xs font-bold flex items-center gap-1 transition"
+                      className="min-h-[44px] px-3 py-1.5 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-xl text-xs font-bold flex items-center gap-1 transition cursor-pointer"
                     >
                       <UserRound size={13} />
                       <span>Details</span>
@@ -203,13 +254,20 @@ export default function StaffOrderStream({
                         ₹{Number(ord.totalAmount || 0).toLocaleString('en-IN')}
                       </span>
                     </div>
-                    <div className="flex-1 max-w-[200px]">
-                      {statusMeta.next ? (
+                    <div className="flex-1 max-w-[200px] flex justify-end">
+                      {isDineIn(ord) ? (
+                        <span
+                          className="px-3 py-1.5 rounded-xl text-xs font-bold border inline-flex items-center gap-1.5"
+                          style={{ color: statusMeta.color, background: statusMeta.bg }}
+                        >
+                          {statusMeta.label}
+                        </span>
+                      ) : statusMeta.next ? (
                         <button
                           type="button"
                           disabled={isActionLoading}
                           onClick={() => handleAction(orderId, statusMeta.next)}
-                          className="w-full min-h-[52px] py-3 px-3 bg-stone-900 hover:bg-black text-white rounded-xl text-xs font-bold transition shadow-xs active:scale-95 disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+                          className="w-full min-h-[52px] py-3 px-3 bg-stone-900 hover:bg-black text-white rounded-xl text-xs font-bold transition shadow-xs active:scale-95 disabled:opacity-50 inline-flex items-center justify-center gap-1.5 cursor-pointer"
                         >
                           {isActionLoading ? (
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -247,7 +305,7 @@ export default function StaffOrderStream({
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100">
-                {sortedOrders.map((ord) => {
+                {displayedOrders.map((ord) => {
                   const orderId = ord.id || ord._id;
                   const isHighlighted = highlightedOrderId && String(orderId) === String(highlightedOrderId);
                   const statusMeta = getStatusMeta(ord.status);
@@ -265,6 +323,7 @@ export default function StaffOrderStream({
                     <tr
                       key={orderId}
                       id={`allorders-row-${orderId}`}
+                      data-order-id={orderId}
                       className={`transition-all duration-500 ${
                         isHighlighted ? 'bg-amber-100 ring-2 ring-amber-500' : 'hover:bg-stone-50/70'
                       }`}
@@ -295,7 +354,7 @@ export default function StaffOrderStream({
                         <button
                           type="button"
                           onClick={() => setSelectedOrder(ord)}
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 hover:text-amber-700 hover:underline mt-0.5 min-h-[32px]"
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 hover:text-amber-700 hover:underline mt-0.5 min-h-[32px] cursor-pointer"
                         >
                           <UserRound size={11} />
                           <span>View Details</span>
@@ -336,12 +395,22 @@ export default function StaffOrderStream({
 
                       {/* Next Action Col */}
                       <td className="py-3 px-4 text-right whitespace-nowrap">
-                        {statusMeta.next ? (
+                        {isDineIn(ord) ? (
+                          <span
+                            className="inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-bold border"
+                            style={{
+                              color: statusMeta.color,
+                              backgroundColor: statusMeta.bg,
+                            }}
+                          >
+                            {statusMeta.label}
+                          </span>
+                        ) : statusMeta.next ? (
                           <button
                             type="button"
                             disabled={isActionLoading}
                             onClick={() => handleAction(orderId, statusMeta.next)}
-                            className="min-h-[44px] py-2 px-3.5 bg-stone-900 hover:bg-black text-white rounded-xl text-xs font-bold transition shadow-xs active:scale-95 disabled:opacity-50 inline-flex items-center gap-1.5"
+                            className="min-h-[44px] py-2 px-3.5 bg-stone-900 hover:bg-black text-white rounded-xl text-xs font-bold transition shadow-xs active:scale-95 disabled:opacity-50 inline-flex items-center gap-1.5 cursor-pointer"
                           >
                             {isActionLoading ? (
                               <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />

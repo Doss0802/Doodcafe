@@ -15,9 +15,13 @@ import {
   AlertTriangle,
   ChefHat,
   ArrowRight,
+  ChevronDown,
+  ChevronUp,
+  Check,
 } from 'lucide-react';
 import axiosInstance from '../../api/axiosInstance';
 import { useOrderStream } from './components/useStaffOrderStream';
+import { STATUS_CONFIG, getStatusMeta } from './components/staffOrderStatus';
 import LiveKitchen from './components/StaffLiveKitchen';
 import OrderStream from './components/StaffOrderStream';
 import toast from 'react-hot-toast';
@@ -73,9 +77,7 @@ export default function StaffOrders() {
 
   // Dine-in live search
   const [dineInSearch, setDineInSearch] = useState('');
-
-  // All Orders tab highlight (when navigating from dine-in card click)
-  const [highlightedOrderId, setHighlightedOrderId] = useState(null);
+  const [dineInActionLoadingId, setDineInActionLoadingId] = useState(null);
 
   const searchInputRef = useRef(null);
 
@@ -255,37 +257,15 @@ export default function StaffOrders() {
     );
   });
 
-  // Navigate from dine-in card to All Orders tab
-  const handleDineInCardClick = (ord) => {
-    const ordId = ord?.id || ord?._id;
-    if (!ordId) return;
-    setHighlightedOrderId(ordId);
-    setActiveTab('stream');
+  // Handle Dine-in Order status transitions
+  const handleDineInStatusChange = async (orderId, newStatus) => {
+    setDineInActionLoadingId(orderId);
+    try {
+      await handleKitchenStatusChange(orderId, newStatus);
+    } finally {
+      setDineInActionLoadingId(null);
+    }
   };
-
-  // Scroll to and highlight order in All Orders tab after tab renders
-  useEffect(() => {
-    if (!highlightedOrderId || activeTab !== 'stream') return;
-
-    const timer = setTimeout(() => {
-      const el =
-        document.querySelector(`[data-order-id="${highlightedOrderId}"]`) ||
-        document.getElementById(`allorders-row-${highlightedOrderId}`);
-
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    }, 120);
-
-    const clearTimer = setTimeout(() => {
-      setHighlightedOrderId(null);
-    }, 3500);
-
-    return () => {
-      clearTimeout(timer);
-      clearTimeout(clearTimer);
-    };
-  }, [highlightedOrderId, activeTab]);
 
   // Count Badges for Tabs
   const pendingTakeawayCount = takeawayOrders.filter((o) => o.status !== 'handed_over').length;
@@ -636,7 +616,12 @@ export default function StaffOrders() {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                     {displayedDineInOrders.map((ord) => (
-                      <DineInOrderCard key={ord.id} order={ord} onCardClick={handleDineInCardClick} />
+                      <DineInOrderCard
+                        key={ord.id || ord._id}
+                        order={ord}
+                        onStatusChange={handleDineInStatusChange}
+                        actionLoadingId={dineInActionLoadingId}
+                      />
                     ))}
                   </div>
                 )}
@@ -653,7 +638,6 @@ export default function StaffOrders() {
                   loading={liveLoading}
                   onStatusChange={handleKitchenStatusChange}
                   role="staff"
-                  highlightedOrderId={highlightedOrderId}
                 />
               </div>
             )}
@@ -989,22 +973,43 @@ function TakeawayOrderCard({
   );
 }
 
-/* ─── Dine-In Order Card Component (View-Only, Navigates to All Orders on Click) ─── */
-function DineInOrderCard({ order, onCardClick }) {
+/* ─── Dine-In Order Card Component (Expandable, with Status Management) ─── */
+function DineInOrderCard({ order, onStatusChange, actionLoadingId }) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const paymentClass = PAYMENT_BADGE_CLASSES[order.paymentStatus] || PAYMENT_BADGE_CLASSES.pending;
+  const statusMeta = getStatusMeta(order.status);
+  const currentStatus = (order.status || 'pending').toLowerCase();
+  const orderId = order.id || order._id;
+  const isActionLoading = actionLoadingId === orderId;
+
   const tableNum =
     order.tableNumber ||
     order.tableNo ||
     order.deliveryAddress?.match(/Table\s+(\w+)/i)?.[1] ||
     order.customer_location?.match(/Table\s+(\w+)/i)?.[1];
 
+  const items = Array.isArray(order.items)
+    ? order.items
+    : typeof order.items === 'string'
+      ? JSON.parse(order.items || '[]')
+      : [];
+
+  const customerName = order.customerName || order.user?.name || 'Customer';
+  const customerPhone = order.customerPhone || order.user?.phone;
+
+  const STATUS_ACTIONS = [
+    { key: 'preparing', label: 'Start Preparing', bg: 'bg-blue-600 hover:bg-blue-700 text-white' },
+    { key: 'ready', label: 'Mark Ready', bg: 'bg-purple-600 hover:bg-purple-700 text-white' },
+    { key: 'delivered', label: 'Mark Completed', bg: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
+  ];
+
   return (
     <Card
-      onClick={() => onCardClick?.(order)}
+      onClick={() => setIsExpanded((prev) => !prev)}
       className="p-4 sm:p-5 flex flex-col justify-between hover:border-amber-400 hover:shadow-md transition cursor-pointer group"
     >
       <div>
-        {/* Header: Order No, Table Badge & Payment Badge */}
+        {/* Header: Table Badge, Order Type, Bill No, Time, Status & Payment Badges */}
         <div className="flex items-start justify-between gap-2 pb-3 border-b border-stone-100">
           <div>
             <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -1016,17 +1021,25 @@ function DineInOrderCard({ order, onCardClick }) {
               </span>
             </div>
             <div className="text-base sm:text-lg font-extrabold text-stone-900 tracking-tight font-mono">
-              {order.billNumber || `#ORD-${order.orderNumber}`}
+              {order.billNumber || (order.orderNumber ? `#ORD-${order.orderNumber}` : `#${String(orderId).slice(-5)}`)}
             </div>
             <span className="text-[11px] text-stone-400 flex items-center gap-1 mt-0.5">
               <Clock size={11} />
-              {new Date(order.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+              {order.createdAt ? new Date(order.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
             </span>
           </div>
 
-          <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${paymentClass}`}>
-            {PAYMENT_LABELS[order.paymentStatus] || order.paymentStatus}
-          </span>
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
+            <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${paymentClass}`}>
+              {PAYMENT_LABELS[order.paymentStatus] || order.paymentStatus || 'Pending'}
+            </span>
+            <span
+              className="px-2.5 py-0.5 rounded-full text-xs font-bold border inline-flex items-center gap-1"
+              style={{ color: statusMeta.color, background: statusMeta.bg, borderColor: statusMeta.color + '40' }}
+            >
+              {statusMeta.label}
+            </span>
+          </div>
         </div>
 
         {/* Customer Details: Name & Phone */}
@@ -1036,22 +1049,22 @@ function DineInOrderCard({ order, onCardClick }) {
               Customer
             </span>
             <span className="font-bold text-stone-900 truncate block">
-              {order.customerName || order.user?.name || 'Customer'}
+              {customerName}
             </span>
           </div>
           <div className="text-right shrink-0 ml-3">
             <span className="text-[10px] text-stone-400 uppercase tracking-widest font-extrabold block">
               Phone
             </span>
-            {order.customerPhone || order.user?.phone ? (
+            {customerPhone ? (
               <a
-                href={`tel:${order.customerPhone || order.user?.phone}`}
+                href={`tel:${customerPhone}`}
                 onClick={(e) => e.stopPropagation()}
                 className="font-bold text-amber-600 hover:text-amber-700 inline-flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-md"
                 title="Tap to call customer"
               >
                 <Phone size={11} />
-                <span>{order.customerPhone || order.user?.phone}</span>
+                <span>{customerPhone}</span>
               </a>
             ) : (
               <span className="text-stone-400 italic">No phone</span>
@@ -1065,7 +1078,7 @@ function DineInOrderCard({ order, onCardClick }) {
             Dishes Ordered
           </span>
           <div className="space-y-1.5 max-h-48 overflow-y-auto">
-            {order.items?.map((it, idx) => (
+            {items.map((it, idx) => (
               <div
                 key={idx}
                 className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-stone-50 text-xs font-medium"
@@ -1080,7 +1093,7 @@ function DineInOrderCard({ order, onCardClick }) {
         </div>
       </div>
 
-      {/* Read-Only Total Bill Amount & Action Prompt */}
+      {/* Card Footer: Total Amount & Expand/Collapse Toggle */}
       <div className="pt-3 border-t border-stone-100 flex items-center justify-between text-xs">
         <div>
           <span className="font-medium text-stone-500">Total:</span>
@@ -1088,10 +1101,65 @@ function DineInOrderCard({ order, onCardClick }) {
             ₹{Number(order.totalAmount || 0).toLocaleString('en-IN')}
           </span>
         </div>
-        <span className="text-amber-600 font-bold group-hover:translate-x-0.5 transition-transform inline-flex items-center gap-1 text-[11px]">
-          Manage in All Orders <ArrowRight size={12} />
-        </span>
+        <div className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 group-hover:text-amber-700">
+          <span>{isExpanded ? 'Hide Actions' : 'Manage Status'}</span>
+          {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+        </div>
       </div>
+
+      {/* Expandable Section with Manage Action Buttons */}
+      {isExpanded && (
+        <div
+          className="mt-3 pt-3 border-t border-stone-200/80 space-y-2.5"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider text-stone-400">
+            <span>Change Order Status</span>
+            {isActionLoading && (
+              <span className="inline-flex items-center gap-1 text-amber-600">
+                <span className="w-3 h-3 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                Updating...
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {STATUS_ACTIONS.map((act) => {
+              const isCurrent =
+                currentStatus === act.key ||
+                (act.key === 'delivered' && currentStatus === 'handed_over');
+              const isNext = statusMeta.next === act.key;
+
+              return (
+                <button
+                  key={act.key}
+                  type="button"
+                  disabled={isCurrent || isActionLoading}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onStatusChange?.(orderId, act.key);
+                  }}
+                  className={`min-h-[44px] py-2 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 active:scale-95 disabled:cursor-not-allowed cursor-pointer ${
+                    isCurrent
+                      ? 'bg-stone-100 text-stone-400 border border-stone-200 shadow-none'
+                      : isNext
+                        ? `${act.bg} shadow-sm ring-2 ring-offset-1 ring-amber-400`
+                        : 'bg-stone-900 hover:bg-black text-white'
+                  }`}
+                >
+                  {isCurrent ? (
+                    <>
+                      <Check size={13} className="stroke-[2.5]" />
+                      <span>{act.label}</span>
+                    </>
+                  ) : (
+                    <span>{act.label}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </Card>
   );
 }
