@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   AlertTriangle,
   ChefHat,
+  ArrowRight,
 } from 'lucide-react';
 import axiosInstance from '../../api/axiosInstance';
 import { useOrderStream } from './components/useStaffOrderStream';
@@ -70,6 +71,14 @@ export default function StaffOrders() {
   // Filters
   const [takeawayFilter, setTakeawayFilter] = useState('pending'); // 'pending' | 'handed_over' | 'all'
   const [dineInFilter, setDineInFilter] = useState('all'); // 'all' | 'paid' | 'pending' | 'cod'
+
+  // Dine-in live search
+  const [dineInSearch, setDineInSearch] = useState('');
+
+  // All Orders tab highlight (when navigating from dine-in card click)
+  const [highlightedOrderId, setHighlightedOrderId] = useState(null);
+  const highlightTimerRef = useRef(null);
+  const allOrdersTabRef = useRef(null);
 
   const searchInputRef = useRef(null);
 
@@ -226,9 +235,35 @@ export default function StaffOrders() {
   });
 
   const displayedDineInOrders = dineInOrders.filter((ord) => {
-    if (dineInFilter === 'all') return true;
-    return ord.paymentStatus === dineInFilter;
+    if (dineInFilter !== 'all' && ord.paymentStatus !== dineInFilter) return false;
+    if (!dineInSearch.trim()) return true;
+    const q = dineInSearch.trim().toLowerCase();
+    const billNum = (ord.billNumber || `ORD-${ord.orderNumber}` || '').toLowerCase();
+    const name = (ord.customerName || ord.user?.name || '').toLowerCase();
+    const phone = (ord.customerPhone || ord.user?.phone || '').toLowerCase();
+    const tableNum = (ord.tableNumber || ord.tableNo || '').toLowerCase();
+    return (
+      billNum.includes(q) ||
+      name.includes(q) ||
+      phone.includes(q) ||
+      tableNum.includes(q)
+    );
   });
+
+  // Navigate from dine-in card to All Orders tab, scroll to + highlight the order
+  const handleDineInCardClick = (ord) => {
+    const ordId = ord.id || ord._id;
+    setActiveTab('stream');
+    clearTimeout(highlightTimerRef.current);
+    setHighlightedOrderId(ordId);
+    // scroll to the row after tab renders
+    setTimeout(() => {
+      const el = document.getElementById(`allorders-row-${ordId}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 150);
+    // remove highlight after 2.5s
+    highlightTimerRef.current = setTimeout(() => setHighlightedOrderId(null), 2500);
+  };
 
   // Count Badges for Tabs
   const pendingTakeawayCount = takeawayOrders.filter((o) => o.status !== 'handed_over').length;
@@ -491,7 +526,7 @@ export default function StaffOrders() {
                       Today's Dine-in Food Orders
                     </h2>
                     <p className="text-stone-500 text-xs mt-0.5">
-                      Read-only kitchen & counter view of dine-in customers, items ordered, and payment status.
+                      View-only. Tap a card to manage status in All Orders tab.
                     </p>
                   </div>
 
@@ -518,6 +553,27 @@ export default function StaffOrders() {
                   </div>
                 </div>
 
+                {/* ── Dine-in Search Box ── */}
+                <div className="relative">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" size={17} />
+                  <input
+                    type="text"
+                    value={dineInSearch}
+                    onChange={(e) => setDineInSearch(e.target.value)}
+                    placeholder="Search by bill no, name, phone, or table…"
+                    className="w-full pl-10 pr-9 py-3 rounded-xl border-2 border-stone-200 bg-white text-stone-900 text-sm font-medium placeholder-stone-400 focus:outline-none focus:ring-3 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                  />
+                  {dineInSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setDineInSearch('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-stone-400 hover:text-stone-700 transition"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
+
                 {loading ? (
                   <div className="py-20 text-center">
                     <span className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin inline-block mb-3" />
@@ -526,15 +582,19 @@ export default function StaffOrders() {
                 ) : displayedDineInOrders.length === 0 ? (
                   <Card className="p-10 text-center text-stone-500">
                     <UtensilsCrossed size={36} className="mx-auto mb-3 text-stone-400 stroke-1" />
-                    <h4 className="font-bold text-base text-stone-700">No Dine-in Orders Today</h4>
+                    <h4 className="font-bold text-base text-stone-700">
+                      {dineInSearch ? 'No orders match your search' : 'No Dine-in Orders Today'}
+                    </h4>
                     <p className="text-xs text-stone-400 mt-1 max-w-sm mx-auto">
-                      No dine-in orders have been placed for this filter today.
+                      {dineInSearch
+                        ? `No dine-in orders found for "${dineInSearch}".`
+                        : 'No dine-in orders have been placed for this filter today.'}
                     </p>
                   </Card>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                     {displayedDineInOrders.map((ord) => (
-                      <DineInOrderCard key={ord.id} order={ord} />
+                      <DineInOrderCard key={ord.id} order={ord} onCardClick={handleDineInCardClick} />
                     ))}
                   </div>
                 )}
@@ -562,6 +622,7 @@ export default function StaffOrders() {
                 loading={liveLoading}
                 onStatusChange={handleKitchenStatusChange}
                 role="staff"
+                highlightedOrderId={highlightedOrderId}
               />
             </div>
           )}
@@ -582,6 +643,7 @@ export default function StaffOrders() {
                 loading={liveLoading}
                 onStatusChange={handleKitchenStatusChange}
                 role="staff"
+                highlightedOrderId={highlightedOrderId}
               />
             </div>
           </div>
@@ -881,20 +943,27 @@ function TakeawayOrderCard({
   );
 }
 
-/* ─── Dine-In Order Card Component (Read-Only) ─── */
-function DineInOrderCard({ order }) {
+/* ─── Dine-In Order Card Component (View-Only, Navigates to All Orders on Click) ─── */
+function DineInOrderCard({ order, onCardClick }) {
   const paymentClass = PAYMENT_BADGE_CLASSES[order.paymentStatus] || PAYMENT_BADGE_CLASSES.pending;
-  const tableNum = order.tableNumber || order.tableNo || order.deliveryAddress?.match(/Table\s+(\w+)/i)?.[1] || order.customer_location?.match(/Table\s+(\w+)/i)?.[1] || '1';
+  const tableNum =
+    order.tableNumber ||
+    order.tableNo ||
+    order.deliveryAddress?.match(/Table\s+(\w+)/i)?.[1] ||
+    order.customer_location?.match(/Table\s+(\w+)/i)?.[1];
 
   return (
-    <Card className="p-4 sm:p-5 flex flex-col justify-between hover:border-amber-300 transition">
+    <Card
+      onClick={() => onCardClick?.(order)}
+      className="p-4 sm:p-5 flex flex-col justify-between hover:border-amber-400 hover:shadow-md transition cursor-pointer group"
+    >
       <div>
         {/* Header: Order No, Table Badge & Payment Badge */}
         <div className="flex items-start justify-between gap-2 pb-3 border-b border-stone-100">
           <div>
             <div className="flex items-center gap-2 mb-1 flex-wrap">
               <span className="px-2.5 py-0.5 rounded-md text-xs font-black bg-blue-600 text-white shadow-xs">
-                Table {tableNum}
+                {tableNum ? `Table ${tableNum}` : 'Dine-in'}
               </span>
               <span className="text-[10px] font-extrabold text-stone-400 uppercase tracking-widest">
                 Dine-in
@@ -913,6 +982,18 @@ function DineInOrderCard({ order }) {
             {PAYMENT_LABELS[order.paymentStatus] || order.paymentStatus}
           </span>
         </div>
+
+        {/* Customer info if present */}
+        {(order.customerName || order.user?.name || order.customerPhone || order.user?.phone) && (
+          <div className="py-2 border-b border-stone-100 flex items-center justify-between text-xs text-stone-600">
+            <span className="font-bold text-stone-900 truncate">
+              {order.customerName || order.user?.name || 'Customer'}
+            </span>
+            <span className="text-stone-500 font-medium ml-2">
+              {order.customerPhone || order.user?.phone || ''}
+            </span>
+          </div>
+        )}
 
         {/* Food Items Ordered (name x qty) */}
         <div className="py-3">
@@ -935,11 +1016,16 @@ function DineInOrderCard({ order }) {
         </div>
       </div>
 
-      {/* Read-Only Total Bill Amount */}
+      {/* Read-Only Total Bill Amount & Action Prompt */}
       <div className="pt-3 border-t border-stone-100 flex items-center justify-between text-xs">
-        <span className="font-medium text-stone-500">Total Payable:</span>
-        <span className="text-sm font-extrabold text-stone-900">
-          ₹{Number(order.totalAmount || 0).toLocaleString('en-IN')}
+        <div>
+          <span className="font-medium text-stone-500">Total:</span>
+          <span className="text-sm font-extrabold text-stone-900 ml-1">
+            ₹{Number(order.totalAmount || 0).toLocaleString('en-IN')}
+          </span>
+        </div>
+        <span className="text-amber-600 font-bold group-hover:translate-x-0.5 transition-transform inline-flex items-center gap-1 text-[11px]">
+          Manage in All Orders <ArrowRight size={12} />
         </span>
       </div>
     </Card>
