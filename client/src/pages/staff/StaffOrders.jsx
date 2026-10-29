@@ -14,9 +14,6 @@ import {
   ShieldCheck,
   AlertTriangle,
   ChefHat,
-  ChevronDown,
-  ChevronUp,
-  Check,
 } from 'lucide-react';
 import axiosInstance from '../../api/axiosInstance';
 import { useOrderStream } from './components/useStaffOrderStream';
@@ -261,6 +258,8 @@ export default function StaffOrders() {
     setDineInActionLoadingId(orderId);
     try {
       await handleKitchenStatusChange(orderId, newStatus);
+    } catch {
+      // Error toast already handled by useOrderStream
     } finally {
       setDineInActionLoadingId(null);
     }
@@ -971,12 +970,10 @@ function TakeawayOrderCard({
   );
 }
 
-/* ─── Dine-In Order Card Component (Expandable, with Status Management) ─── */
+/* ─── Dine-In Order Card Component (with Status Management) ─── */
 function DineInOrderCard({ order, onStatusChange, actionLoadingId }) {
-  const [isExpanded, setIsExpanded] = useState(false);
   const paymentClass = PAYMENT_BADGE_CLASSES[order.paymentStatus] || PAYMENT_BADGE_CLASSES.pending;
   const statusMeta = getStatusMeta(order.status);
-  const currentStatus = (order.status || 'pending').toLowerCase();
   const orderId = order.id || order._id;
   const isActionLoading = actionLoadingId === orderId;
 
@@ -995,17 +992,8 @@ function DineInOrderCard({ order, onStatusChange, actionLoadingId }) {
   const customerName = order.customerName || order.user?.name || 'Customer';
   const customerPhone = order.customerPhone || order.user?.phone;
 
-  const STATUS_ACTIONS = [
-    { key: 'preparing', label: 'Start Preparing', bg: 'bg-blue-600 hover:bg-blue-700 text-white' },
-    { key: 'ready', label: 'Mark Ready', bg: 'bg-purple-600 hover:bg-purple-700 text-white' },
-    { key: 'delivered', label: 'Mark Completed', bg: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
-  ];
-
   return (
-    <Card
-      onClick={() => setIsExpanded((prev) => !prev)}
-      className="p-4 sm:p-5 flex flex-col justify-between hover:border-amber-400 hover:shadow-md transition cursor-pointer group"
-    >
+    <Card className="p-4 sm:p-5 flex flex-col justify-between">
       <div>
         {/* Header: Table Badge, Order Type, Bill No, Time, Status & Payment Badges */}
         <div className="flex items-start justify-between gap-2 pb-3 border-b border-stone-100">
@@ -1057,7 +1045,6 @@ function DineInOrderCard({ order, onStatusChange, actionLoadingId }) {
             {customerPhone ? (
               <a
                 href={`tel:${customerPhone}`}
-                onClick={(e) => e.stopPropagation()}
                 className="font-bold text-amber-600 hover:text-amber-700 inline-flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-md"
                 title="Tap to call customer"
               >
@@ -1091,73 +1078,38 @@ function DineInOrderCard({ order, onStatusChange, actionLoadingId }) {
         </div>
       </div>
 
-      {/* Card Footer: Total Amount & Expand/Collapse Toggle */}
-      <div className="pt-3 border-t border-stone-100 flex items-center justify-between text-xs">
-        <div>
+      {/* Footer: Total + Action Button */}
+      <div className="pt-3 border-t border-stone-100 mt-2">
+        <div className="flex items-center justify-between text-xs mb-3">
           <span className="font-medium text-stone-500">Total:</span>
-          <span className="text-sm font-extrabold text-stone-900 ml-1">
+          <span className="text-sm font-extrabold text-stone-900">
             ₹{Number(order.totalAmount || 0).toLocaleString('en-IN')}
           </span>
         </div>
-        <div className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 group-hover:text-amber-700">
-          <span>{isExpanded ? 'Hide Actions' : 'Manage Status'}</span>
-          {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-        </div>
-      </div>
 
-      {/* Expandable Section with Manage Action Buttons */}
-      {isExpanded && (
-        <div
-          className="mt-3 pt-3 border-t border-stone-200/80 space-y-2.5"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider text-stone-400">
-            <span>Change Order Status</span>
-            {isActionLoading && (
-              <span className="inline-flex items-center gap-1 text-amber-600">
-                <span className="w-3 h-3 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-                Updating...
-              </span>
+        {statusMeta.next ? (
+          <button
+            type="button"
+            disabled={isActionLoading}
+            onClick={() => onStatusChange?.(orderId, statusMeta.next)}
+            className="w-full py-3 min-h-[52px] bg-stone-900 hover:bg-black text-white rounded-xl text-sm font-bold shadow-sm transition flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+          >
+            {isActionLoading ? (
+              <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <>
+                <CheckCircle2 size={16} />
+                <span>{statusMeta.nextLabel}</span>
+              </>
             )}
+          </button>
+        ) : (
+          <div className={`w-full py-3 min-h-[52px] rounded-xl border text-sm font-bold flex items-center justify-center gap-2 ${statusMeta.badge}`}>
+            <CheckCircle2 size={16} />
+            <span>{statusMeta.label}</span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            {STATUS_ACTIONS.map((act) => {
-              const isCurrent =
-                currentStatus === act.key ||
-                (act.key === 'delivered' && currentStatus === 'handed_over');
-              const isNext = statusMeta.next === act.key;
-
-              return (
-                <button
-                  key={act.key}
-                  type="button"
-                  disabled={isCurrent || isActionLoading}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onStatusChange?.(orderId, act.key);
-                  }}
-                  className={`min-h-[44px] py-2 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 active:scale-95 disabled:cursor-not-allowed cursor-pointer ${
-                    isCurrent
-                      ? 'bg-stone-100 text-stone-400 border border-stone-200 shadow-none'
-                      : isNext
-                        ? `${act.bg} shadow-sm ring-2 ring-offset-1 ring-amber-400`
-                        : 'bg-stone-900 hover:bg-black text-white'
-                  }`}
-                >
-                  {isCurrent ? (
-                    <>
-                      <Check size={13} className="stroke-[2.5]" />
-                      <span>{act.label}</span>
-                    </>
-                  ) : (
-                    <span>{act.label}</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </Card>
   );
 }
