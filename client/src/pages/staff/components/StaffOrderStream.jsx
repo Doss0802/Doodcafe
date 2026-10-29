@@ -27,7 +27,8 @@ export default function StaffOrderStream({
       type === 'dinein' ||
       Boolean(ord?.tableNumber) ||
       Boolean(ord?.tableNo) ||
-      Boolean(ord?.deliveryAddress?.toLowerCase().includes('dine-in'))
+      Boolean(ord?.deliveryAddress?.toLowerCase().includes('dine-in')) ||
+      Boolean(ord?.customer_location?.toLowerCase().includes('dine-in'))
     );
   };
 
@@ -49,7 +50,7 @@ export default function StaffOrderStream({
       ord?.customer_location?.match(/Table\s+(\w+)/i)?.[1];
     if (isDineIn(ord)) {
       return {
-        label: tableNum ? `Table ${tableNum}` : 'Dine-in',
+        label: tableNum ? `Table ${tableNum}` : 'Table not set',
         className: 'bg-blue-600 text-white border-blue-600 font-extrabold shadow-xs',
       };
     }

@@ -55,7 +55,6 @@ const Card = ({ children, className = '' }) => (
 export default function StaffOrders() {
   const [activeTab, setActiveTab] = useState('takeaway'); // 'takeaway' | 'dine-in' | 'kitchen' | 'stream'
   const [takeawayOrders, setTakeawayOrders] = useState([]);
-  const [dineInOrders, setDineInOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -77,27 +76,17 @@ export default function StaffOrders() {
 
   // All Orders tab highlight (when navigating from dine-in card click)
   const [highlightedOrderId, setHighlightedOrderId] = useState(null);
-  const highlightTimerRef = useRef(null);
-  const allOrdersTabRef = useRef(null);
 
   const searchInputRef = useRef(null);
 
-  // ─── Fetch Orders for Active Tab ───
+  // ─── Fetch Takeaway Orders ───
   const fetchOrders = useCallback(async (isSilent = false) => {
     if (!isSilent) setRefreshing(true);
     try {
-      const [takeawayRes, dineInRes] = await Promise.allSettled([
-        axiosInstance.get('/staff/orders?type=takeaway&status=all'),
-        axiosInstance.get('/staff/orders?type=dine-in&paymentStatus=all'),
-      ]);
-
-      if (takeawayRes.status === 'fulfilled' && takeawayRes.value?.data?.data) {
-        setTakeawayOrders(takeawayRes.value.data.data);
+      const takeawayRes = await axiosInstance.get('/staff/orders?type=takeaway&status=all');
+      if (takeawayRes?.data?.data) {
+        setTakeawayOrders(takeawayRes.data.data);
       }
-      if (dineInRes.status === 'fulfilled' && dineInRes.value?.data?.data) {
-        setDineInOrders(dineInRes.value.data.data);
-      }
-
       setLastUpdated(new Date());
     } catch (err) {
       console.error('[StaffOrders] Fetch error:', err);
@@ -234,7 +223,23 @@ export default function StaffOrders() {
     return true;
   });
 
-  const displayedDineInOrders = dineInOrders.filter((ord) => {
+  // ─── Derive Dine-in Orders from liveOrders (Same source as All Orders) ───
+  const isDineInOrder = (ord) => {
+    if (!ord) return false;
+    const type = (ord.orderType || ord.type || '').toLowerCase();
+    return (
+      type === 'dine-in' ||
+      type === 'dinein' ||
+      Boolean(ord.tableNumber) ||
+      Boolean(ord.tableNo) ||
+      Boolean(ord.deliveryAddress?.toLowerCase().includes('dine-in')) ||
+      Boolean(ord.customer_location?.toLowerCase().includes('dine-in'))
+    );
+  };
+
+  const rawDineInOrders = liveOrders.filter(isDineInOrder);
+
+  const displayedDineInOrders = rawDineInOrders.filter((ord) => {
     if (dineInFilter !== 'all' && ord.paymentStatus !== dineInFilter) return false;
     if (!dineInSearch.trim()) return true;
     const q = dineInSearch.trim().toLowerCase();
@@ -250,24 +255,41 @@ export default function StaffOrders() {
     );
   });
 
-  // Navigate from dine-in card to All Orders tab, scroll to + highlight the order
+  // Navigate from dine-in card to All Orders tab
   const handleDineInCardClick = (ord) => {
-    const ordId = ord.id || ord._id;
-    setActiveTab('stream');
-    clearTimeout(highlightTimerRef.current);
+    const ordId = ord?.id || ord?._id;
+    if (!ordId) return;
     setHighlightedOrderId(ordId);
-    // scroll to the row after tab renders
-    setTimeout(() => {
-      const el = document.getElementById(`allorders-row-${ordId}`);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 150);
-    // remove highlight after 2.5s
-    highlightTimerRef.current = setTimeout(() => setHighlightedOrderId(null), 2500);
+    setActiveTab('stream');
   };
+
+  // Scroll to and highlight order in All Orders tab after tab renders
+  useEffect(() => {
+    if (!highlightedOrderId || activeTab !== 'stream') return;
+
+    const timer = setTimeout(() => {
+      const el =
+        document.querySelector(`[data-order-id="${highlightedOrderId}"]`) ||
+        document.getElementById(`allorders-row-${highlightedOrderId}`);
+
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 120);
+
+    const clearTimer = setTimeout(() => {
+      setHighlightedOrderId(null);
+    }, 3500);
+
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(clearTimer);
+    };
+  }, [highlightedOrderId, activeTab]);
 
   // Count Badges for Tabs
   const pendingTakeawayCount = takeawayOrders.filter((o) => o.status !== 'handed_over').length;
-  const pendingDineInCount = dineInOrders.length;
+  const pendingDineInCount = rawDineInOrders.length;
 
   return (
     <main className="min-h-screen bg-stone-50 text-stone-900 pb-24 xl:pb-0 pt-4 sm:pt-6 font-sans">
@@ -311,12 +333,12 @@ export default function StaffOrders() {
         </div>
 
         {/* ── Desktop Tab Switcher (xl screens only) ── */}
-        <div className="hidden xl:flex bg-stone-200/70 p-1.5 rounded-2xl gap-2 mb-6 max-w-md">
+        <div className="hidden xl:flex bg-stone-200/70 p-1.5 rounded-2xl gap-2 mb-6 max-w-lg">
           <button
             type="button"
             onClick={() => setActiveTab('takeaway')}
             className={`flex-1 py-2.5 px-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-sm ${
-              activeTab !== 'dine-in'
+              activeTab === 'takeaway'
                 ? 'bg-amber-500 text-white shadow-md'
                 : 'bg-transparent text-stone-600 hover:text-stone-900 hover:bg-stone-200/50'
             }`}
@@ -325,7 +347,7 @@ export default function StaffOrders() {
             <span>Takeaway Counter</span>
             <span
               className={`text-xs px-2 py-0.5 rounded-full font-extrabold ${
-                activeTab !== 'dine-in' ? 'bg-amber-600 text-amber-100' : 'bg-stone-300 text-stone-700'
+                activeTab === 'takeaway' ? 'bg-amber-600 text-amber-100' : 'bg-stone-300 text-stone-700'
               }`}
             >
               {pendingTakeawayCount}
@@ -351,19 +373,39 @@ export default function StaffOrders() {
               {pendingDineInCount}
             </span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('stream')}
+            className={`flex-1 py-2.5 px-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-sm ${
+              activeTab === 'stream'
+                ? 'bg-amber-500 text-white shadow-md'
+                : 'bg-transparent text-stone-600 hover:text-stone-900 hover:bg-stone-200/50'
+            }`}
+          >
+            <Radio size={17} />
+            <span>All Orders</span>
+            <span
+              className={`text-xs px-2 py-0.5 rounded-full font-extrabold ${
+                activeTab === 'stream' ? 'bg-amber-600 text-amber-100' : 'bg-stone-300 text-stone-700'
+              }`}
+            >
+              {liveOrders.length}
+            </span>
+          </button>
         </div>
 
-        {/* ── 2-Column Grid on xl ── */}
-        <div className="xl:grid xl:grid-cols-[1fr_440px] xl:gap-6 xl:items-start">
+        {/* ── 2-Column Grid on xl (or full width when All Orders is active) ── */}
+        <div className={`xl:grid ${activeTab === 'stream' ? 'xl:grid-cols-1' : 'xl:grid-cols-[1fr_440px]'} xl:gap-6 xl:items-start`}>
 
-          {/* ── LEFT: Orders tabs (Takeaway / Dine-in) ── */}
+          {/* ── LEFT / MAIN: Orders tabs (Takeaway / Dine-in / All Orders) ── */}
           <div>
 
             {/* ═══════════════════════════════════════════════════════════════
                 TAB 1: TAKEAWAY (Bill Lookup & Handover Flow)
             ═══════════════════════════════════════════════════════════════ */}
-            {(activeTab === 'takeaway' || activeTab === 'kitchen' || activeTab === 'stream') && (
-              <div className={activeTab !== 'takeaway' ? 'hidden xl:block space-y-6' : 'space-y-6'}>
+            {activeTab === 'takeaway' && (
+              <div className="space-y-6">
                 {/* 1. Sticky Bill Number Lookup Card */}
                 <div className="sticky top-0 z-10 bg-stone-50 pt-2 pb-3 -mx-4 px-4">
                   <Card className="p-4 sm:p-6 border-amber-200 bg-gradient-to-b from-amber-50/40 via-white to-white shadow-sm">
@@ -574,7 +616,7 @@ export default function StaffOrders() {
                   )}
                 </div>
 
-                {loading ? (
+                {liveLoading ? (
                   <div className="py-20 text-center">
                     <span className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin inline-block mb-3" />
                     <p className="text-stone-500 text-sm font-medium">Loading dine-in orders…</p>
@@ -600,7 +642,22 @@ export default function StaffOrders() {
                 )}
               </div>
             )}
-          </div>{/* end left column */}
+
+            {/* ═══════════════════════════════════════════════════════════════
+                TAB 3: ALL ORDERS STREAM (Full-view on Mobile & Desktop)
+            ═══════════════════════════════════════════════════════════════ */}
+            {activeTab === 'stream' && (
+              <div className="space-y-6">
+                <OrderStream
+                  orders={liveOrders}
+                  loading={liveLoading}
+                  onStatusChange={handleKitchenStatusChange}
+                  role="staff"
+                  highlightedOrderId={highlightedOrderId}
+                />
+              </div>
+            )}
+          </div>{/* end main column */}
 
           {/* ── Mobile Kitchen Tab (below xl only) ── */}
           {activeTab === 'kitchen' && (
@@ -614,39 +671,28 @@ export default function StaffOrders() {
             </div>
           )}
 
-          {/* ── Mobile Stream Tab (below xl only) ── */}
-          {activeTab === 'stream' && (
-            <div className="xl:hidden">
-              <OrderStream
-                orders={liveOrders}
-                loading={liveLoading}
-                onStatusChange={handleKitchenStatusChange}
-                role="staff"
-                highlightedOrderId={highlightedOrderId}
-              />
+          {/* ── RIGHT: Live Kitchen + Order Stream (xl only, visible when takeaway or dine-in active) ── */}
+          {activeTab !== 'stream' && (
+            <div className="hidden xl:flex xl:flex-col gap-4">
+              <div className="max-h-[480px] overflow-y-auto rounded-2xl">
+                <LiveKitchen
+                  orders={liveOrders}
+                  loading={liveLoading}
+                  onStatusChange={handleKitchenStatusChange}
+                  role="staff"
+                />
+              </div>
+              <div className="max-h-[420px] overflow-y-auto rounded-2xl">
+                <OrderStream
+                  orders={liveOrders}
+                  loading={liveLoading}
+                  onStatusChange={handleKitchenStatusChange}
+                  role="staff"
+                  highlightedOrderId={highlightedOrderId}
+                />
+              </div>
             </div>
           )}
-
-          {/* ── RIGHT: Live Kitchen + Order Stream (xl only, stacked) ── */}
-          <div className="hidden xl:flex xl:flex-col gap-4">
-            <div className="max-h-[480px] overflow-y-auto rounded-2xl">
-              <LiveKitchen
-                orders={liveOrders}
-                loading={liveLoading}
-                onStatusChange={handleKitchenStatusChange}
-                role="staff"
-              />
-            </div>
-            <div className="max-h-[420px] overflow-y-auto rounded-2xl">
-              <OrderStream
-                orders={liveOrders}
-                loading={liveLoading}
-                onStatusChange={handleKitchenStatusChange}
-                role="staff"
-                highlightedOrderId={highlightedOrderId}
-              />
-            </div>
-          </div>
 
         </div>{/* end xl:grid */}
       </div>
@@ -963,7 +1009,7 @@ function DineInOrderCard({ order, onCardClick }) {
           <div>
             <div className="flex items-center gap-2 mb-1 flex-wrap">
               <span className="px-2.5 py-0.5 rounded-md text-xs font-black bg-blue-600 text-white shadow-xs">
-                {tableNum ? `Table ${tableNum}` : 'Dine-in'}
+                {tableNum ? `Table ${tableNum}` : 'Table not set'}
               </span>
               <span className="text-[10px] font-extrabold text-stone-400 uppercase tracking-widest">
                 Dine-in
@@ -983,17 +1029,35 @@ function DineInOrderCard({ order, onCardClick }) {
           </span>
         </div>
 
-        {/* Customer info if present */}
-        {(order.customerName || order.user?.name || order.customerPhone || order.user?.phone) && (
-          <div className="py-2 border-b border-stone-100 flex items-center justify-between text-xs text-stone-600">
-            <span className="font-bold text-stone-900 truncate">
+        {/* Customer Details: Name & Phone */}
+        <div className="py-2.5 border-b border-stone-100 flex items-center justify-between text-xs text-stone-700">
+          <div className="min-w-0 flex-1">
+            <span className="text-[10px] text-stone-400 uppercase tracking-widest font-extrabold block">
+              Customer
+            </span>
+            <span className="font-bold text-stone-900 truncate block">
               {order.customerName || order.user?.name || 'Customer'}
             </span>
-            <span className="text-stone-500 font-medium ml-2">
-              {order.customerPhone || order.user?.phone || ''}
-            </span>
           </div>
-        )}
+          <div className="text-right shrink-0 ml-3">
+            <span className="text-[10px] text-stone-400 uppercase tracking-widest font-extrabold block">
+              Phone
+            </span>
+            {order.customerPhone || order.user?.phone ? (
+              <a
+                href={`tel:${order.customerPhone || order.user?.phone}`}
+                onClick={(e) => e.stopPropagation()}
+                className="font-bold text-amber-600 hover:text-amber-700 inline-flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-md"
+                title="Tap to call customer"
+              >
+                <Phone size={11} />
+                <span>{order.customerPhone || order.user?.phone}</span>
+              </a>
+            ) : (
+              <span className="text-stone-400 italic">No phone</span>
+            )}
+          </div>
+        </div>
 
         {/* Food Items Ordered (name x qty) */}
         <div className="py-3">
