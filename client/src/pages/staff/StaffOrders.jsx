@@ -14,14 +14,13 @@ import {
   ShieldCheck,
   AlertTriangle,
   ChefHat,
-  ArrowRight,
   ChevronDown,
   ChevronUp,
   Check,
 } from 'lucide-react';
 import axiosInstance from '../../api/axiosInstance';
 import { useOrderStream } from './components/useStaffOrderStream';
-import { STATUS_CONFIG, getStatusMeta } from './components/staffOrderStatus';
+import { getStatusMeta } from './components/staffOrderStatus';
 import LiveKitchen from './components/StaffLiveKitchen';
 import OrderStream from './components/StaffOrderStream';
 import toast from 'react-hot-toast';
@@ -672,7 +671,6 @@ export default function StaffOrders() {
                   loading={liveLoading}
                   onStatusChange={handleKitchenStatusChange}
                   role="staff"
-                  highlightedOrderId={highlightedOrderId}
                 />
               </div>
             </div>

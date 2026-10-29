@@ -15,7 +15,6 @@ export default function StaffOrderStream({
   loading = false,
   onStatusChange,
   _role = 'staff',
-  highlightedOrderId = null,
 }) {
   const [filter, setFilter] = useState('all'); // 'all' | 'takeaway' | 'dine-in' | 'delivery'
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -168,7 +167,6 @@ export default function StaffOrderStream({
           <div className="md:hidden space-y-3">
             {displayedOrders.map((ord) => {
               const orderId = ord.id || ord._id;
-              const isHighlighted = highlightedOrderId && String(orderId) === String(highlightedOrderId);
               const statusMeta = getStatusMeta(ord.status);
               const typeMeta = getOrderTypeMeta(ord);
               const isActionLoading = actionLoadingId === orderId;
@@ -183,11 +181,7 @@ export default function StaffOrderStream({
               return (
                 <div
                   key={orderId}
-                  id={`allorders-row-${orderId}`}
-                  data-order-id={orderId}
-                  className={`border rounded-2xl p-4 bg-white space-y-3 shadow-xs transition-all duration-500 ${
-                    isHighlighted ? 'border-amber-500 ring-4 ring-amber-400/50 bg-amber-50/40' : 'border-stone-200'
-                  }`}
+                  className="border border-stone-200 rounded-2xl p-4 bg-white space-y-3 shadow-xs"
                 >
                   {/* Header: Bill / Order No, Type & Status */}
                   <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-stone-100">
@@ -307,7 +301,6 @@ export default function StaffOrderStream({
               <tbody className="divide-y divide-stone-100">
                 {displayedOrders.map((ord) => {
                   const orderId = ord.id || ord._id;
-                  const isHighlighted = highlightedOrderId && String(orderId) === String(highlightedOrderId);
                   const statusMeta = getStatusMeta(ord.status);
                   const typeMeta = getOrderTypeMeta(ord);
                   const isActionLoading = actionLoadingId === orderId;
@@ -322,11 +315,7 @@ export default function StaffOrderStream({
                   return (
                     <tr
                       key={orderId}
-                      id={`allorders-row-${orderId}`}
-                      data-order-id={orderId}
-                      className={`transition-all duration-500 ${
-                        isHighlighted ? 'bg-amber-100 ring-2 ring-amber-500' : 'hover:bg-stone-50/70'
-                      }`}
+                      className="hover:bg-stone-50/70 transition-colors"
                     >
                       {/* Order Col */}
                       <td className="py-3 px-4 whitespace-nowrap">
