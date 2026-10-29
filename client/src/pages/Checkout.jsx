@@ -19,7 +19,9 @@ export default function Checkout() {
 
   const urlTable = searchParams.get('table');
   const urlType = searchParams.get('type');
-  const isTableLocked = Boolean(urlTable && String(urlTable).trim());
+  // Lock only if the QR table param is a valid cafe table (1-10)
+  const urlTableNum = parseInt(urlTable, 10);
+  const isTableLocked = Boolean(urlTable && urlTableNum >= 1 && urlTableNum <= 10);
 
   const [placing, setPlacing] = useState(false);
   const [locating, setLocating] = useState(false);
@@ -32,11 +34,11 @@ export default function Checkout() {
   const [coordinates, setCoordinates] = useState({ lat: 11.0168, lng: 76.9558 }); // Default: Coimbatore central coordinates
   const [hasLiveCoords, setHasLiveCoords] = useState(false);
   const [selectedOrderType, setSelectedOrderType] = useState(() => {
-    if (urlTable || urlType === 'dinein' || urlType === 'dine-in') return 'dine-in';
+    if (isTableLocked || urlType === 'dinein' || urlType === 'dine-in') return 'dine-in';
     if (urlType === 'delivery') return 'delivery';
     return 'takeaway';
   });
-  const [tableNumber, setTableNumber] = useState(() => (urlTable ? String(urlTable).trim() : ''));
+  const [tableNumber, setTableNumber] = useState(() => (isTableLocked ? String(urlTableNum) : ''));
   const [isOutOfDeliveryBoundary, setIsOutOfDeliveryBoundary] = useState(false);
 
   // Customer Contact Fields (Required for Staff Verification)
@@ -350,7 +352,7 @@ export default function Checkout() {
                   className={`order-type-btn ${selectedOrderType === 'delivery' ? 'order-type-active' : ''} ${isTableLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
                   onClick={() => !isTableLocked && setSelectedOrderType('delivery')}
                 >
-                  🛵 Live Delivery
+                  Live Delivery
                 </button>
               </div>
             </div>
@@ -383,199 +385,190 @@ export default function Checkout() {
                 <div className="bg-amber-50/60 border-2 border-amber-200 rounded-2xl p-4 sm:p-5 shadow-xs mb-4">
                   <div className="flex items-center gap-2 mb-1.5">
                     <Utensils size={18} className="text-amber-600" />
-                    <label htmlFor="dinein-table-input" className="font-extrabold text-stone-900 text-sm sm:text-base">
+                    <label className="font-extrabold text-stone-900 text-sm sm:text-base">
                       Table Number <span className="text-rose-500">*</span>
                     </label>
                   </div>
                   <p className="text-xs text-stone-500 mb-3">
-                    Please select or type your cafe table number so counter staff can serve your dishes.
+                    Tap your table number so counter staff can serve your dishes.
                   </p>
-                  <div className="flex flex-col sm:flex-row gap-2.5">
-                    <select
-                      id="dinein-table-select"
-                      value={Array.from({ length: 30 }, (_, idx) => String(idx + 1)).includes(String(tableNumber).trim()) ? String(tableNumber).trim() : (tableNumber ? 'custom' : '')}
-                      onChange={(e) => {
-                        if (e.target.value !== 'custom') {
-                          setTableNumber(e.target.value);
-                        }
-                      }}
-                      className="px-3.5 py-3 rounded-xl border-2 border-stone-300 bg-white text-stone-900 font-bold text-sm focus:outline-none focus:ring-3 focus:ring-amber-500/20 focus:border-amber-500"
-                    >
-                      <option value="">-- Choose Table (1 - 30) --</option>
-                      {Array.from({ length: 30 }, (_, idx) => idx + 1).map((n) => (
-                        <option key={n} value={String(n)}>
-                          Table {n}
-                        </option>
-                      ))}
-                      <option value="custom">Other / Custom Table</option>
-                    </select>
-
-                    <input
-                      type="text"
-                      id="dinein-table-input"
-                      value={tableNumber}
-                      onChange={(e) => setTableNumber(e.target.value)}
-                      placeholder="e.g. 4 or T-12"
-                      required
-                      className="flex-1 px-3.5 py-3 rounded-xl border-2 border-stone-300 bg-white text-stone-900 font-bold text-sm focus:outline-none focus:ring-3 focus:ring-amber-500/20 focus:border-amber-500"
-                    />
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setTableNumber(String(n))}
+                        className={`py-2.5 rounded-xl border-2 font-extrabold text-sm transition active:scale-95 ${
+                          tableNumber === String(n)
+                            ? 'bg-amber-500 border-amber-500 text-white shadow-md'
+                            : 'bg-white border-stone-300 text-stone-700 hover:border-amber-400 hover:text-amber-700'
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
                   </div>
+                  {tableNumber && (
+                    <p className="text-xs font-bold text-amber-700 mt-3">
+                      Selected: Table {tableNumber}
+                    </p>
+                  )}
                 </div>
               )
             )}
 
             {/* ── Address Entry Form Component with Live GPS Auto-Fill (Hidden for Dine-in) ── */}
             {selectedOrderType !== 'dine-in' && (
-            <div className="checkout-address-card">
-              <div className="checkout-address-header">
-                <div>
-                  <h3 className="checkout-section-title">
-                    <MapPin size={17} className="checkout-pin-icon" />
-                    Customer Order Location & Delivery Address
-                  </h3>
-                  <p className="checkout-section-sub">
-                    Fill in your physical address or click the button below to auto-fetch your exact live GPS coordinates.
-                  </p>
-                </div>
-              </div>
-
-              {/* Service Boundary User-Alert Banner */}
-              {(isOutOfDeliveryBoundary || !city || !city.toLowerCase().includes('coimbatore')) && (
-                <div className="coimbatore-alert-banner" role="alert" id="coimbatore-boundary-alert">
-                  <div className="coimbatore-alert-icon">⚠️</div>
-                  <div className="coimbatore-alert-body">
-                    <span className="coimbatore-alert-title">Service Boundary Alert</span>
-                    <span className="coimbatore-alert-msg">Delivery currently available in Coimbatore city limits only</span>
+              <div className="checkout-address-card">
+                <div className="checkout-address-header">
+                  <div>
+                    <h3 className="checkout-section-title">
+                      <MapPin size={17} className="checkout-pin-icon" />
+                      Customer Order Location & Delivery Address
+                    </h3>
+                    <p className="checkout-section-sub">
+                      Fill in your physical address or click the button below to auto-fetch your exact live GPS coordinates.
+                    </p>
                   </div>
                 </div>
-              )}
 
-              {/* Prominent Live GPS Location Button */}
-              <div className="checkout-gps-action-wrap">
-                <button
-                  type="button"
-                  id="live-location-gps-btn"
-                  className="btn btn-gps-live"
-                  onClick={handleFetchLiveLocation}
-                  disabled={locating}
-                >
-                  <Navigation size={17} className={locating ? 'adm-spin' : 'gps-pulse-icon'} />
-                  <span>
-                    {locating ? 'Detecting GPS Coordinates...' : 'Order to Live Location'}
-                  </span>
-                </button>
-              </div>
+                {/* Service Boundary User-Alert Banner */}
+                {(isOutOfDeliveryBoundary || !city || !city.toLowerCase().includes('coimbatore')) && (
+                  <div className="coimbatore-alert-banner" role="alert" id="coimbatore-boundary-alert">
+                    <div className="coimbatore-alert-icon">⚠️</div>
+                    <div className="coimbatore-alert-body">
+                      <span className="coimbatore-alert-title">Service Boundary Alert</span>
+                      <span className="coimbatore-alert-msg">Delivery currently available in Coimbatore city limits only</span>
+                    </div>
+                  </div>
+                )}
 
-              {/* Address Form Inputs */}
-              <div className="address-inputs-grid">
-                <div className="form-field full-width">
-                  <label htmlFor="address-street" className="input-label">Street / House / Area (max 120)</label>
-                  <input
-                    type="text"
-                    id="address-street"
-                    className="form-input"
-                    placeholder="e.g. 42 Avinashi Road, Peelamedu"
-                    value={street}
-                    onChange={(e) => setStreet(e.target.value)}
-                    maxLength={120}
-                  />
-                </div>
-
-                <div className="form-field">
-                  <label htmlFor="address-city" className="input-label">City / Delivery Zone (Coimbatore Only)</label>
-                  <select
-                    id="address-city"
-                    className="form-input"
-                    value={city}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setCity(val);
-                      if (val && !val.toLowerCase().includes('coimbatore')) {
-                        setIsOutOfDeliveryBoundary(true);
-                      } else {
-                        setIsOutOfDeliveryBoundary(false);
-                      }
-                    }}
+                {/* Prominent Live GPS Location Button */}
+                <div className="checkout-gps-action-wrap">
+                  <button
+                    type="button"
+                    id="live-location-gps-btn"
+                    className="btn btn-gps-live"
+                    onClick={handleFetchLiveLocation}
+                    disabled={locating}
                   >
-                    <option value="Coimbatore">Coimbatore (Central / City Limits)</option>
-                    <option value="RS Puram, Coimbatore">RS Puram, Coimbatore</option>
-                    <option value="Gandhipuram, Coimbatore">Gandhipuram, Coimbatore</option>
-                    <option value="Peelamedu, Coimbatore">Peelamedu, Coimbatore</option>
-                    <option value="Saibaba Colony, Coimbatore">Saibaba Colony, Coimbatore</option>
-                    <option value="Saravanampatti, Coimbatore">Saravanampatti, Coimbatore</option>
-                    <option value="Ramanathapuram, Coimbatore">Ramanathapuram, Coimbatore</option>
-                    <option value="Singanallur, Coimbatore">Singanallur, Coimbatore</option>
-                    <option value="Race Course, Coimbatore">Race Course, Coimbatore</option>
-                    <option value="Town Hall, Coimbatore">Town Hall, Coimbatore</option>
-                    <option value="Outside Coimbatore (Unsupported)">Outside Coimbatore (Unsupported)</option>
-                    {city && ![
-                      'Coimbatore', 'RS Puram, Coimbatore', 'Gandhipuram, Coimbatore',
-                      'Peelamedu, Coimbatore', 'Saibaba Colony, Coimbatore', 'Saravanampatti, Coimbatore',
-                      'Ramanathapuram, Coimbatore', 'Singanallur, Coimbatore', 'Race Course, Coimbatore',
-                      'Town Hall, Coimbatore', 'Outside Coimbatore (Unsupported)'
-                    ].includes(city) && (
-                      <option value={city}>{city}</option>
-                    )}
-                  </select>
+                    <Navigation size={17} className={locating ? 'adm-spin' : 'gps-pulse-icon'} />
+                    <span>
+                      {locating ? 'Detecting GPS Coordinates...' : 'Order to Live Location'}
+                    </span>
+                  </button>
                 </div>
 
-                <div className="form-field">
-                  <label htmlFor="address-state" className="input-label">State (max 50)</label>
-                  <input
-                    type="text"
-                    id="address-state"
-                    className="form-input"
-                    placeholder="e.g. Tamil Nadu"
-                    value={stateName}
-                    onChange={(e) => setStateName(e.target.value)}
-                    maxLength={50}
-                  />
+                {/* Address Form Inputs */}
+                <div className="address-inputs-grid">
+                  <div className="form-field full-width">
+                    <label htmlFor="address-street" className="input-label">Street / House / Area (max 120)</label>
+                    <input
+                      type="text"
+                      id="address-street"
+                      className="form-input"
+                      placeholder="e.g. 42 Avinashi Road, Peelamedu"
+                      value={street}
+                      onChange={(e) => setStreet(e.target.value)}
+                      maxLength={120}
+                    />
+                  </div>
+
+                  <div className="form-field">
+                    <label htmlFor="address-city" className="input-label">City / Delivery Zone (Coimbatore Only)</label>
+                    <select
+                      id="address-city"
+                      className="form-input"
+                      value={city}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setCity(val);
+                        if (val && !val.toLowerCase().includes('coimbatore')) {
+                          setIsOutOfDeliveryBoundary(true);
+                        } else {
+                          setIsOutOfDeliveryBoundary(false);
+                        }
+                      }}
+                    >
+                      <option value="Coimbatore">Coimbatore (Central / City Limits)</option>
+                      <option value="RS Puram, Coimbatore">RS Puram, Coimbatore</option>
+                      <option value="Gandhipuram, Coimbatore">Gandhipuram, Coimbatore</option>
+                      <option value="Peelamedu, Coimbatore">Peelamedu, Coimbatore</option>
+                      <option value="Saibaba Colony, Coimbatore">Saibaba Colony, Coimbatore</option>
+                      <option value="Saravanampatti, Coimbatore">Saravanampatti, Coimbatore</option>
+                      <option value="Ramanathapuram, Coimbatore">Ramanathapuram, Coimbatore</option>
+                      <option value="Singanallur, Coimbatore">Singanallur, Coimbatore</option>
+                      <option value="Race Course, Coimbatore">Race Course, Coimbatore</option>
+                      <option value="Town Hall, Coimbatore">Town Hall, Coimbatore</option>
+                      <option value="Outside Coimbatore (Unsupported)">Outside Coimbatore (Unsupported)</option>
+                      {city && ![
+                        'Coimbatore', 'RS Puram, Coimbatore', 'Gandhipuram, Coimbatore',
+                        'Peelamedu, Coimbatore', 'Saibaba Colony, Coimbatore', 'Saravanampatti, Coimbatore',
+                        'Ramanathapuram, Coimbatore', 'Singanallur, Coimbatore', 'Race Course, Coimbatore',
+                        'Town Hall, Coimbatore', 'Outside Coimbatore (Unsupported)'
+                      ].includes(city) && (
+                          <option value={city}>{city}</option>
+                        )}
+                    </select>
+                  </div>
+
+                  <div className="form-field">
+                    <label htmlFor="address-state" className="input-label">State (max 50)</label>
+                    <input
+                      type="text"
+                      id="address-state"
+                      className="form-input"
+                      placeholder="e.g. Tamil Nadu"
+                      value={stateName}
+                      onChange={(e) => setStateName(e.target.value)}
+                      maxLength={50}
+                    />
+                  </div>
+
+                  <div className="form-field">
+                    <label htmlFor="address-zip" className="input-label">Pincode / Zip Code (5-6 digits)</label>
+                    <input
+                      type="text"
+                      id="address-zip"
+                      className="form-input"
+                      placeholder="e.g. 641001"
+                      value={zipCode}
+                      onChange={(e) => setZipCode(e.target.value.replace(/[^0-9]/g, ''))}
+                      maxLength={10}
+                      pattern="[0-9]{5,6}"
+                      title="Please enter a valid 5 or 6 digit pincode"
+                    />
+                  </div>
                 </div>
 
-                <div className="form-field">
-                  <label htmlFor="address-zip" className="input-label">Pincode / Zip Code (5-6 digits)</label>
-                  <input
-                    type="text"
-                    id="address-zip"
-                    className="form-input"
-                    placeholder="e.g. 641001"
-                    value={zipCode}
-                    onChange={(e) => setZipCode(e.target.value.replace(/[^0-9]/g, ''))}
-                    maxLength={10}
-                    pattern="[0-9]{5,6}"
-                    title="Please enter a valid 5 or 6 digit pincode"
-                  />
+                {/* ── Embedded Google Map Visual Module Container ── */}
+                <div className="checkout-map-container">
+                  <div className="checkout-map-topbar">
+                    <span className="checkout-map-lbl">
+                      <MapPin size={14} /> Embedded Location Map Preview
+                    </span>
+                    <a
+                      href={externalMapsLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="checkout-map-ext-link"
+                      title="Open in Google Maps"
+                    >
+                      <span>View in Google Maps</span>
+                      <ExternalLink size={12} />
+                    </a>
+                  </div>
+                  <div className="checkout-map-iframe-wrap">
+                    <iframe
+                      title="Live Location Map Preview"
+                      src={mapEmbedUrl}
+                      className="checkout-map-iframe"
+                      loading="lazy"
+                      allowFullScreen
+                    />
+                  </div>
                 </div>
               </div>
-
-              {/* ── Embedded Google Map Visual Module Container ── */}
-              <div className="checkout-map-container">
-                <div className="checkout-map-topbar">
-                  <span className="checkout-map-lbl">
-                    <MapPin size={14} /> Embedded Location Map Preview
-                  </span>
-                  <a
-                    href={externalMapsLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="checkout-map-ext-link"
-                    title="Open in Google Maps"
-                  >
-                    <span>View in Google Maps</span>
-                    <ExternalLink size={12} />
-                  </a>
-                </div>
-                <div className="checkout-map-iframe-wrap">
-                  <iframe
-                    title="Live Location Map Preview"
-                    src={mapEmbedUrl}
-                    className="checkout-map-iframe"
-                    loading="lazy"
-                    allowFullScreen
-                  />
-                </div>
-              </div>
-            </div>
             )}
 
             {/* ── Payment Mode & Status Selection ── */}

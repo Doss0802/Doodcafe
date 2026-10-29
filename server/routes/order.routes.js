@@ -83,13 +83,31 @@ const orderValidation = [
   body('tableNumber')
     .optional({ nullable: true })
     .trim()
-    .isLength({ max: 20 })
-    .withMessage('Table number cannot exceed 20 characters'),
+    .custom((val, { req }) => {
+      if (!val) return true;
+      const orderType = req.body && req.body.orderType;
+      if (orderType === 'dine-in') {
+        const n = parseInt(val, 10);
+        if (isNaN(n) || n < 1 || n > 10) {
+          throw new Error('Table number must be between 1 and 10 for dine-in orders');
+        }
+      }
+      return true;
+    }),
   body('tableNo')
     .optional({ nullable: true })
     .trim()
-    .isLength({ max: 20 })
-    .withMessage('Table number cannot exceed 20 characters'),
+    .custom((val, { req }) => {
+      if (!val) return true;
+      const orderType = req.body && req.body.orderType;
+      if (orderType === 'dine-in') {
+        const n = parseInt(val, 10);
+        if (isNaN(n) || n < 1 || n > 10) {
+          throw new Error('Table number must be between 1 and 10 for dine-in orders');
+        }
+      }
+      return true;
+    }),
 ];
 
 const idValidation = [
