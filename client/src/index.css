@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=Handlee&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=Handlee&family=UnifrakturCook:wght@700&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -432,12 +432,12 @@
   background: var(--gold-muted) !important;
 }
 
-/* ── Custom Cursive / Handwriting Typography for Nav Items ── */
+/* ── Custom Old English / Blackletter Typography for Nav Items ── */
 .cursive-nav-text {
-  font-family: 'Caveat', 'Handlee', cursive, sans-serif;
-  font-size: 1.28rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-family: 'UnifrakturCook', 'UnifrakturMaguntia', serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   line-height: 1.15;
   display: inline-block;
   vertical-align: middle;
@@ -449,9 +449,9 @@
 }
 
 .dropdown-item .cursive-nav-text {
-  font-size: 1.18rem;
-  font-weight: 600;
-  letter-spacing: 0.015em;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
   color: inherit;
 }
 
@@ -460,9 +460,9 @@
 }
 
 .mobile-nav-link .cursive-nav-text {
-  font-size: 1.35rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 .navbar-actions {

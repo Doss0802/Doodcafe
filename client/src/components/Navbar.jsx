@@ -44,7 +44,7 @@ export default function Navbar() {
 
   const navLinks = [
     { label: 'Home', path: '/' },
-    { label: 'Cafe Items', path: '/menu' },
+    { label: 'Cafe Menu', path: '/menu' },
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -186,7 +186,7 @@ export default function Navbar() {
                       role="menuitem"
                       onClick={() => setProfileOpen(false)}
                     >
-                      Dashboard Overview
+                      Admin Panel
                     </Link>
                     <Link
                       to="/admin/menu-management"
@@ -256,7 +256,7 @@ export default function Navbar() {
               {isAuthenticated && user?.role === 'admin' && (
                 <>
                   <Link to="/admin" className="mobile-nav-link mobile-nav-admin" onClick={() => setMobileOpen(false)}>
-                    Dashboard Overview
+                    Admin Panel
                   </Link>
                   <Link to="/admin/menu-management" className="mobile-nav-link mobile-nav-admin font-bold text-amber-500" onClick={() => setMobileOpen(false)}>
                     Menu Management
