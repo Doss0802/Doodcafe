@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { UtensilsCrossed, ShoppingBag, Bike, CalendarDays, BookOpen, ArrowRight } from 'lucide-react';
 import axiosInstance from '../api/axiosInstance';
 
 import cafeLogo from '../images/cafe_logo.png';
@@ -64,12 +64,79 @@ export default function Home() {
               <span className="hero-title-accent"> — Welcome Always</span>
             </h1>
             <div className="hero-actions">
-              <div className="hero-order-grid">
-                <Link to="/checkout?type=dinein" className="hero-order-btn">🍽️ Dine-in</Link>
-                <Link to="/checkout?type=takeaway" className="hero-order-btn">📦 Takeaway</Link>
-                <Link to="/checkout?type=delivery" className="hero-order-btn">🛵 Live Delivery</Link>
-                <Link to="/book-events" className="hero-order-btn">🎉 Book Events</Link>
-                <Link to="/menu" className="hero-order-btn hero-order-btn--wide">☕ Cafe Menu</Link>
+              <div className="hero-order-block">
+                {/* 3 Order Type Buttons */}
+                <div className="hero-order-row">
+                  <Link
+                    to="/menu?type=dinein"
+                    onClick={() => {
+                      try { sessionStorage.setItem('doodcafe_order_type', 'dine-in'); } catch (_) {}
+                    }}
+                    className="hero-btn hero-btn-gold"
+                  >
+                    <UtensilsCrossed className="hero-btn-icon" size={20} />
+                    <div className="hero-btn-content">
+                      <span className="hero-btn-title">Dine-in</span>
+                      <span className="hero-btn-sub">Eat at cafe</span>
+                    </div>
+                  </Link>
+
+                  <Link
+                    to="/menu?type=takeaway"
+                    onClick={() => {
+                      try { sessionStorage.setItem('doodcafe_order_type', 'takeaway'); } catch (_) {}
+                    }}
+                    className="hero-btn hero-btn-gold"
+                  >
+                    <ShoppingBag className="hero-btn-icon" size={20} />
+                    <div className="hero-btn-content">
+                      <span className="hero-btn-title">Takeaway</span>
+                      <span className="hero-btn-sub">Pick up</span>
+                    </div>
+                  </Link>
+
+                  <Link
+                    to="/menu?type=delivery"
+                    onClick={() => {
+                      try { sessionStorage.setItem('doodcafe_order_type', 'delivery'); } catch (_) {}
+                    }}
+                    className="hero-btn hero-btn-gold"
+                  >
+                    <Bike className="hero-btn-icon" size={20} />
+                    <div className="hero-btn-content">
+                      <span className="hero-btn-title">Live Delivery</span>
+                      <span className="hero-btn-sub">To your door</span>
+                    </div>
+                  </Link>
+                </div>
+
+                {/* Secondary Row: Book Events & Cafe Menu */}
+                <div className="hero-secondary-row">
+                  <Link
+                    to="/book-events"
+                    className="hero-btn hero-btn-glass"
+                  >
+                    <CalendarDays className="hero-btn-icon" size={18} />
+                    <div className="hero-btn-content">
+                      <span className="hero-btn-title">Book Events</span>
+                      <span className="hero-btn-sub">Parties &amp; meets</span>
+                    </div>
+                  </Link>
+
+                  <Link
+                    to="/menu"
+                    onClick={() => {
+                      try { sessionStorage.removeItem('doodcafe_order_type'); } catch (_) {}
+                    }}
+                    className="hero-btn hero-btn-glass"
+                  >
+                    <BookOpen className="hero-btn-icon" size={18} />
+                    <div className="hero-btn-content">
+                      <span className="hero-btn-title">Cafe Menu</span>
+                      <span className="hero-btn-sub">Explore all items</span>
+                    </div>
+                  </Link>
+                </div>
               </div>
             </div>
           </div>

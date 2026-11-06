@@ -534,7 +534,7 @@ function TableQrCodesSection() {
       <div className="bg-stone-50 border border-stone-200/80 rounded-2xl px-4 py-3 mt-4 text-xs text-stone-600 flex items-center justify-between gap-3 flex-wrap adm-table-qr-print-hide">
         <div>
           <span className="font-bold text-stone-800">QR Encodes: </span>
-          <code className="text-amber-700 font-mono font-bold">{productionDomain}/checkout?type=dinein&table=N</code>
+          <code className="text-amber-700 font-mono font-bold">{productionDomain}/menu?type=dinein&table=N</code>
         </div>
         <span className="text-[11px] text-stone-400 font-medium">
           Ready for cafe acrylic table display stands
@@ -544,7 +544,7 @@ function TableQrCodesSection() {
       {/* Grid of Printable Table Cards */}
       <div className="adm-table-qr-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
         {tableNumbers.map((num) => {
-          const qrTargetUrl = `${productionDomain}/checkout?type=dinein&table=${num}`;
+          const qrTargetUrl = `${productionDomain}/menu?type=dinein&table=${num}`;
           const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrTargetUrl)}&margin=8`;
 
           return (
@@ -580,7 +580,7 @@ function TableQrCodesSection() {
 
               {/* URL Preview */}
               <span className="text-[10px] font-mono text-stone-400 mt-3 truncate max-w-full block">
-                {productionDomain}/checkout?type=dinein&table={num}
+                {productionDomain}/menu?type=dinein&table={num}
               </span>
 
               {/* Quick Actions (Screen Only) */}

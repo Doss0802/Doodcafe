@@ -47,6 +47,10 @@ export default function Navbar() {
     { label: 'Cafe Menu', path: '/menu' },
   ];
 
+  const handleCafeMenuClick = () => {
+    try { sessionStorage.removeItem('doodcafe_order_type'); } catch (_) {}
+  };
+
   const isActive = (path) => location.pathname === path;
 
   return (
@@ -75,6 +79,7 @@ export default function Navbar() {
               key={link.path}
               to={link.path}
               className={`nav-link ${isActive(link.path) ? 'nav-link-active' : ''}`}
+              onClick={link.path === '/menu' ? handleCafeMenuClick : undefined}
             >
               <span className="cursive-nav-text">{link.label}</span>
             </Link>
@@ -235,7 +240,10 @@ export default function Navbar() {
               key={link.path}
               to={link.path}
               className={`mobile-nav-link ${isActive(link.path) ? 'nav-link-active' : ''}`}
-              onClick={() => setMobileOpen(false)}
+              onClick={() => {
+                setMobileOpen(false);
+                if (link.path === '/menu') handleCafeMenuClick();
+              }}
             >
               <span className="cursive-nav-text">{link.label}</span>
             </Link>

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { SlidersHorizontal, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { SlidersHorizontal, ArrowUpDown, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
+import useCartStore from '../store/cartStore';
 import axiosInstance from '../api/axiosInstance';
 import MenuCard from '../components/MenuCard';
 import ItemModal from '../components/ItemModal';
@@ -138,7 +139,59 @@ const filterAndSortLocal = (category, search, veg, sortBy) => {
 };
 
 export default function Menu() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const cartItems = useCartStore((s) => s.items);
+
+  const urlType = searchParams.get('type');
+  const urlTable = searchParams.get('table');
+
+  const [orderType, setLocalOrderType] = useState(() => {
+    if (urlType === 'dinein' || urlType === 'dine-in') return 'dine-in';
+    if (urlType === 'takeaway') return 'takeaway';
+    if (urlType === 'delivery') return 'delivery';
+    try {
+      return sessionStorage.getItem('doodcafe_order_type') || null;
+    } catch (_) {
+      return null;
+    }
+  });
+
+  const [tableNumber, setLocalTableNumber] = useState(() => {
+    if (urlTable) return urlTable;
+    try {
+      return sessionStorage.getItem('doodcafe_table') || null;
+    } catch (_) {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    if (urlType) {
+      const norm = (urlType === 'dinein' || urlType === 'dine-in') ? 'dine-in' : urlType;
+      setLocalOrderType(norm);
+      try { sessionStorage.setItem('doodcafe_order_type', norm); } catch (_) {}
+    }
+    if (urlTable) {
+      setLocalTableNumber(urlTable);
+      try { sessionStorage.setItem('doodcafe_table', urlTable); } catch (_) {}
+    }
+  }, [urlType, urlTable]);
+
+  const totalCartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0);
+  const totalCartAmount = cartItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
+
+  const handleProceedToCheckout = () => {
+    const params = new URLSearchParams();
+    if (orderType) {
+      params.set('type', orderType === 'dine-in' ? 'dinein' : orderType);
+    }
+    if (tableNumber) {
+      params.set('table', tableNumber);
+    }
+    const q = params.toString();
+    navigate(q ? `/checkout?${q}` : '/checkout');
+  };
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
   const [loading, setLoading] = useState(true);
@@ -292,6 +345,25 @@ export default function Menu() {
         {/* Page Header */}
         <div className="page-header">
           <h1 className="page-title cursive-title">Our Menu</h1>
+          {orderType && (
+            <div className="menu-order-banner animate-fade-up">
+              <div className="menu-order-banner-content">
+                <span className="menu-order-banner-icon">
+                  {orderType === 'dine-in' ? '🍽️' : orderType === 'delivery' ? '🛵' : '📦'}
+                </span>
+                <span className="menu-order-banner-text">
+                  Ordering for:&nbsp;
+                  <strong>
+                    {orderType === 'dine-in'
+                      ? (tableNumber ? `Dine-in (Table ${tableNumber})` : 'Dine-in')
+                      : orderType === 'delivery'
+                        ? 'Live Delivery'
+                        : 'Takeaway'}
+                  </strong>
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* QuickSort & Veg Controls */}
@@ -425,6 +497,29 @@ export default function Menu() {
           </div>
         )}
       </div>
+
+      {/* Sticky Bottom Proceed to Checkout Bar */}
+      {totalCartCount > 0 && (
+        <aside className="menu-sticky-checkout-bar" aria-label="Cart summary">
+          <div className="menu-sticky-checkout-inner">
+            <div className="menu-sticky-checkout-details">
+              <span className="menu-sticky-checkout-badge">
+                {totalCartCount} {totalCartCount === 1 ? 'item' : 'items'}
+              </span>
+              <span className="menu-sticky-checkout-sep">·</span>
+              <span className="menu-sticky-checkout-amount">₹{totalCartAmount}</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleProceedToCheckout}
+              className="btn btn-primary menu-sticky-checkout-btn"
+            >
+              <span>Proceed to Checkout</span>
+              <ArrowRight size={18} />
+            </button>
+          </div>
+        </aside>
+      )}
     </main>
   );
 }

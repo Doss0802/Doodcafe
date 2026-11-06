@@ -144,7 +144,7 @@ export function ProtectedRoute({ children, adminOnly = false, staffOnly = false,
     clearAuth();
     return (
       <Navigate
-        to={`/login?redirect=${encodeURIComponent(location.pathname)}`}
+        to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`}
         replace
       />
     );
@@ -154,7 +154,7 @@ export function ProtectedRoute({ children, adminOnly = false, staffOnly = false,
   if (!isAuthenticated) {
     return (
       <Navigate
-        to={`/login?redirect=${encodeURIComponent(location.pathname)}`}
+        to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`}
         replace
       />
     );

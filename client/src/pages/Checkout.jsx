@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { CreditCard, MessageSquare, CheckCircle, Package, MapPin, Navigation, ExternalLink, User, Phone, Utensils, QrCode } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { CreditCard, MessageSquare, CheckCircle, Package, MapPin, Navigation, ExternalLink, User, Utensils } from 'lucide-react';
 import useCartStore from '../store/cartStore';
 import useAuthStore from '../store/authStore';
 import axiosInstance from '../api/axiosInstance';
@@ -9,11 +9,13 @@ import toast from 'react-hot-toast';
 
 export default function Checkout() {
   const {
-    items, paymentMode, setPaymentMode,
+    items, setPaymentMode,
     specialInstructions, setSpecialInstructions,
+    setOrderType,
     clearCart,
   } = useCartStore();
   const user = useAuthStore((s) => s.user);
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   const urlTable = searchParams.get('table');
@@ -72,12 +74,15 @@ export default function Checkout() {
     document.title = 'Checkout & Live Location — Dood Cafe';
   }, []);
 
-  const dummyItems = [
-    { _id: 'dummy1', name: 'French Fries', price: 99, quantity: 1 },
-    { _id: 'dummy2', name: 'Crispy chicken strips 4pcs', price: 199, quantity: 1 },
-  ];
+  // ── Redirect to /menu if cart is empty, keeping all query params ──
+  useEffect(() => {
+    if (items.length === 0) {
+      const q = searchParams.toString();
+      navigate(q ? `/menu?${q}` : '/menu', { replace: true });
+    }
+  }, [items.length, searchParams, navigate]);
 
-  const displayItems = items.length > 0 ? items : dummyItems;
+  const displayItems = items;
   const totalAmount = displayItems.reduce((s, i) => s + i.price * i.quantity, 0);
 
   // ── Geolocation & Reverse Geocoding Auto-Fill ──────────────────────────────
@@ -210,7 +215,7 @@ export default function Checkout() {
     try {
       const isMongoId = (id) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id);
 
-      const orderItems = (items.length > 0 ? items : dummyItems).map((i) => {
+      const orderItems = items.map((i) => {
         const item = { name: i.name, price: i.price, quantity: i.quantity };
         if (isMongoId(i._id)) item.menuItemId = i._id;
         return item;
@@ -281,6 +286,10 @@ export default function Checkout() {
   const mapEmbedUrl = `https://maps.google.com/maps?q=${coordinates.lat},${coordinates.lng}&hl=en&z=13&output=embed`;
   const externalMapsLink = `https://www.google.com/maps?q=${coordinates.lat},${coordinates.lng}`;
 
+  if (items.length === 0) {
+    return null;
+  }
+
   return (
     <main className="checkout-page">
       <div className="container checkout-grid">
@@ -345,15 +354,6 @@ export default function Checkout() {
                     🔒 Table {tableNumber} QR Locked
                   </span>
                 )}
-                {typeLocked && !isTableLocked && (
-                  <button
-                    type="button"
-                    className="text-xs text-stone-500 underline"
-                    onClick={() => setTypeLocked(false)}
-                  >
-                    Change
-                  </button>
-                )}
               </div>
 
               {/* Locked: show label only */}
@@ -381,6 +381,7 @@ export default function Checkout() {
                         setSelectedOrderType(value);
                         setTypeLocked(true);
                         try { sessionStorage.setItem(SESSION_KEY, value); } catch (_) {}
+                        setOrderType(value);
                       }}
                     >
                       {label}

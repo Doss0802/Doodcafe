@@ -4,7 +4,7 @@ import useCartStore from '../store/cartStore';
 import useAuthStore from '../store/authStore';
 
 export default function CartDrawer() {
-  const { items, isOpen, closeCart, updateQuantity, removeItem, orderType, setOrderType } = useCartStore();
+  const { items, isOpen, closeCart, updateQuantity, removeItem, orderType } = useCartStore();
   const { isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
 
@@ -13,10 +13,21 @@ export default function CartDrawer() {
 
   const handleCheckout = () => {
     closeCart();
+    let target = '/checkout';
+    try {
+      const storedType = sessionStorage.getItem('doodcafe_order_type');
+      const storedTable = sessionStorage.getItem('doodcafe_table');
+      const params = new URLSearchParams();
+      if (storedType) params.set('type', (storedType === 'dine-in' || storedType === 'dinein') ? 'dinein' : storedType);
+      if (storedTable) params.set('table', storedTable);
+      const q = params.toString();
+      if (q) target = `/checkout?${q}`;
+    } catch (_) {}
+
     if (!isAuthenticated) {
-      navigate('/login?redirect=/checkout');
+      navigate(`/login?redirect=${encodeURIComponent(target)}`);
     } else {
-      navigate('/checkout');
+      navigate(target);
     }
   };
 
@@ -52,12 +63,17 @@ export default function CartDrawer() {
         <div className="cart-order-type">
           <button
             type="button"
-            id="order-type-takeaway"
+            id="order-type-badge"
             className="order-type-btn order-type-active"
             style={{ width: '100%', cursor: 'default' }}
             disabled
           >
-            📦 Takeaway Order
+            {(() => {
+              const currentType = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('doodcafe_order_type') || orderType : orderType;
+              if (currentType === 'dine-in' || currentType === 'dinein') return '🍽️ Dine-in Order';
+              if (currentType === 'delivery') return '🛵 Live Delivery Order';
+              return '📦 Takeaway Order';
+            })()}
           </button>
         </div>
 
