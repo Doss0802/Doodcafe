@@ -276,6 +276,12 @@ export default function AdminDashboard() {
           >
             <span>Menu Management</span>
           </Link>
+          <Link
+            to="/admin/event-bookings"
+            className="flex-1 py-2.5 px-4 rounded-lg font-bold text-sm flex items-center justify-center text-stone-600 hover:bg-stone-100 transition-colors"
+          >
+            <span>Event Bookings</span>
+          </Link>
         </div>
 
         {/* ── Top Bar / Header ── */}

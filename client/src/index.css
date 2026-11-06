@@ -7498,3 +7498,422 @@
   }
 }
 
+
+
+/* ════════════════════════════════════════════════════════════════
+   BOOK EVENTS PAGE  (.ev-*)
+════════════════════════════════════════════════════════════════ */
+.ev-page {
+  min-height: 70vh;
+  padding: 2rem 0 3rem;
+  background: var(--bg-soft, #fdf8f0);
+}
+
+.ev-container {
+  max-width: 1100px;
+}
+
+/* Header */
+.ev-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.ev-header-emoji {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+.ev-title {
+  font-family: var(--nav-font, Georgia, serif);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--charcoal, #1a1a1a);
+  margin: 0 0 0.5rem;
+}
+.ev-subtitle {
+  color: #666;
+  font-size: 0.95rem;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+/* Grid: form left, slots panel right */
+.ev-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+@media (min-width: 768px) {
+  .ev-grid {
+    grid-template-columns: 1fr 320px;
+  }
+}
+
+/* Cards inside form */
+.ev-card {
+  background: #fff;
+  border: 1.5px solid #e5dfc9;
+  border-radius: 14px;
+  padding: 1.25rem 1.25rem 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+.ev-card-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--charcoal, #1a1a1a);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.ev-req { color: #ef4444; margin-left: 2px; }
+
+.ev-fields-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+@media (max-width: 480px) {
+  .ev-fields-row { grid-template-columns: 1fr; }
+}
+
+.ev-readonly {
+  background: #f5f5f0 !important;
+  color: #888 !important;
+  cursor: default;
+}
+
+/* Conflict alert */
+.ev-conflict-alert {
+  background: #fef2f2;
+  border: 1.5px solid #fca5a5;
+  color: #b91c1c;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-top: 0.75rem;
+}
+
+/* Booked slots warning inside form */
+.ev-slots-warn {
+  background: #fffbeb;
+  border: 1.5px solid #fcd34d;
+  border-radius: 10px;
+  padding: 0.65rem 0.9rem;
+  font-size: 0.82rem;
+  color: #92400e;
+  margin-bottom: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.ev-slots-warn-icon { font-size: 1rem; }
+.ev-slots-mini-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+}
+.ev-slot-pill {
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 20px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #78350f;
+  white-space: nowrap;
+}
+
+.ev-char-hint {
+  font-size: 0.75rem;
+  color: #aaa;
+  text-align: right;
+  margin: 0.25rem 0 0;
+}
+
+.ev-submit-btn {
+  width: 100%;
+  margin-top: 0.5rem;
+  font-size: 1rem;
+  padding: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+/* ── Booked Slots Panel (right column) ── */
+.ev-slots-panel {
+  background: #fff;
+  border: 1.5px solid #e5dfc9;
+  border-radius: 14px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  align-self: start;
+  position: sticky;
+  top: 80px;
+}
+.ev-slots-panel-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--charcoal, #1a1a1a);
+  margin: 0 0 0.25rem;
+}
+.ev-slots-panel-sub {
+  font-size: 0.8rem;
+  color: #888;
+  margin: 0 0 1rem;
+}
+.ev-slots-loading,
+.ev-slots-empty {
+  color: #aaa;
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 1.5rem 0;
+}
+.ev-slots-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+.ev-slot-card {
+  background: #f9f5ec;
+  border: 1.5px solid #e5dfc9;
+  border-radius: 10px;
+  padding: 0.65rem 0.85rem;
+  opacity: 0.85;
+}
+.ev-slot-date {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #78350f;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-bottom: 0.2rem;
+}
+.ev-slot-time {
+  font-size: 0.82rem;
+  color: #555;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-bottom: 0.2rem;
+}
+.ev-slot-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.3rem;
+}
+.ev-slot-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: #d1fae5;
+  color: #065f46;
+  border-radius: 20px;
+  padding: 0.15rem 0.6rem;
+  border: 1px solid #6ee7b7;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Success Card ── */
+.ev-success-card {
+  background: #fff;
+  border: 1.5px solid #e5dfc9;
+  border-radius: 18px;
+  padding: 2.5rem 2rem;
+  max-width: 520px;
+  margin: 2rem auto;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+}
+.ev-success-icon {
+  color: #22c55e;
+  margin-bottom: 1rem;
+}
+.ev-success-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--charcoal, #1a1a1a);
+  margin: 0 0 0.75rem;
+}
+.ev-success-sub {
+  font-size: 0.95rem;
+  color: #444;
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+.ev-success-note {
+  font-size: 0.85rem;
+  color: #888;
+  margin-bottom: 1.5rem;
+}
+.ev-success-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ADMIN EVENT BOOKINGS PAGE  (.ev-admin-*)
+════════════════════════════════════════════════════════════════ */
+.ev-admin-filter-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+.ev-admin-chip {
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  border: 1.5px solid #d6cdb5;
+  background: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #555;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.ev-admin-chip:hover { background: #fdf8f0; border-color: var(--gold, #d4a017); }
+.ev-admin-chip--active {
+  background: var(--gold, #d4a017);
+  border-color: var(--gold-dark, #b8870f);
+  color: #1a1a1a;
+}
+
+.ev-admin-table-wrap {
+  background: #fff;
+  border-radius: 14px;
+  border: 1.5px solid #e5dfc9;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+/* Desktop table */
+.ev-admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.ev-admin-table th {
+  background: #fdf8f0;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 700;
+  color: #555;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1.5px solid #e5dfc9;
+}
+.ev-admin-table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #f0ebe0;
+  vertical-align: middle;
+}
+.ev-admin-table tr:last-child td { border-bottom: none; }
+.ev-admin-row--cancelled td { opacity: 0.5; }
+
+.ev-admin-cell-date,
+.ev-admin-cell-time,
+.ev-admin-cell-name,
+.ev-admin-cell-phone {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #333;
+  font-size: 0.85rem;
+}
+.ev-admin-cell-event {
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.ev-status-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 20px;
+  padding: 0.2rem 0.65rem;
+  white-space: nowrap;
+}
+.ev-status-badge--booked {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+}
+.ev-status-badge--cancelled {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.ev-cancel-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  border: 1.5px solid #fca5a5;
+  background: #fff;
+  color: #dc2626;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.ev-cancel-btn:hover:not(:disabled) { background: #fee2e2; }
+.ev-cancel-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Mobile cards — hidden on desktop */
+.ev-admin-mobile-cards { display: none; }
+
+@media (max-width: 768px) {
+  .ev-admin-table { display: none; }
+  .ev-admin-mobile-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+  .ev-admin-mcard {
+    background: #fdf8f0;
+    border: 1.5px solid #e5dfc9;
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  .ev-admin-mcard--cancelled { opacity: 0.55; }
+  .ev-admin-mcard-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.4rem;
+  }
+  .ev-admin-mcard-event {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #1a1a1a;
+  }
+  .ev-admin-mcard-row {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.83rem;
+    color: #444;
+  }
+}

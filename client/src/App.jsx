@@ -19,7 +19,9 @@ import OrderTracking from './pages/OrderTracking';
 import Profile from './pages/Profile';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import MenuManagement from './pages/admin/MenuManagement';
+import AdminEventBookings from './pages/admin/AdminEventBookings';
 import StaffOrders from './pages/staff/StaffOrders';
+import BookEvents from './pages/BookEvents';
 
 function App() {
   const { isAuthenticated, fetchMe } = useAuthStore();
@@ -42,13 +44,7 @@ function App() {
             {/* Public */}
             <Route path="/" element={<Home />} />
             <Route path="/menu" element={<Menu />} />
-            <Route path="/book-events" element={
-              <div style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', padding: '2rem' }}>
-                <h1 style={{ fontSize: '2rem', fontWeight: 700 }}>🎉 Book Events</h1>
-                <p style={{ color: '#666', textAlign: 'center', maxWidth: '400px' }}>Event booking is coming soon! Contact us directly to reserve your spot.</p>
-                <a href="/" className="btn btn-primary">Back to Home</a>
-              </div>
-            } />
+            <Route path="/book-events" element={<BookEvents />} />
             {/* Public — unauthenticated access only */}
             <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
             <Route path="/register" element={<PublicOnlyRoute><Register /></PublicOnlyRoute>} />
@@ -61,6 +57,7 @@ function App() {
             <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin/dashboard" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin/menu-management" element={<ProtectedRoute adminOnly><MenuManagement /></ProtectedRoute>} />
+            <Route path="/admin/event-bookings" element={<ProtectedRoute adminOnly><AdminEventBookings /></ProtectedRoute>} />
             <Route path="/staff/orders" element={<ProtectedRoute staffOnly><StaffOrders /></ProtectedRoute>} />
 
             {/* 404 */}
