@@ -399,8 +399,7 @@ export default function MenuManagement() {
             <button
               onClick={fetchData}
               disabled={loading}
-              className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg
-                bg-stone-100 hover:bg-stone-200 border border-stone-200 text-stone-700 transition"
+              className="clay-btn clay-light flex items-center gap-1.5 text-xs font-bold px-3 py-2 min-h-[44px] text-stone-700"
             >
               <RefreshCw
                 size={13}
@@ -411,8 +410,7 @@ export default function MenuManagement() {
             <Link
               to="/menu"
               target="_blank"
-              className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg
-                bg-amber-500 hover:bg-amber-600 text-white shadow-sm transition"
+              className="clay-btn clay-gold flex items-center gap-1.5 text-xs font-bold px-3 py-2 min-h-[44px]"
             >
               <Eye size={13} /> View Live Menu
             </Link>
@@ -423,19 +421,18 @@ export default function MenuManagement() {
       {/* ── Tab Navigation ── */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6">
         <div className="grid grid-cols-3 sm:flex sm:w-auto gap-1.5
-          bg-white border border-stone-200 shadow-sm rounded-2xl p-1.5">
-          {TABS.map(({ key, label, icon, activeClass }) => (
+          bg-stone-200/70 rounded-2xl p-1.5">
+          {TABS.map(({ key, label, icon }) => (
             <button
               key={key}
               id={`tab-btn-${key}-item`}
               type="button"
               onClick={() => setActiveTab(key)}
               className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2
-                px-3 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all
-                focus:outline-none focus:ring-2 focus:ring-amber-500/20
+                px-3 sm:px-5 py-2.5 min-h-[44px] rounded-xl text-xs sm:text-sm font-bold transition-all clay-btn
                 ${activeTab === key
-                  ? activeClass
-                  : 'text-stone-500 hover:bg-stone-100 hover:text-stone-800'
+                  ? 'clay-gold clay-active text-stone-900'
+                  : 'clay-light text-stone-600'
                 }`}
             >
               {icon}
@@ -567,11 +564,7 @@ export default function MenuManagement() {
                   type="submit"
                   id="submit-add-item-btn"
                   disabled={submittingAdd}
-                  className="w-full py-3.5 rounded-xl font-bold text-white
-                    bg-amber-500 hover:bg-amber-600 shadow-sm
-                    focus:outline-none focus:ring-2 focus:ring-amber-500/20
-                    transition-all flex items-center justify-center gap-2
-                    disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="clay-btn clay-gold w-full py-3.5 min-h-[48px] font-bold text-stone-900 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {submittingAdd ? (
                     <><RefreshCw className="animate-spin" size={16} /> Adding to Database&hellip;</>
@@ -615,10 +608,7 @@ export default function MenuManagement() {
                   type="submit"
                   id="submit-add-category-btn"
                   disabled={submittingCat}
-                  className="w-full py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider
-                    text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200
-                    focus:outline-none focus:ring-2 focus:ring-amber-500/20
-                    transition-all flex items-center justify-center gap-1.5 disabled:opacity-60"
+                  className="clay-btn clay-light w-full py-2.5 min-h-[44px] text-xs font-bold uppercase tracking-wider text-amber-700 flex items-center justify-center gap-1.5 disabled:opacity-60"
                 >
                   {submittingCat ? (
                     <><RefreshCw className="animate-spin" size={12} /> Seeding&hellip;</>
@@ -722,11 +712,7 @@ export default function MenuManagement() {
                   id="permanently-delete-dish-btn"
                   disabled={!removeId || deleting}
                   onClick={handleRemoveItem}
-                  className="w-full py-3.5 rounded-xl font-bold text-white
-                    bg-rose-600 hover:bg-rose-700 shadow-sm
-                    focus:outline-none focus:ring-2 focus:ring-rose-500/20
-                    transition-all flex items-center justify-center gap-2
-                    disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="clay-btn clay-danger w-full py-3.5 min-h-[48px] font-bold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {deleting ? (
                     <><RefreshCw className="animate-spin" size={16} /> Deleting from PostgreSQL&hellip;</>
@@ -879,11 +865,7 @@ export default function MenuManagement() {
                     type="submit"
                     id="save-dish-changes-btn"
                     disabled={savingUpdate}
-                    className="w-full py-3.5 rounded-xl font-bold text-white
-                      bg-blue-600 hover:bg-blue-700 shadow-sm
-                      focus:outline-none focus:ring-2 focus:ring-blue-500/20
-                      transition-all flex items-center justify-center gap-2
-                      disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="clay-btn clay-dark w-full py-3.5 min-h-[48px] font-bold flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {savingUpdate ? (
                       <><RefreshCw className="animate-spin" size={16} /> Updating PostgreSQL&hellip;</>

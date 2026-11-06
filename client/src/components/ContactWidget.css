@@ -51,8 +51,9 @@
     box-shadow 0.2s ease,
     transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
   box-shadow:
-    0 4px 18px rgba(0, 0, 0, 0.18),
-    0 1px 4px rgba(0, 0, 0, 0.08);
+    8px 8px 18px rgba(0, 0, 0, 0.18),
+    inset -4px -4px 8px rgba(0, 0, 0, 0.15),
+    inset 4px 4px 8px rgba(255, 255, 255, 0.45);
   /* Prevent text selection during interaction */
   user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -70,8 +71,9 @@
   max-width: 180px;
   transform: translateY(-2px) scale(1.03);
   box-shadow:
-    0 8px 28px rgba(0, 0, 0, 0.22),
-    0 2px 8px rgba(0, 0, 0, 0.10);
+    10px 10px 22px rgba(0, 0, 0, 0.22),
+    inset -4px -4px 8px rgba(0, 0, 0, 0.18),
+    inset 4px 4px 8px rgba(255, 255, 255, 0.55);
   outline: none;
 }
 
@@ -86,10 +88,11 @@
 }
 
 .cw-btn:active {
-  transform: translateY(0) scale(0.97);
+  transform: translateY(1px) scale(0.97);
   box-shadow:
-    0 3px 10px rgba(0, 0, 0, 0.16),
-    0 1px 3px rgba(0, 0, 0, 0.08);
+    2px 2px 6px rgba(0, 0, 0, 0.12),
+    inset 4px 4px 8px rgba(0, 0, 0, 0.20),
+    inset -4px -4px 8px rgba(255, 255, 255, 0.35);
 }
 
 /* Focus ring for keyboard navigation */
@@ -193,15 +196,15 @@
   50%       { box-shadow: 0 0 0 8px transparent; opacity: 0.15; }
 }
 
-/* ── WhatsApp variant ─────────────────────────────────────────── */
+/* ── WhatsApp variant (Claymorphism) ─────────────────────────── */
 .cw-btn--wa {
-  background: #25D366;
+  background: linear-gradient(135deg, #34D399 0%, #25D366 50%, #059669 100%);
   color: #fff;
 }
 
 .cw-btn--wa:hover,
 .cw-btn--wa:focus-visible {
-  background: #1fbd5a;
+  background: linear-gradient(135deg, #4ADE80 0%, #22C55E 50%, #047857 100%);
 }
 
 .cw-btn--wa::before {
@@ -209,16 +212,15 @@
   animation-delay: 0s;
 }
 
-/* ── Call variant ─────────────────────────────────────────────── */
+/* ── Call variant (Claymorphism) ─────────────────────────────── */
 .cw-btn--call {
-  /* Uses the site's gold design token palette */
-  background: #D4A017;
-  color: #fff;
+  background: linear-gradient(135deg, #F5CA48 0%, #D4A017 50%, #B8870D 100%);
+  color: #1a160d;
 }
 
 .cw-btn--call:hover,
 .cw-btn--call:focus-visible {
-  background: #B8870D;
+  background: linear-gradient(135deg, #F8D25A 0%, #DEAA1B 50%, #C49210 100%);
 }
 
 .cw-btn--call::before {

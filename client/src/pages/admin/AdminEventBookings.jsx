@@ -69,17 +69,17 @@ export default function AdminEventBookings() {
       <div className="container">
 
         {/* ── Admin Nav Tabs (same as AdminDashboard) ── */}
-        <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-1.5 flex gap-2 mb-6 flex-wrap">
-          <Link to="/admin" className="flex-1 py-2.5 px-4 rounded-lg font-bold text-sm flex items-center justify-center text-stone-600 hover:bg-stone-100 transition-colors">
+        <div className="bg-stone-200/70 rounded-2xl p-1.5 flex gap-2 mb-6 flex-wrap sm:flex-nowrap">
+          <Link to="/admin" className="clay-btn clay-light flex-1 min-h-[44px] py-2.5 px-4 font-bold text-sm flex items-center justify-center text-stone-600">
             <span>Admin Panel</span>
           </Link>
-          <Link to="/staff/orders" className="flex-1 py-2.5 px-4 rounded-lg font-bold text-sm flex items-center justify-center text-stone-600 hover:bg-stone-100 transition-colors">
+          <Link to="/staff/orders" className="clay-btn clay-light flex-1 min-h-[44px] py-2.5 px-4 font-bold text-sm flex items-center justify-center text-stone-600">
             <span>Staff Orders &amp; Live Delivery</span>
           </Link>
-          <Link to="/admin/menu-management" className="flex-1 py-2.5 px-4 rounded-lg font-bold text-sm flex items-center justify-center text-stone-600 hover:bg-stone-100 transition-colors">
+          <Link to="/admin/menu-management" className="clay-btn clay-light flex-1 min-h-[44px] py-2.5 px-4 font-bold text-sm flex items-center justify-center text-stone-600">
             <span>Menu Management</span>
           </Link>
-          <Link to="/admin/event-bookings" className="flex-1 py-2.5 px-4 rounded-lg font-bold text-sm flex items-center justify-center bg-amber-500 text-white shadow-sm">
+          <Link to="/admin/event-bookings" className="clay-btn clay-gold clay-active flex-1 min-h-[44px] py-2.5 px-4 font-bold text-sm flex items-center justify-center text-stone-900">
             <span>Event Bookings</span>
           </Link>
         </div>

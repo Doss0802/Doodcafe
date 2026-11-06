@@ -432,10 +432,10 @@ export default function Checkout() {
                         key={n}
                         type="button"
                         onClick={() => setTableNumber(String(n))}
-                        className={`py-2.5 rounded-xl border-2 font-extrabold text-sm transition active:scale-95 ${
+                        className={`clay-btn min-h-[44px] py-2.5 font-extrabold text-sm ${
                           tableNumber === String(n)
-                            ? 'bg-amber-500 border-amber-500 text-white shadow-md'
-                            : 'bg-white border-stone-300 text-stone-700 hover:border-amber-400 hover:text-amber-700'
+                            ? 'clay-gold clay-active text-stone-900'
+                            : 'clay-light text-stone-700'
                         }`}
                       >
                         {n}

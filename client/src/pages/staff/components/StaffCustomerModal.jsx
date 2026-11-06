@@ -201,7 +201,7 @@ export default function StaffCustomerModal({ order, onClose }) {
           {customerPhone && (
             <a
               href={`tel:${customerPhone}`}
-              className="flex-1 sm:flex-initial px-5 py-3 min-h-[52px] bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-bold shadow-sm inline-flex items-center justify-center gap-2 transition active:scale-95"
+              className="clay-btn clay-gold flex-1 sm:flex-initial px-5 py-3 min-h-[52px] text-sm font-bold inline-flex items-center justify-center gap-2"
             >
               <Phone size={16} />
               <span>Call Customer</span>
@@ -209,7 +209,7 @@ export default function StaffCustomerModal({ order, onClose }) {
           )}
           <button
             onClick={onClose}
-            className="flex-1 sm:flex-initial px-5 py-3 min-h-[52px] bg-stone-200 hover:bg-stone-300 text-stone-700 rounded-xl text-sm font-bold transition flex items-center justify-center"
+            className="clay-btn clay-light flex-1 sm:flex-initial px-5 py-3 min-h-[52px] text-stone-700 text-sm font-bold flex items-center justify-center"
           >
             Close
           </button>

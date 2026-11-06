@@ -256,29 +256,29 @@ export default function AdminDashboard() {
       <div className="container">
 
         {/* ── Admin Master Navigation Switcher Tabs ── */}
-        <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-1.5 flex gap-2 mb-6">
+        <div className="bg-stone-200/70 rounded-2xl p-1.5 flex gap-2 mb-6 flex-wrap sm:flex-nowrap">
           <Link
             to="/admin"
-            className="flex-1 py-2.5 px-4 rounded-lg font-bold text-sm flex items-center justify-center bg-amber-500 text-white shadow-sm"
+            className="clay-btn clay-gold clay-active flex-1 min-h-[44px] py-2.5 px-4 font-bold text-sm flex items-center justify-center text-stone-900"
           >
             <span>Admin Panel</span>
           </Link>
           <Link
             to="/staff/orders"
-            className="flex-1 py-2.5 px-4 rounded-lg font-bold text-sm flex items-center justify-center text-stone-600 hover:bg-stone-100 transition-colors"
+            className="clay-btn clay-light flex-1 min-h-[44px] py-2.5 px-4 font-bold text-sm flex items-center justify-center text-stone-600"
           >
             <span>Staff Orders & Live Delivery</span>
           </Link>
           <Link
             to="/admin/menu-management"
             id="admin-nav-menu-management"
-            className="flex-1 py-2.5 px-4 rounded-lg font-bold text-sm flex items-center justify-center text-stone-600 hover:bg-stone-100 transition-colors"
+            className="clay-btn clay-light flex-1 min-h-[44px] py-2.5 px-4 font-bold text-sm flex items-center justify-center text-stone-600"
           >
             <span>Menu Management</span>
           </Link>
           <Link
             to="/admin/event-bookings"
-            className="flex-1 py-2.5 px-4 rounded-lg font-bold text-sm flex items-center justify-center text-stone-600 hover:bg-stone-100 transition-colors"
+            className="clay-btn clay-light flex-1 min-h-[44px] py-2.5 px-4 font-bold text-sm flex items-center justify-center text-stone-600"
           >
             <span>Event Bookings</span>
           </Link>
@@ -310,7 +310,7 @@ export default function AdminDashboard() {
               Menu Management
             </Link>
             <button
-              className="btn btn-secondary adm-refresh-btn"
+              className="clay-btn clay-light adm-refresh-btn"
               onClick={() => fetchDashboardData(true)}
               disabled={refreshing}
             >
@@ -338,16 +338,11 @@ export default function AdminDashboard() {
                   ].map((btn) => (
                     <button
                       key={btn.key}
-                      style={{
-                        padding: '2px 6px',
-                        fontSize: '0.7rem',
-                        fontWeight: 600,
-                        borderRadius: '4px',
-                        border: 'none',
-                        cursor: 'pointer',
-                        background: salesPeriod === btn.key ? '#D97706' : '#F3F4F6',
-                        color: salesPeriod === btn.key ? '#FFFFFF' : '#6B7280',
-                      }}
+                      className={`clay-btn text-xs px-2.5 py-1 min-h-[28px] ${
+                        salesPeriod === btn.key
+                          ? 'clay-gold clay-active text-stone-900 font-bold'
+                          : 'clay-light text-stone-600 font-semibold'
+                      }`}
                       onClick={() => setSalesPeriod(btn.key)}
                     >
                       {btn.label}
@@ -522,7 +517,7 @@ function TableQrCodesSection() {
           <button
             type="button"
             onClick={handlePrintAll}
-            className="px-4 py-2.5 bg-stone-900 hover:bg-black text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-xs transition active:scale-95 cursor-pointer"
+            className="clay-btn clay-dark min-h-[44px] px-4 py-2.5 text-xs font-bold flex items-center gap-2 cursor-pointer"
           >
             <Printer size={15} />
             <span>Print All QR Cards</span>

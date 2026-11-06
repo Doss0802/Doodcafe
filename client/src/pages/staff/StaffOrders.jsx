@@ -315,10 +315,10 @@ export default function StaffOrders() {
           <button
             type="button"
             onClick={() => setActiveTab('takeaway')}
-            className={`flex-1 py-2.5 px-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-sm ${
+            className={`flex-1 py-2.5 px-3 min-h-[44px] rounded-xl font-bold text-sm flex items-center justify-center gap-2 clay-btn ${
               activeTab === 'takeaway'
-                ? 'bg-amber-500 text-white shadow-md'
-                : 'bg-transparent text-stone-600 hover:text-stone-900 hover:bg-stone-200/50'
+                ? 'clay-gold clay-active text-stone-900'
+                : 'clay-light text-stone-600'
             }`}
           >
             <Package size={17} />
@@ -335,10 +335,10 @@ export default function StaffOrders() {
           <button
             type="button"
             onClick={() => setActiveTab('dine-in')}
-            className={`flex-1 py-2.5 px-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-sm ${
+            className={`flex-1 py-2.5 px-3 min-h-[44px] rounded-xl font-bold text-sm flex items-center justify-center gap-2 clay-btn ${
               activeTab === 'dine-in'
-                ? 'bg-amber-500 text-white shadow-md'
-                : 'bg-transparent text-stone-600 hover:text-stone-900 hover:bg-stone-200/50'
+                ? 'clay-gold clay-active text-stone-900'
+                : 'clay-light text-stone-600'
             }`}
           >
             <UtensilsCrossed size={17} />
@@ -355,10 +355,10 @@ export default function StaffOrders() {
           <button
             type="button"
             onClick={() => setActiveTab('stream')}
-            className={`flex-1 py-2.5 px-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-sm ${
+            className={`flex-1 py-2.5 px-3 min-h-[44px] rounded-xl font-bold text-sm flex items-center justify-center gap-2 clay-btn ${
               activeTab === 'stream'
-                ? 'bg-amber-500 text-white shadow-md'
-                : 'bg-transparent text-stone-600 hover:text-stone-900 hover:bg-stone-200/50'
+                ? 'clay-gold clay-active text-stone-900'
+                : 'clay-light text-stone-600'
             }`}
           >
             <Radio size={17} />
@@ -426,7 +426,7 @@ export default function StaffOrders() {
                         <button
                           type="submit"
                           disabled={searchLoading || !searchBillQuery.trim()}
-                          className="px-5 py-3 min-h-[48px] bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold rounded-xl text-sm sm:text-base shadow-md transition disabled:opacity-50 flex items-center justify-center gap-2 sm:min-w-[140px]"
+                          className="clay-btn clay-gold px-5 py-3 min-h-[48px] font-bold text-sm sm:text-base disabled:opacity-50 flex items-center justify-center gap-2 sm:min-w-[140px]"
                         >
                           {searchLoading ? (
                             <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -495,10 +495,10 @@ export default function StaffOrders() {
                         <button
                           key={f.key}
                           onClick={() => setTakeawayFilter(f.key)}
-                          className={`snap-start flex-shrink-0 min-h-[44px] flex items-center px-4 py-2 rounded-full text-sm font-semibold transition ${
+                          className={`snap-start flex-shrink-0 min-h-[44px] flex items-center px-4 py-2 rounded-full text-sm font-semibold transition clay-btn ${
                             takeawayFilter === f.key
-                              ? 'bg-stone-900 text-white shadow-sm'
-                              : 'bg-stone-200/70 text-stone-600 hover:text-stone-900 hover:bg-stone-200'
+                              ? 'clay-dark clay-active'
+                              : 'clay-light'
                           }`}
                         >
                           {f.label}
@@ -561,10 +561,10 @@ export default function StaffOrders() {
                       <button
                         key={f.key}
                         onClick={() => setDineInFilter(f.key)}
-                        className={`snap-start flex-shrink-0 min-h-[44px] flex items-center px-4 py-2 rounded-full text-sm font-semibold transition ${
+                        className={`snap-start flex-shrink-0 min-h-[44px] flex items-center px-4 py-2 rounded-full text-sm font-semibold transition clay-btn ${
                           dineInFilter === f.key
-                            ? 'bg-stone-900 text-white shadow-sm'
-                            : 'bg-stone-200/70 text-stone-600 hover:text-stone-900 hover:bg-stone-200'
+                            ? 'clay-dark clay-active'
+                            : 'clay-light'
                         }`}
                       >
                         {f.label}
@@ -679,12 +679,12 @@ export default function StaffOrders() {
       </div>
 
       {/* ── Fixed Bottom Tab Bar for below-xl screens ── */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 xl:hidden bg-white border-t border-stone-200 flex pb-[env(safe-area-inset-bottom)] shadow-lg">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 xl:hidden bg-white/95 backdrop-blur-md border-t border-stone-200 flex p-1 pb-[calc(4px+env(safe-area-inset-bottom))] shadow-lg gap-1">
         <button
           type="button"
           onClick={() => setActiveTab('takeaway')}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-3 min-h-[56px] text-[11px] font-semibold transition-colors ${
-            activeTab === 'takeaway' ? 'text-amber-600' : 'text-stone-500'
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 min-h-[52px] rounded-xl text-[11px] font-bold transition-all ${
+            activeTab === 'takeaway' ? 'clay-btn clay-gold clay-active text-stone-900' : 'text-stone-500 hover:text-stone-800'
           }`}
         >
           <div className="relative">
@@ -701,8 +701,8 @@ export default function StaffOrders() {
         <button
           type="button"
           onClick={() => setActiveTab('dine-in')}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-3 min-h-[56px] text-[11px] font-semibold transition-colors ${
-            activeTab === 'dine-in' ? 'text-amber-600' : 'text-stone-500'
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 min-h-[52px] rounded-xl text-[11px] font-bold transition-all ${
+            activeTab === 'dine-in' ? 'clay-btn clay-gold clay-active text-stone-900' : 'text-stone-500 hover:text-stone-800'
           }`}
         >
           <div className="relative">
@@ -719,8 +719,8 @@ export default function StaffOrders() {
         <button
           type="button"
           onClick={() => setActiveTab('kitchen')}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-3 min-h-[56px] text-[11px] font-semibold transition-colors ${
-            activeTab === 'kitchen' ? 'text-amber-600' : 'text-stone-500'
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 min-h-[52px] rounded-xl text-[11px] font-bold transition-all ${
+            activeTab === 'kitchen' ? 'clay-btn clay-gold clay-active text-stone-900' : 'text-stone-500 hover:text-stone-800'
           }`}
         >
           <ChefHat size={20} />
@@ -730,8 +730,8 @@ export default function StaffOrders() {
         <button
           type="button"
           onClick={() => setActiveTab('stream')}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-3 min-h-[56px] text-[11px] font-semibold transition-colors ${
-            activeTab === 'stream' ? 'text-amber-600' : 'text-stone-500'
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 min-h-[52px] rounded-xl text-[11px] font-bold transition-all ${
+            activeTab === 'stream' ? 'clay-btn clay-gold clay-active text-stone-900' : 'text-stone-500 hover:text-stone-800'
           }`}
         >
           <Radio size={20} />
@@ -805,7 +805,7 @@ export default function StaffOrders() {
                 type="button"
                 onClick={() => handleHandover(confirmingHandoverOrder.id)}
                 disabled={actionLoadingId === confirmingHandoverOrder.id}
-                className="w-full py-3 min-h-[52px] bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-base font-bold shadow-md transition active:scale-98 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="clay-btn clay-success w-full py-3 min-h-[52px] text-base font-bold flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {actionLoadingId === confirmingHandoverOrder.id ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -820,7 +820,7 @@ export default function StaffOrders() {
                 type="button"
                 onClick={() => setConfirmingHandoverOrder(null)}
                 disabled={actionLoadingId === confirmingHandoverOrder.id}
-                className="w-full py-3 min-h-[52px] bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-base font-semibold transition flex items-center justify-center"
+                className="clay-btn clay-light w-full py-3 min-h-[52px] text-base font-semibold flex items-center justify-center"
               >
                 Cancel
               </button>
@@ -958,7 +958,7 @@ function TakeawayOrderCard({
             <button
               type="button"
               onClick={() => onStartHandover(order)}
-              className="w-full py-3 min-h-[52px] bg-stone-900 hover:bg-black text-white rounded-xl text-sm font-bold shadow-sm transition flex items-center justify-center gap-2 active:scale-98"
+              className="clay-btn clay-dark w-full py-3 min-h-[52px] text-sm font-bold flex items-center justify-center gap-2"
             >
               <CheckCircle2 size={16} />
               <span>Mark as Handed Over</span>
@@ -1092,7 +1092,7 @@ function DineInOrderCard({ order, onStatusChange, actionLoadingId }) {
             type="button"
             disabled={isActionLoading}
             onClick={() => onStatusChange?.(orderId, statusMeta.next)}
-            className="w-full py-3 min-h-[52px] bg-stone-900 hover:bg-black text-white rounded-xl text-sm font-bold shadow-sm transition flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+            className="clay-btn clay-dark w-full py-3 min-h-[52px] text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
           >
             {isActionLoading ? (
               <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />

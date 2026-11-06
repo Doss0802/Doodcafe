@@ -71,10 +71,10 @@ export default function StaffLiveKitchen({
             <button
               key={tab.id}
               onClick={() => setKitchenFilter(tab.id)}
-              className={`snap-start flex-shrink-0 min-h-[38px] px-3.5 py-1.5 rounded-lg transition flex items-center ${
+              className={`snap-start flex-shrink-0 min-h-[44px] px-4 py-2 rounded-xl transition flex items-center clay-btn ${
                 kitchenFilter === tab.id
-                  ? 'bg-white text-stone-900 shadow-xs font-bold'
-                  : 'text-stone-500 hover:text-stone-800'
+                  ? 'clay-dark clay-active'
+                  : 'clay-light'
               }`}
             >
               {tab.label}
@@ -179,12 +179,12 @@ export default function StaffLiveKitchen({
                       type="button"
                       disabled={isActionLoading}
                       onClick={() => handleAction(orderId, statusMeta.next)}
-                      className={`w-full py-3 min-h-[52px] rounded-xl text-xs sm:text-sm font-bold shadow-xs transition flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50 ${
+                      className={`clay-btn w-full py-3 min-h-[52px] text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 disabled:opacity-50 ${
                         isPending
-                          ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                          ? 'clay-dark'
                           : isCooking
-                          ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                          : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                          ? 'clay-gold'
+                          : 'clay-success'
                       }`}
                     >
                       {isActionLoading ? (
