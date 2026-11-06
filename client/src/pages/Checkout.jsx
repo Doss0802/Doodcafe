@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { CreditCard, MessageSquare, CheckCircle, Package, MapPin, Navigation, ExternalLink, User, Phone, Utensils, QrCode } from 'lucide-react';
 import useCartStore from '../store/cartStore';
 import useAuthStore from '../store/authStore';
@@ -14,7 +14,6 @@ export default function Checkout() {
     clearCart,
   } = useCartStore();
   const user = useAuthStore((s) => s.user);
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   const urlTable = searchParams.get('table');
@@ -33,11 +32,25 @@ export default function Checkout() {
   const [zipCode, setZipCode] = useState('641001');
   const [coordinates, setCoordinates] = useState({ lat: 11.0168, lng: 76.9558 }); // Default: Coimbatore central coordinates
   const [hasLiveCoords, setHasLiveCoords] = useState(false);
-  const [selectedOrderType, setSelectedOrderType] = useState(() => {
+
+  // ── SessionStorage persistence for chosen order type ──
+  const SESSION_KEY = 'doodcafe_order_type';
+  const getInitialType = () => {
     if (isTableLocked || urlType === 'dinein' || urlType === 'dine-in') return 'dine-in';
+    if (urlType === 'takeaway') return 'takeaway';
     if (urlType === 'delivery') return 'delivery';
-    return 'takeaway';
-  });
+    try { const s = sessionStorage.getItem(SESSION_KEY); if (s) return s; } catch (_) {}
+    return null;
+  };
+  const [selectedOrderType, setSelectedOrderType] = useState(getInitialType);
+  const [typeLocked, setTypeLocked] = useState(() => getInitialType() !== null);
+
+  // Persist to sessionStorage on first render (URL-sourced type)
+  useEffect(() => {
+    const t = getInitialType();
+    if (t) { try { sessionStorage.setItem(SESSION_KEY, t); } catch (_) {} }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [tableNumber, setTableNumber] = useState(() => (isTableLocked ? String(urlTableNum) : ''));
   const [isOutOfDeliveryBoundary, setIsOutOfDeliveryBoundary] = useState(false);
 
@@ -157,6 +170,12 @@ export default function Checkout() {
   const handlePlaceOrder = async (e) => {
     e.preventDefault();
     if (placing) return; // Prevent double-submit
+
+    // 0. Order type must be selected
+    if (!selectedOrderType) {
+      toast.error('Please select an order type first');
+      return;
+    }
 
     // 1. Customer Name Validation
     if (!customerName || !customerName.trim()) {
@@ -326,35 +345,49 @@ export default function Checkout() {
                     🔒 Table {tableNumber} QR Locked
                   </span>
                 )}
+                {typeLocked && !isTableLocked && (
+                  <button
+                    type="button"
+                    className="text-xs text-stone-500 underline"
+                    onClick={() => setTypeLocked(false)}
+                  >
+                    Change
+                  </button>
+                )}
               </div>
-              <div className="order-type-group">
-                <button
-                  type="button"
-                  id="checkout-type-takeaway"
-                  disabled={isTableLocked}
-                  className={`order-type-btn ${selectedOrderType === 'takeaway' ? 'order-type-active' : ''} ${isTableLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
-                  onClick={() => !isTableLocked && setSelectedOrderType('takeaway')}
-                >
-                  📦 Takeaway
-                </button>
-                <button
-                  type="button"
-                  id="checkout-type-dinein"
-                  className={`order-type-btn ${selectedOrderType === 'dine-in' ? 'order-type-active' : ''}`}
-                  onClick={() => setSelectedOrderType('dine-in')}
-                >
-                  🍽️ Dine-in
-                </button>
-                <button
-                  type="button"
-                  id="checkout-type-delivery"
-                  disabled={isTableLocked}
-                  className={`order-type-btn ${selectedOrderType === 'delivery' ? 'order-type-active' : ''} ${isTableLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
-                  onClick={() => !isTableLocked && setSelectedOrderType('delivery')}
-                >
-                  Live Delivery
-                </button>
-              </div>
+
+              {/* Locked: show label only */}
+              {typeLocked || isTableLocked ? (
+                <div className="flex items-center gap-2 px-3 py-2.5 bg-amber-50 border-2 border-amber-200 rounded-xl text-sm font-bold text-stone-800">
+                  <Package size={15} className="text-amber-600" />
+                  Order Type:&nbsp;
+                  {selectedOrderType === 'dine-in' ? '🍽️ Dine-in'
+                    : selectedOrderType === 'delivery' ? '🛵 Live Delivery'
+                    : '📦 Takeaway'}
+                </div>
+              ) : (
+                /* Picker: shown only when no URL/stored type */
+                <div className="order-type-group">
+                  {[
+                    { value: 'takeaway', label: '📦 Takeaway' },
+                    { value: 'dine-in', label: '🍽️ Dine-in' },
+                    { value: 'delivery', label: '🛵 Live Delivery' },
+                  ].map(({ value, label }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`order-type-btn ${selectedOrderType === value ? 'order-type-active' : ''}`}
+                      onClick={() => {
+                        setSelectedOrderType(value);
+                        setTypeLocked(true);
+                        try { sessionStorage.setItem(SESSION_KEY, value); } catch (_) {}
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* ── Dine-in Table Selection or Read-Only Scanned Card ── */}
@@ -417,8 +450,8 @@ export default function Checkout() {
               )
             )}
 
-            {/* ── Address Entry Form Component with Live GPS Auto-Fill (Hidden for Dine-in) ── */}
-            {selectedOrderType !== 'dine-in' && (
+            {/* ── Address Entry Form Component with Live GPS Auto-Fill (Delivery only) ── */}
+            {selectedOrderType === 'delivery' && (
               <div className="checkout-address-card">
                 <div className="checkout-address-header">
                   <div>
@@ -674,8 +707,8 @@ export default function Checkout() {
             form="checkout-form"
             id="place-order-mobile-btn"
             className="btn btn-primary checkout-mobile-btn"
-            disabled={placing || isOutOfDeliveryBoundary || !city || !city.toLowerCase().includes('coimbatore')}
-            title={isOutOfDeliveryBoundary || !city || !city.toLowerCase().includes('coimbatore') ? 'Delivery currently available in Coimbatore city limits only' : ''}
+            disabled={placing || (selectedOrderType === 'delivery' && (isOutOfDeliveryBoundary || !city || !city.toLowerCase().includes('coimbatore')))}
+            title={selectedOrderType === 'delivery' && (isOutOfDeliveryBoundary || !city || !city.toLowerCase().includes('coimbatore')) ? 'Delivery currently available in Coimbatore city limits only' : ''}
           >
             {placing ? (
               <span className="loading-spinner" />

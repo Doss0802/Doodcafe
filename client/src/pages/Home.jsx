@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, ChevronRight, Coffee, ChevronLeft } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ChevronRight, ChevronLeft } from 'lucide-react';
 import axiosInstance from '../api/axiosInstance';
 import { categoryImages } from '../utils/imageMapper';
 
@@ -52,7 +52,6 @@ export default function Home() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCategorySlug, setActiveCategorySlug] = useState('quick-bites');
-  const navigate = useNavigate();
   const scrollRef = useRef(null);   // ref for the scroll track
 
   /* ── Fetch categories from backend on mount ── */
@@ -70,12 +69,6 @@ export default function Home() {
     };
     fetchData();
   }, []);
-
-  /* ── Scroll helpers ── */
-  const handleOrderNowClick = (e) => {
-    e.preventDefault();
-    document.getElementById('dining-room')?.scrollIntoView({ behavior: 'smooth' });
-  };
 
   /** Scroll the strip left/right by one card width */
   const scrollStrip = (dir) => {
@@ -102,17 +95,13 @@ export default function Home() {
               <span className="hero-title-accent"> — Welcome Always</span>
             </h1>
             <div className="hero-actions">
-              <a
-                href="#dining-room"
-                id="hero-order-btn"
-                className="btn btn-primary btn-lg"
-                onClick={handleOrderNowClick}
-              >
-                Order Now <ArrowRight size={18} />
-              </a>
-              <Link to="/menu" className="btn btn-outline btn-lg" id="hero-view-menu-btn">
-                View Menu
-              </Link>
+              <div className="hero-order-grid">
+                <Link to="/checkout?type=dinein" className="hero-order-btn">🍽️ Dine-in</Link>
+                <Link to="/checkout?type=takeaway" className="hero-order-btn">📦 Takeaway</Link>
+                <Link to="/checkout?type=delivery" className="hero-order-btn">🛵 Live Delivery</Link>
+                <Link to="/book-events" className="hero-order-btn">🎉 Book Events</Link>
+                <Link to="/menu" className="hero-order-btn hero-order-btn--wide">☕ Cafe Menu</Link>
+              </div>
             </div>
           </div>
 

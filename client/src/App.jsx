@@ -42,6 +42,13 @@ function App() {
             {/* Public */}
             <Route path="/" element={<Home />} />
             <Route path="/menu" element={<Menu />} />
+            <Route path="/book-events" element={
+              <div style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', padding: '2rem' }}>
+                <h1 style={{ fontSize: '2rem', fontWeight: 700 }}>🎉 Book Events</h1>
+                <p style={{ color: '#666', textAlign: 'center', maxWidth: '400px' }}>Event booking is coming soon! Contact us directly to reserve your spot.</p>
+                <a href="/" className="btn btn-primary">Back to Home</a>
+              </div>
+            } />
             {/* Public — unauthenticated access only */}
             <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
             <Route path="/register" element={<PublicOnlyRoute><Register /></PublicOnlyRoute>} />

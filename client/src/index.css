@@ -953,6 +953,80 @@
   }
 }
 
+/* ── Hero Order Buttons Grid ── */
+.hero-order-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+  width: 100%;
+  max-width: 320px;
+  margin: 0.5rem 0 0;
+}
+
+.hero-order-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 48px;
+  padding: 0.6rem 0.75rem;
+  font-family: var(--nav-font, Georgia, serif);
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--charcoal, #1a1a1a);
+  background: var(--gold, #d4a017);
+  border: 2px solid var(--gold-dark, #b8870f);
+  border-radius: 10px;
+  text-decoration: none;
+  text-align: center;
+  transition: background 0.18s, transform 0.12s, box-shadow 0.18s;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+}
+
+.hero-order-btn:hover {
+  background: var(--gold-dark, #b8870f);
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
+/* 5th button spans full width on mobile (2-col grid) */
+.hero-order-btn--wide {
+  grid-column: span 2;
+}
+
+@media (min-width: 640px) {
+  /* 3-col on tablet: first 3 in row 1, last 2 centered in row 2 */
+  .hero-order-grid {
+    grid-template-columns: repeat(3, 1fr);
+    max-width: 480px;
+  }
+  .hero-order-btn--wide {
+    grid-column: span 1;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero-order-grid {
+    max-width: 480px;
+    margin: 0.75rem 0 0;
+  }
+}
+
+/* On mobile hero (dark bg), make buttons lighter */
+@media (max-width: 1023px) {
+  .hero-order-btn {
+    background: rgba(212,160,23,0.92);
+    color: #1a1a1a;
+    border-color: var(--gold-dark, #b8870f);
+  }
+  .hero-order-btn:hover {
+    background: var(--gold-dark, #b8870f);
+    color: #fff;
+  }
+}
+
 .hero-logo-badge {
   position: relative;
   width: 230px;
