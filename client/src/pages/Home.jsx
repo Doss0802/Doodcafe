@@ -74,11 +74,8 @@ export default function Home() {
                     }}
                     className="hero-btn hero-btn-gold"
                   >
-                    <UtensilsCrossed className="hero-btn-icon" size={20} />
-                    <div className="hero-btn-content">
-                      <span className="hero-btn-title">Dine-in</span>
-                      <span className="hero-btn-sub">Eat at cafe</span>
-                    </div>
+                    <UtensilsCrossed className="hero-btn-icon" size={19} />
+                    <span className="hero-btn-title">Dine-in</span>
                   </Link>
 
                   <Link
@@ -88,11 +85,8 @@ export default function Home() {
                     }}
                     className="hero-btn hero-btn-gold"
                   >
-                    <ShoppingBag className="hero-btn-icon" size={20} />
-                    <div className="hero-btn-content">
-                      <span className="hero-btn-title">Takeaway</span>
-                      <span className="hero-btn-sub">Pick up</span>
-                    </div>
+                    <ShoppingBag className="hero-btn-icon" size={19} />
+                    <span className="hero-btn-title">Takeaway</span>
                   </Link>
 
                   <Link
@@ -102,11 +96,8 @@ export default function Home() {
                     }}
                     className="hero-btn hero-btn-gold"
                   >
-                    <Bike className="hero-btn-icon" size={20} />
-                    <div className="hero-btn-content">
-                      <span className="hero-btn-title">Live Delivery</span>
-                      <span className="hero-btn-sub">To your door</span>
-                    </div>
+                    <Bike className="hero-btn-icon" size={19} />
+                    <span className="hero-btn-title">Live Delivery</span>
                   </Link>
                 </div>
 
@@ -117,10 +108,7 @@ export default function Home() {
                     className="hero-btn hero-btn-glass"
                   >
                     <CalendarDays className="hero-btn-icon" size={18} />
-                    <div className="hero-btn-content">
-                      <span className="hero-btn-title">Book Events</span>
-                      <span className="hero-btn-sub">Parties &amp; meets</span>
-                    </div>
+                    <span className="hero-btn-title">Book Events</span>
                   </Link>
 
                   <Link
@@ -131,10 +119,7 @@ export default function Home() {
                     className="hero-btn hero-btn-glass"
                   >
                     <BookOpen className="hero-btn-icon" size={18} />
-                    <div className="hero-btn-content">
-                      <span className="hero-btn-title">Cafe Menu</span>
-                      <span className="hero-btn-sub">Explore all items</span>
-                    </div>
+                    <span className="hero-btn-title">Cafe Menu</span>
                   </Link>
                 </div>
               </div>
