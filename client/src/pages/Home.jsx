@@ -1,8 +1,7 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, ChevronLeft } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import axiosInstance from '../api/axiosInstance';
-import { categoryImages } from '../utils/imageMapper';
 
 import cafeLogo from '../images/cafe_logo.png';
 
@@ -41,45 +40,15 @@ const HIGHLIGHTS = [
   { icon: '🚀', title: 'Fast Delivery', desc: 'Hot meals right at your door' },
 ];
 
-const SERVICES = [
-  { icon: '📦', label: 'Takeaway', desc: 'Order & pick up in minutes' },
-  { icon: '🛵', label: 'Delivery', desc: 'Right to your doorstep' },
-];
-
 /* ═══════════════════════════════════════════════════════════ */
 export default function Home() {
-  /* ── Backend state (keep all API calls intact) ── */
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [activeCategorySlug, setActiveCategorySlug] = useState('quick-bites');
-  const scrollRef = useRef(null);   // ref for the scroll track
+  const scrollRef = useRef(null); // ref for the dining-room scroll track
 
-  /* ── Fetch categories from backend on mount ── */
   useEffect(() => {
     document.title = 'Dood Cafe — Mix of Premium & Desi Feel';
-    const fetchData = async () => {
-      try {
-        const catRes = await axiosInstance.get('/menu/categories');
-        setCategories(catRes.data.data);
-      } catch (err) {
-        console.error('Category fetch error:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+    // Warm the category cache so /menu loads faster
+    axiosInstance.get('/menu/categories').catch(() => {});
   }, []);
-
-  /** Scroll the strip left/right by one card width */
-  const scrollStrip = (dir) => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const cardW = el.querySelector('.dr-card')?.offsetWidth ?? 180;
-    el.scrollBy({ left: dir * (cardW + 16), behavior: 'smooth' });
-  };
-
-  /* Kept: activeCategoryImages still available for future use */
-  const activeCategoryImages = categoryImages[activeCategorySlug] || categoryImages['quick-bites'];
 
   /* ─────────────────────────────────────────────────────────── */
   return (
@@ -194,7 +163,7 @@ export default function Home() {
         <div className="container cta-content">
           <div>
             <h2 className="cta-title">Ready to order?</h2>
-            <p className="cta-sub">Order online for quick & easy takeaway!</p>
+            <p className="cta-sub">Order online for quick &amp; easy takeaway!</p>
           </div>
           <Link to="/menu" className="btn btn-primary btn-lg" id="cta-order-btn">
             Order Now <ArrowRight size={18} />
