@@ -175,7 +175,7 @@ export default function Navbar() {
                     onClick={() => setProfileOpen(false)}
                     id="dropdown-staff-orders"
                   >
-                    Staff Orders & Live Delivery
+                    <span className="cursive-nav-text">Staff Orders & Live Delivery</span>
                   </Link>
                 )}
                 {isAuthenticated && user?.role === 'admin' && (
@@ -186,7 +186,7 @@ export default function Navbar() {
                       role="menuitem"
                       onClick={() => setProfileOpen(false)}
                     >
-                      Admin Panel
+                      <span className="cursive-nav-text">Admin Panel</span>
                     </Link>
                     <Link
                       to="/admin/menu-management"
@@ -194,7 +194,7 @@ export default function Navbar() {
                       role="menuitem"
                       onClick={() => setProfileOpen(false)}
                     >
-                      Menu Management
+                      <span className="cursive-nav-text">Menu Management</span>
                     </Link>
                   </>
                 )}
@@ -250,16 +250,16 @@ export default function Navbar() {
               </Link>
               {isAuthenticated && ['admin', 'manager', 'staff'].includes(user?.role) && (
                 <Link to="/staff/orders" className="mobile-nav-link mobile-nav-admin font-bold text-amber-500" onClick={() => setMobileOpen(false)}>
-                  Staff Orders & Live Delivery
+                  <span className="cursive-nav-text">Staff Orders & Live Delivery</span>
                 </Link>
               )}
               {isAuthenticated && user?.role === 'admin' && (
                 <>
                   <Link to="/admin" className="mobile-nav-link mobile-nav-admin" onClick={() => setMobileOpen(false)}>
-                    Admin Panel
+                    <span className="cursive-nav-text">Admin Panel</span>
                   </Link>
                   <Link to="/admin/menu-management" className="mobile-nav-link mobile-nav-admin font-bold text-amber-500" onClick={() => setMobileOpen(false)}>
-                    Menu Management
+                    <span className="cursive-nav-text">Menu Management</span>
                   </Link>
                 </>
               )}
