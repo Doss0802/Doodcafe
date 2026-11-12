@@ -1,37 +1,24 @@
-import { useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { UtensilsCrossed, ShoppingBag, Bike, CalendarDays, BookOpen, ArrowRight } from 'lucide-react';
 import axiosInstance from '../api/axiosInstance';
 
 import cafeLogo from '../images/cafe_logo.png';
 
-/* ── Per-item hero images (fast web-optimized URLs) ───────────── */
-const quickBitesImg = '/quick-bites/French fries.jpeg';
-const loadedFriesImg = '/loaded-fries/Corn cheese Fries.jpeg';
-const crispyChickenImg = '/crispy-chicken/Crispy chicken strips.jpeg';
-const burgerImg = '/burger/Crispy Chicken Burger.jpeg';
-const sandwichImg = '/sandwich/Veg Grilled Sandwich.jpeg';
-const rollAndWrapImg = '/roll-and-wrap/Veg Roll.jpeg';
-const koreanImg = '/korean/Korean Ramen veg noodles.jpeg';
-const pastaPulaoImg = '/pasta-and-pulao/Alfredo veg Pasta.jpeg';
-const shakeImg = '/milkshakes/Lotus Biscoff.jpeg';
-const mojitoImg = '/mojitos/Lime & Mint.jpeg';
-const dessertsImg = '/desserts-and-beverages/Ice scoop.jpeg';
+/* ── Cafe Interior Photo Showcase (Slide 1 ... Slide 10) ───────── */
+const photoModules = import.meta.glob(
+  '/src/images/Cafe photos/*.{jpg,jpeg,png,webp,JPG,JPEG,PNG,WEBP}',
+  { eager: true, import: 'default' }
+);
 
-/* ── Static dining room strip data ─────────────────────────── */
-const DINING_ITEMS = [
-  { slug: 'quick-bites', label: 'Quick Bites', emoji: '🍿', img: quickBitesImg },
-  { slug: 'loaded-fries', label: 'Loaded Fries', emoji: '🍟', img: loadedFriesImg },
-  { slug: 'crispy-chicken', label: 'Crispy chicken', emoji: '🍗', img: crispyChickenImg },
-  { slug: 'burger', label: 'Burger', emoji: '🍔', img: burgerImg },
-  { slug: 'sandwich', label: 'Sandwich', emoji: '🥪', img: sandwichImg },
-  { slug: 'roll-wrap', label: 'Roll & Wrap', emoji: '🌯', img: rollAndWrapImg },
-  { slug: 'korean', label: 'Korean', emoji: '🍜', img: koreanImg },
-  { slug: 'pasta-pulao', label: 'Pasta & Pulao', emoji: '🍛', img: pastaPulaoImg },
-  { slug: 'mojito', label: 'Mojito', emoji: '🍹', img: mojitoImg },
-  { slug: 'milkshake', label: 'Milkshake', emoji: '🥤', img: shakeImg },
-  { slug: 'desserts-beverages', label: 'Desserts & Beverages', emoji: '🍰', img: dessertsImg },
-];
+const CAFE_SLIDES = Object.entries(photoModules)
+  .filter(([path]) => /Slide\s*\d+/i.test(path))
+  .sort(([pathA], [pathB]) => {
+    const numA = parseInt(pathA.match(/Slide\s*(\d+)/i)?.[1] || '0', 10);
+    const numB = parseInt(pathB.match(/Slide\s*(\d+)/i)?.[1] || '0', 10);
+    return numA - numB;
+  })
+  .map(([, url]) => url);
 
 const HIGHLIGHTS = [
   { icon: '🌿', title: 'Premium Ingredients', desc: 'Only the finest, freshest produce' },
@@ -42,12 +29,23 @@ const HIGHLIGHTS = [
 
 /* ═══════════════════════════════════════════════════════════ */
 export default function Home() {
-  const scrollRef = useRef(null); // ref for the dining-room scroll track
+  const [activeSlide, setActiveSlide] = useState(0);
 
   useEffect(() => {
     document.title = 'Dood Cafe — Mix of Premium & Desi Feel';
     // Warm the category cache so /menu loads faster
     axiosInstance.get('/menu/categories').catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (mq.matches || CAFE_SLIDES.length <= 1) return;
+
+    const timer = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % CAFE_SLIDES.length);
+    }, 4000);
+
+    return () => clearInterval(timer);
   }, []);
 
   /* ─────────────────────────────────────────────────────────── */
@@ -140,57 +138,33 @@ export default function Home() {
       </section>
 
       {/* ══════════════════════════════════════════════════════
-          The Dining Room — Horizontal Touch-Scroll Strip
+          Cafe Interior Photo Showcase (Slide 1 ... Slide 10)
       ══════════════════════════════════════════════════════ */}
-      <section className="section" id="dining-room">
-        <div className="container">
-
-          {/* Header row */}
-          <div className="dr-header animate-fade-up">
-            <Link to="/menu" style={{ textDecoration: 'none' }}>
-              <h2 className="section-title cursive-title" title="Click to browse full menu">
-                The Dining Room
-              </h2>
-            </Link>
+      {CAFE_SLIDES.length > 0 && (
+        <section className="section cafe-showcase-section" aria-label="Cafe Interior Showcase">
+          <div className="container">
+            <div className="cafe-showcase-wrapper">
+              <div className="cafe-showcase-stage">
+                {CAFE_SLIDES.map((src, index) => {
+                  const isActive = index === activeSlide;
+                  return (
+                    <img
+                      key={src}
+                      src={src}
+                      alt=""
+                      className={`cafe-showcase-img ${isActive ? 'is-active' : ''}`}
+                      loading={index === 0 ? 'eager' : 'lazy'}
+                      decoding="async"
+                      fetchPriority={index === 0 ? 'high' : 'auto'}
+                      aria-hidden={!isActive}
+                    />
+                  );
+                })}
+              </div>
+            </div>
           </div>
-
-          {/* ── Touch-scroll track ── */}
-          <div
-            className="dr-scroll-track"
-            ref={scrollRef}
-            aria-label="Menu categories scroll strip"
-          >
-            {DINING_ITEMS.map((item) => (
-              <Link
-                key={item.slug}
-                to={`/menu?category=${item.slug}`}
-                className="dr-card"
-                id={`dining-${item.slug}`}
-                draggable="false"
-              >
-                <div className="dr-img-wrap">
-                  <img
-                    src={item.img}
-                    alt={item.label}
-                    className="dr-img"
-                    loading="lazy"
-                    draggable="false"
-                  />
-                  {/* Dark gradient at bottom for text contrast */}
-                  <div className="dr-overlay" aria-hidden="true" />
-                  {/* Emoji bubble top-right */}
-                  <span className="dr-emoji" aria-hidden="true">{item.emoji}</span>
-                  {/* Label overlaid on image */}
-                  <div className="dr-label">
-                    <span className="dr-label-text">{item.label}</span>
-                    <span className="dr-label-cta">View Menu →</span>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ── Why Dood Cafe ── */}
       <section className="section section-tinted">

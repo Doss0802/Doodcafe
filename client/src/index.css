@@ -5500,243 +5500,67 @@
 }
 
 /* ══════════════════════════════════════════════════════════════
-   THE DINING ROOM — Horizontal Touch-Scroll Strip
-   Touch scroll, snap-per-card, arrow nav buttons
+   CAFE INTERIOR PHOTO SHOWCASE — Auto-playing Smooth Carousel
+   Photos only, rounded corners, soft shadow, 16/10 aspect ratio
 ══════════════════════════════════════════════════════════════ */
-
-/* Header row: title left */
-.dr-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1.25rem;
+.cafe-showcase-section {
+  padding: 3rem 0;
 }
 
-/* ── Scroll track ─────────────────────────────────────────── */
-.dr-scroll-track {
-  display: flex;
-  gap: 0.85rem;
-  /* native horizontal scroll */
-  overflow-x: auto;
-  overflow-y: hidden;
-  /* iOS momentum / rubber-band scroll */
-  -webkit-overflow-scrolling: touch;
-  /* snap ONE card at a time */
-  scroll-snap-type: x mandatory;
-  /* smooth when driven by JS buttons */
-  scroll-behavior: smooth;
-  /* hide scrollbar by default (mobile/tablet/touch devices) */
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  /* vertical padding so box-shadows are not clipped */
-  padding: 0.3rem 0 1.5rem;
-  /* bleed cards to the very edge of the container on mobile */
-  margin-left: -1rem;
-  margin-right: -1rem;
-  padding-left: 1rem;
-  padding-right: 1rem;
-  /* prevent touch event from accidentally triggering page scroll */
-  touch-action: pan-x;
-  cursor: grab;
-}
-
-.dr-scroll-track:active {
-  cursor: grabbing;
-}
-
-.dr-scroll-track::-webkit-scrollbar {
-  display: none;
-}
-
-/* Show sleek scrollbar on large displays & desktop fine-pointer devices */
-@media (min-width: 1025px) and (pointer: fine) {
-  .dr-scroll-track {
-    scrollbar-width: thin;
-    scrollbar-color: var(--gold) var(--gray-100);
-  }
-
-  .dr-scroll-track::-webkit-scrollbar {
-    display: block;
-    height: 6px;
-  }
-
-  .dr-scroll-track::-webkit-scrollbar-track {
-    background: var(--gray-100);
-    border-radius: 10px;
-  }
-
-  .dr-scroll-track::-webkit-scrollbar-thumb {
-    background: var(--gold);
-    border-radius: 10px;
-  }
-
-  .dr-scroll-track::-webkit-scrollbar-thumb:hover {
-    background: var(--gold-dark);
+@media (max-width: 640px) {
+  .cafe-showcase-section {
+    padding: 1.75rem 0;
   }
 }
 
-/* ── Card ─────────────────────────────────────────────────── */
-.dr-card {
-  /* fixed width so every card snaps identically */
-  flex: 0 0 155px;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
-  /* never skip a card on fast swipe */
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  position: relative;
-  text-decoration: none;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.10);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-  display: block;
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
-  will-change: transform;
+.cafe-showcase-wrapper {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
 }
 
-@media (min-width: 400px) {
-  .dr-card {
-    flex: 0 0 168px;
-  }
-}
-
-@media (min-width: 480px) {
-  .dr-card {
-    flex: 0 0 180px;
-  }
-}
-
-@media (min-width: 768px) {
-  .dr-card {
-    flex: 0 0 195px;
-  }
-}
-
-@media (min-width: 1024px) {
-  .dr-card {
-    flex: 0 0 205px;
-  }
-}
-
-.dr-card:hover {
-  transform: translateY(-5px) scale(1.025);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.16);
-}
-
-.dr-card:active {
-  transform: scale(0.96);
-}
-
-/* ── Image wrapper ── */
-.dr-img-wrap {
+.cafe-showcase-stage {
   position: relative;
   width: 100%;
-  height: 205px;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius-xl, 24px);
   overflow: hidden;
-  background: var(--cream-2);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12), 0 4px 14px rgba(212, 160, 23, 0.08);
+  background: var(--charcoal, #1a1a1a);
 }
 
-@media (min-width: 400px) {
-  .dr-img-wrap {
-    height: 218px;
-  }
-}
-
-@media (min-width: 480px) {
-  .dr-img-wrap {
-    height: 228px;
-  }
-}
-
-@media (min-width: 768px) {
-  .dr-img-wrap {
-    height: 240px;
-  }
-}
-
-.dr-img {
+.cafe-showcase-img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: block;
-  transition: transform 0.45s ease;
-  pointer-events: none;
-}
-
-.dr-card:hover .dr-img {
-  transform: scale(1.08);
-}
-
-/* Gradient overlay — bottom 55% darkens for legible text */
-.dr-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to bottom,
-      transparent 35%,
-      rgba(15, 15, 15, 0.75) 100%);
-  pointer-events: none;
-}
-
-/* Emoji bubble — top-right */
-.dr-emoji {
-  position: absolute;
-  top: 0.6rem;
-  right: 0.6rem;
-  font-size: 1.4rem;
-  background: rgba(255, 253, 247, 0.92);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.20);
-  pointer-events: none;
-}
-
-/* Text label pinned to bottom */
-.dr-label {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 0.6rem 0.7rem 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.dr-label-text {
-  display: block;
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--white);
-  letter-spacing: 0.01em;
-  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.55);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.2;
-}
-
-.dr-label-cta {
-  display: block;
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--gold-light);
-  letter-spacing: 0.03em;
   opacity: 0;
-  transform: translateY(4px);
-  transition: opacity 0.22s ease, transform 0.22s ease;
+  transform: scale(1.02);
+  transition: opacity 800ms cubic-bezier(0.4, 0, 0.2, 1), transform 800ms cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  user-select: none;
 }
 
-.dr-card:hover .dr-label-cta {
+.cafe-showcase-img.is-active {
   opacity: 1;
-  transform: translateY(0);
+  transform: scale(1);
+  z-index: 2;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .cafe-showcase-img {
+    transition: none !important;
+    transform: none !important;
+  }
+  .cafe-showcase-img:not(:first-child) {
+    display: none !important;
+  }
+  .cafe-showcase-img:first-child {
+    opacity: 1 !important;
+    position: relative !important;
+  }
+}
 /* ══════════════════════════════════════════════════════════════
    RESPONSIVE SYSTEM — Mobile-First Multi-Breakpoint Layout
    Breakpoints: 480px (sm), 640px (md), 768px (tablet), 1024px (lg)
