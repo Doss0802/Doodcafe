@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { UtensilsCrossed, ShoppingBag, Bike, CalendarDays, BookOpen, ArrowRight } from 'lucide-react';
 import axiosInstance from '../api/axiosInstance';
@@ -29,7 +29,7 @@ const HIGHLIGHTS = [
 
 /* ═══════════════════════════════════════════════════════════ */
 export default function Home() {
-  const [activeSlide, setActiveSlide] = useState(0);
+  const rowRef = useRef(null);
 
   useEffect(() => {
     document.title = 'Dood Cafe — Mix of Premium & Desi Feel';
@@ -37,15 +37,59 @@ export default function Home() {
     axiosInstance.get('/menu/categories').catch(() => {});
   }, []);
 
+  // Laptop/desktop click-and-drag mouse scroll
   useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (mq.matches || CAFE_SLIDES.length <= 1) return;
+    const el = rowRef.current;
+    if (!el) return;
 
-    const timer = setInterval(() => {
-      setActiveSlide((prev) => (prev + 1) % CAFE_SLIDES.length);
-    }, 4000);
+    let isDown = false;
+    let startX = 0;
+    let scrollLeft = 0;
 
-    return () => clearInterval(timer);
+    const onPointerDown = (e) => {
+      // Mouse drag only (native touch handles mobile swipe)
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      if (e.pointerType === 'touch') return;
+
+      isDown = true;
+      el.classList.add('is-dragging');
+      startX = e.pageX - el.offsetLeft;
+      scrollLeft = el.scrollLeft;
+      try {
+        el.setPointerCapture(e.pointerId);
+      } catch (_) {}
+    };
+
+    const onPointerMove = (e) => {
+      if (!isDown) return;
+      e.preventDefault();
+      const x = e.pageX - el.offsetLeft;
+      const walk = x - startX;
+      el.scrollLeft = scrollLeft - walk;
+    };
+
+    const onPointerUp = (e) => {
+      if (!isDown) return;
+      isDown = false;
+      el.classList.remove('is-dragging');
+      try {
+        if (el.hasPointerCapture(e.pointerId)) {
+          el.releasePointerCapture(e.pointerId);
+        }
+      } catch (_) {}
+    };
+
+    el.addEventListener('pointerdown', onPointerDown);
+    el.addEventListener('pointermove', onPointerMove);
+    el.addEventListener('pointerup', onPointerUp);
+    el.addEventListener('pointercancel', onPointerUp);
+
+    return () => {
+      el.removeEventListener('pointerdown', onPointerDown);
+      el.removeEventListener('pointermove', onPointerMove);
+      el.removeEventListener('pointerup', onPointerUp);
+      el.removeEventListener('pointercancel', onPointerUp);
+    };
   }, []);
 
   /* ─────────────────────────────────────────────────────────── */
@@ -138,29 +182,29 @@ export default function Home() {
       </section>
 
       {/* ══════════════════════════════════════════════════════
-          Cafe Interior Photo Showcase (Slide 1 ... Slide 10)
+          Cafe Interior Photo Swipe Row (Slide 1 ... Slide 10)
       ══════════════════════════════════════════════════════ */}
       {CAFE_SLIDES.length > 0 && (
-        <section className="section cafe-showcase-section" aria-label="Cafe Interior Showcase">
+        <section className="section cafe-photo-section" aria-label="Cafe Photos">
           <div className="container">
-            <div className="cafe-showcase-wrapper">
-              <div className="cafe-showcase-stage">
-                {CAFE_SLIDES.map((src, index) => {
-                  const isActive = index === activeSlide;
-                  return (
-                    <img
-                      key={src}
-                      src={src}
-                      alt=""
-                      className={`cafe-showcase-img ${isActive ? 'is-active' : ''}`}
-                      loading={index === 0 ? 'eager' : 'lazy'}
-                      decoding="async"
-                      fetchPriority={index === 0 ? 'high' : 'auto'}
-                      aria-hidden={!isActive}
-                    />
-                  );
-                })}
-              </div>
+            <div
+              className="cafe-photo-row"
+              ref={rowRef}
+              aria-label="Cafe interior photo gallery"
+            >
+              {CAFE_SLIDES.map((src, index) => (
+                <div key={src} className="cafe-photo-card">
+                  <img
+                    src={src}
+                    alt=""
+                    className="cafe-photo-img"
+                    loading={index < 3 ? 'eager' : 'lazy'}
+                    decoding="async"
+                    fetchPriority={index === 0 ? 'high' : 'auto'}
+                    draggable={false}
+                  />
+                </div>
+              ))}
             </div>
           </div>
         </section>

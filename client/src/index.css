@@ -1,4 +1,4 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=Handlee&family=Libre+Baskerville:wght@700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=Handlee&family=Libre+Baskerville:wght@700&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -5500,65 +5500,101 @@
 }
 
 /* ══════════════════════════════════════════════════════════════
-   CAFE INTERIOR PHOTO SHOWCASE — Auto-playing Smooth Carousel
-   Photos only, rounded corners, soft shadow, 16/10 aspect ratio
+   CAFE INTERIOR PHOTO ROW — Horizontal Swipe & Drag Row
+   Native touch swipe on mobile, click-and-drag on desktop
 ══════════════════════════════════════════════════════════════ */
-.cafe-showcase-section {
-  padding: 3rem 0;
+.cafe-photo-section {
+  padding: 2.25rem 0;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 @media (max-width: 640px) {
-  .cafe-showcase-section {
-    padding: 1.75rem 0;
+  .cafe-photo-section {
+    padding: 1.5rem 0;
   }
 }
 
-.cafe-showcase-wrapper {
-  width: 100%;
-  max-width: 900px;
-  margin: 0 auto;
+.cafe-photo-row {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x pan-y;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 0.4rem 1rem 1.4rem 1rem;
+  margin-left: -1rem;
+  margin-right: -1rem;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.cafe-showcase-stage {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 10;
-  border-radius: var(--radius-xl, 24px);
+.cafe-photo-row::-webkit-scrollbar {
+  display: none;
+}
+
+.cafe-photo-row.is-dragging {
+  cursor: grabbing;
+  scroll-snap-type: none !important;
+}
+
+.cafe-photo-card {
+  flex: 0 0 180px;
+  width: 180px;
+  height: 230px;
+  scroll-snap-align: start;
+  border-radius: 1.5rem; /* rounded-3xl */
   overflow: hidden;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12), 0 4px 14px rgba(212, 160, 23, 0.08);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06);
   background: var(--charcoal, #1a1a1a);
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.cafe-showcase-img {
-  position: absolute;
-  inset: 0;
+.cafe-photo-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+}
+
+.cafe-photo-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0;
-  transform: scale(1.02);
-  transition: opacity 800ms cubic-bezier(0.4, 0, 0.2, 1), transform 800ms cubic-bezier(0.4, 0, 0.2, 1);
+  display: block;
   pointer-events: none;
   user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
 }
 
-.cafe-showcase-img.is-active {
-  opacity: 1;
-  transform: scale(1);
-  z-index: 2;
+@media (min-width: 640px) {
+  .cafe-photo-card {
+    flex: 0 0 210px;
+    width: 210px;
+    height: 270px;
+  }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .cafe-showcase-img {
-    transition: none !important;
-    transform: none !important;
+@media (min-width: 1024px) {
+  .cafe-photo-row {
+    gap: 16px;
+    padding: 0.5rem 0 1.5rem 0;
+    margin-left: 0;
+    margin-right: 0;
   }
-  .cafe-showcase-img:not(:first-child) {
-    display: none !important;
-  }
-  .cafe-showcase-img:first-child {
-    opacity: 1 !important;
-    position: relative !important;
+
+  .cafe-photo-card {
+    flex: 0 0 260px;
+    width: 260px;
+    height: 320px;
+    border-radius: 1.5rem; /* rounded-3xl */
   }
 }
 /* ══════════════════════════════════════════════════════════════
