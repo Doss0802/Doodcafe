@@ -20,6 +20,7 @@ import Profile from './pages/Profile';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import MenuManagement from './pages/admin/MenuManagement';
 import AdminEventBookings from './pages/admin/AdminEventBookings';
+import AdminOffers from './pages/admin/AdminOffers';
 import StaffOrders from './pages/staff/StaffOrders';
 import BookEvents from './pages/BookEvents';
 
@@ -58,6 +59,7 @@ function App() {
             <Route path="/admin/dashboard" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin/menu-management" element={<ProtectedRoute adminOnly><MenuManagement /></ProtectedRoute>} />
             <Route path="/admin/event-bookings" element={<ProtectedRoute adminOnly><AdminEventBookings /></ProtectedRoute>} />
+            <Route path="/admin/offers" element={<ProtectedRoute adminOnly><AdminOffers /></ProtectedRoute>} />
             <Route path="/staff/orders" element={<ProtectedRoute staffOnly><StaffOrders /></ProtectedRoute>} />
 
             {/* 404 */}

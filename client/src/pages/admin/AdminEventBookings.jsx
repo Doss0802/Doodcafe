@@ -82,6 +82,9 @@ export default function AdminEventBookings() {
           <Link to="/admin/event-bookings" className="clay-btn clay-gold clay-active flex-1 min-h-[44px] py-2.5 px-4 font-bold text-sm flex items-center justify-center text-stone-900">
             <span>Event Bookings</span>
           </Link>
+          <Link to="/admin/offers" className="clay-btn clay-light flex-1 min-h-[44px] py-2.5 px-4 font-bold text-sm flex items-center justify-center text-stone-600">
+            <span>Offers</span>
+          </Link>
         </div>
 
         {/* ── Header ── */}

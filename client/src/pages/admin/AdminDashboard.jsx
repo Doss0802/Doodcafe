@@ -282,6 +282,12 @@ export default function AdminDashboard() {
           >
             <span>Event Bookings</span>
           </Link>
+          <Link
+            to="/admin/offers"
+            className="clay-btn clay-light flex-1 min-h-[44px] py-2.5 px-4 font-bold text-sm flex items-center justify-center text-stone-600"
+          >
+            <span>Offers</span>
+          </Link>
         </div>
 
         {/* ── Top Bar / Header ── */}

@@ -28,6 +28,7 @@ require('./models/Finance');
 require('./models/Inventory');
 require('./models/SiteSettings');
 require('./models/EventBooking');
+require('./models/Offer');
 
 const authRoutes = require('./routes/auth.routes');
 const menuRoutes = require('./routes/menu.routes');
@@ -39,6 +40,7 @@ const adminRoutes = require('./admin/admin.routes');
 const adminMenuRoutes = require('./routes/adminMenu.route');
 const staffRoutes = require('./routes/staff.routes');
 const eventBookingRoutes = require('./routes/eventBooking.routes');
+const offerRoutes = require('./routes/offer.routes');
 const { initAdminSocket } = require('./admin/admin.socket');
 
 const app = express();
@@ -201,6 +203,7 @@ app.use('/api/v1/admin', adminMenuRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/staff', staffRoutes);
 app.use('/api/v1/event-bookings', eventBookingRoutes);
+app.use('/api/v1/offers', offerRoutes);
 
 // ─── Backward Compatibility: /api/* aliases ────────────────────────────────
 app.use('/api/health', healthRoutes);
@@ -214,6 +217,7 @@ app.use('/api/admin', adminMenuRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/staff', staffRoutes);
 app.use('/api/event-bookings', eventBookingRoutes);
+app.use('/api/offers', offerRoutes);
 
 
 // ─── 6. Client Production Bundle Serving (Hostinger / Unified Deployment) ────
