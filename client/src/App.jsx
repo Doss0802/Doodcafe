@@ -21,6 +21,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import MenuManagement from './pages/admin/MenuManagement';
 import AdminEventBookings from './pages/admin/AdminEventBookings';
 import AdminOffers from './pages/admin/AdminOffers';
+import OffersPage from './pages/OffersPage';
 import StaffOrders from './pages/staff/StaffOrders';
 import BookEvents from './pages/BookEvents';
 
@@ -46,6 +47,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/menu" element={<Menu />} />
             <Route path="/book-events" element={<BookEvents />} />
+            <Route path="/offers/:type" element={<OffersPage />} />
             {/* Public — unauthenticated access only */}
             <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
             <Route path="/register" element={<PublicOnlyRoute><Register /></PublicOnlyRoute>} />

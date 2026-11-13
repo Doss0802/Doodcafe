@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { UtensilsCrossed, ShoppingBag, Bike, CalendarDays, BookOpen, ArrowRight } from 'lucide-react';
 import axiosInstance from '../api/axiosInstance';
+import HeroOffersStrip from '../components/HeroOffersStrip';
 
 import cafeLogo from '../images/cafe_logo.png';
 
@@ -101,6 +102,7 @@ export default function Home() {
         <div className="hero-bg-pattern" aria-hidden="true" />
         <div className="container hero-container">
           <div className="hero-left animate-fade-up">
+            <HeroOffersStrip />
             <h1 className="hero-title">
               Open Door Cafe
               <span className="hero-title-accent"> — Welcome Always</span>
