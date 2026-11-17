@@ -65,6 +65,11 @@ const orderValidation = [
     .trim()
     .isLength({ max: 200 })
     .withMessage('Special instructions cannot exceed 200 characters'),
+  body('idempotencyKey')
+    .optional({ nullable: true })
+    .trim()
+    .isLength({ max: 64 })
+    .withMessage('Idempotency key cannot exceed 64 characters'),
   body('coordinates')
     .optional()
     .isObject()

@@ -1,5 +1,6 @@
 const { validationResult } = require('express-validator');
 const { Op } = require('sequelize');
+const sequelize = require('../src/config/db');
 const Order = require('../models/Order');
 const MenuItem = require('../models/MenuItem');
 const Category = require('../models/Category');
@@ -20,7 +21,20 @@ const placeOrder = async (req, res, next) => {
       });
     }
 
-    let { items, paymentMode, customerName, customerPhone, specialInstructions, orderType, customer_location, deliveryAddress, coordinates, tableNumber, tableNo } = req.body;
+    let { items, paymentMode, customerName, customerPhone, specialInstructions, orderType, customer_location, deliveryAddress, coordinates, tableNumber, tableNo, idempotencyKey } = req.body;
+
+    // Idempotency: return existing order for duplicate requests with the same key
+    if (idempotencyKey && typeof idempotencyKey === 'string' && idempotencyKey.trim()) {
+      const existing = await Order.findOne({ where: { idempotencyKey: idempotencyKey.trim() } });
+      if (existing) {
+        return ApiResponse.success(res, {
+          statusCode: 200,
+          message: 'Order already placed (idempotent)',
+          data: existing.toJSON(),
+        });
+      }
+    }
+
     const resolvedOrderType = ['takeaway', 'delivery', 'dine-in'].includes(orderType) ? orderType : 'takeaway';
     const rawTable = tableNumber || tableNo;
     const resolvedTableNumber = resolvedOrderType === 'dine-in' && rawTable ? String(rawTable).trim() : null;
@@ -109,24 +123,43 @@ const placeOrder = async (req, res, next) => {
     const fallbackLocation = 'Coimbatore, Tamil Nadu';
     const fallbackCoords = { lat: 11.0168, lng: 76.9558 };
 
-    // Sequelize Order.create — field names match PostgreSQL schema exactly
-    const order = await Order.create({
-      userId: req.user.id,
-      items: enrichedItems,                   // DataTypes.JSON — Sequelize handles serialization
-      totalAmount: parseFloat(totalAmount.toFixed(2)),
-      orderType: resolvedOrderType,
-      paymentMode: resolvedPaymentMode,
-      paymentStatus: resolvedPaymentStatus,
-      tableNumber: resolvedTableNumber,
-      customerName: resolvedCustomerName,
-      customerPhone: resolvedCustomerPhone,
-      customer_location: (customer_location || deliveryAddress || (resolvedOrderType === 'dine-in' ? `Dood Cafe — Dine-in${resolvedTableNumber ? ` (Table ${resolvedTableNumber})` : ''}` : fallbackLocation)).substring(0, 200),
-      deliveryAddress: (deliveryAddress || customer_location || (resolvedOrderType === 'dine-in' ? `Dood Cafe — Dine-in${resolvedTableNumber ? ` (Table ${resolvedTableNumber})` : ''}` : fallbackLocation)).substring(0, 250),
-      coordinates: (coordinates && typeof coordinates.lat === 'number' && typeof coordinates.lng === 'number')
-        ? coordinates
-        : fallbackCoords,
-      specialInstructions: specialInstructions || '',
-      status: initialStatus,
+    // Wrap creation in a transaction for race-condition-safe orderNumber assignment
+    const order = await sequelize.transaction(async (t) => {
+      // Advisory transaction lock guarantees strictly serialized orderNumber allocation across concurrent requests
+      try {
+        await sequelize.query('SELECT pg_advisory_xact_lock(987654321);', { transaction: t });
+      } catch (_) {
+        // Fallback for non-postgres dialects
+      }
+
+      const [maxResult] = await sequelize.query(
+        'SELECT COALESCE(MAX("orderNumber"), 1000) + 1 AS next FROM orders',
+        { type: sequelize.constructor.QueryTypes.SELECT, transaction: t }
+      );
+      const nextOrderNumber = (maxResult && maxResult.next) ? Number(maxResult.next) : 1001;
+      const billNumber = `ORD-${nextOrderNumber}`;
+
+      return await Order.create({
+        userId: req.user.id,
+        items: enrichedItems,
+        totalAmount: parseFloat(totalAmount.toFixed(2)),
+        orderType: resolvedOrderType,
+        paymentMode: resolvedPaymentMode,
+        paymentStatus: resolvedPaymentStatus,
+        tableNumber: resolvedTableNumber,
+        customerName: resolvedCustomerName,
+        customerPhone: resolvedCustomerPhone,
+        customer_location: (customer_location || deliveryAddress || (resolvedOrderType === 'dine-in' ? `Dood Cafe — Dine-in${resolvedTableNumber ? ` (Table ${resolvedTableNumber})` : ''}` : fallbackLocation)).substring(0, 200),
+        deliveryAddress: (deliveryAddress || customer_location || (resolvedOrderType === 'dine-in' ? `Dood Cafe — Dine-in${resolvedTableNumber ? ` (Table ${resolvedTableNumber})` : ''}` : fallbackLocation)).substring(0, 250),
+        coordinates: (coordinates && typeof coordinates.lat === 'number' && typeof coordinates.lng === 'number')
+          ? coordinates
+          : fallbackCoords,
+        specialInstructions: specialInstructions || '',
+        status: initialStatus,
+        orderNumber: nextOrderNumber,
+        billNumber,
+        idempotencyKey: (idempotencyKey && typeof idempotencyKey === 'string' && idempotencyKey.trim()) ? idempotencyKey.trim() : null,
+      }, { transaction: t });
     });
 
     const newOrder = {
@@ -162,6 +195,20 @@ const placeOrder = async (req, res, next) => {
       data: order.toJSON(),
     });
   } catch (error) {
+    // If a duplicate key race condition occurred and was caught by the unique index, return the existing order
+    const idempotencyKey = req.body && req.body.idempotencyKey;
+    if (idempotencyKey && (error.name === 'SequelizeUniqueConstraintError' || error.name === 'UniqueConstraintError')) {
+      try {
+        const existing = await Order.findOne({ where: { idempotencyKey: String(idempotencyKey).trim() } });
+        if (existing) {
+          return ApiResponse.success(res, {
+            statusCode: 200,
+            message: 'Order already placed (idempotent)',
+            data: existing.toJSON(),
+          });
+        }
+      } catch (_) {}
+    }
     next(error);
   }
 };

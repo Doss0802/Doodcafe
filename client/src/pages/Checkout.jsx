@@ -26,6 +26,7 @@ export default function Checkout() {
 
   const [placing, setPlacing] = useState(false);
   const [locating, setLocating] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
 
   // Address Form States (Restricted to Coimbatore City Limits)
   const [street, setStreet] = useState('');
@@ -53,6 +54,11 @@ export default function Checkout() {
     if (t) { try { sessionStorage.setItem(SESSION_KEY, t); } catch (_) {} }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Regenerate idempotency key whenever the cart contents change
+  useEffect(() => {
+    setIdempotencyKey(crypto.randomUUID());
+  }, [items]);
   const [tableNumber, setTableNumber] = useState(() => (isTableLocked ? String(urlTableNum) : ''));
   const [isOutOfDeliveryBoundary, setIsOutOfDeliveryBoundary] = useState(false);
 
@@ -239,6 +245,7 @@ export default function Checkout() {
         deliveryAddress: selectedOrderType === 'dine-in' ? `Dood Cafe — Dine-in (Table ${resolvedTable})` : textAddress,
         coordinates: { lat: coordinates.lat, lng: coordinates.lng },
         specialInstructions,
+        idempotencyKey,
       };
 
       const response = await axiosInstance.post('/orders', payload);
@@ -270,10 +277,10 @@ export default function Checkout() {
       setInvoiceData(invoicePayload);
       setShowInvoiceModal(true);
       clearCart();
+      setIdempotencyKey(crypto.randomUUID());
       toast.success('🎉 Order placed and saved to database!');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to place order');
-    } finally {
       setPlacing(false);
     }
   };

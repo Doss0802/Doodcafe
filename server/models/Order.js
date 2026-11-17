@@ -1,4 +1,4 @@
-const { DataTypes } = require('sequelize');
+const { DataTypes, Op } = require('sequelize');
 const sequelize = require('../src/config/db');
 const User = require('./User');
 
@@ -114,6 +114,11 @@ const Order = sequelize.define('Order', {
     type: DataTypes.INTEGER,
     allowNull: true,
   },
+  idempotencyKey: {
+    type: DataTypes.STRING(64),
+    allowNull: true,
+    defaultValue: null,
+  },
   _id: {
     type: DataTypes.VIRTUAL,
     get() {
@@ -130,19 +135,33 @@ const Order = sequelize.define('Order', {
     { fields: ['orderType', 'createdAt'] },
     { fields: ['billNumber'] },
     { fields: ['paymentStatus'] },
+    { fields: ['idempotencyKey'], unique: true, where: { idempotencyKey: { [Op.ne]: null } } },
   ],
   hooks: {
-    beforeCreate: async (order) => {
+    beforeCreate: async (order, options) => {
       if (!order.status) {
         order.status = 'pending';
       }
       if (!order.paymentStatus) {
         order.paymentStatus = 'pending';
       }
+      // orderNumber/billNumber are set by the controller inside a transaction.
+      // This fallback only runs for non-transactional callers.
       if (!order.orderNumber) {
         try {
-          const maxOrder = await Order.max('orderNumber');
-          order.orderNumber = Math.max(1001, (Number(maxOrder) || 1000) + 1);
+          if (options && options.transaction) {
+            try {
+              await sequelize.query('SELECT pg_advisory_xact_lock(987654321);', { transaction: options.transaction });
+            } catch (_) {}
+            const [maxResult] = await sequelize.query(
+              'SELECT COALESCE(MAX("orderNumber"), 1000) + 1 AS next FROM orders',
+              { type: sequelize.constructor.QueryTypes.SELECT, transaction: options.transaction }
+            );
+            order.orderNumber = (maxResult && maxResult.next) ? Number(maxResult.next) : 1001;
+          } else {
+            const maxOrder = await Order.max('orderNumber');
+            order.orderNumber = Math.max(1001, (Number(maxOrder) || 1000) + 1);
+          }
         } catch (e) {
           order.orderNumber = 1001;
         }

@@ -10,6 +10,8 @@ const connectDB = async () => {
     await sequelize.sync({ alter: false });
     try {
       await sequelize.query('ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "tableNumber" VARCHAR(20);');
+      await sequelize.query('ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "idempotencyKey" VARCHAR(64);');
+      await sequelize.query('CREATE UNIQUE INDEX IF NOT EXISTS "orders_idempotency_key_idx" ON "orders" ("idempotencyKey") WHERE "idempotencyKey" IS NOT NULL;');
     } catch (_) {
       // Column may already exist or table not created yet
     }
