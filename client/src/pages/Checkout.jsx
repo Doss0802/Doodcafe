@@ -7,6 +7,29 @@ import axiosInstance from '../api/axiosInstance';
 import InvoiceModal from '../components/InvoiceModal';
 import toast from 'react-hot-toast';
 
+const ENABLE_ONLINE_PAYMENT = true;
+
+const loadPaytmScript = (mid, isStaging) => {
+  return new Promise((resolve, reject) => {
+    if (window.Paytm && window.Paytm.CheckoutJS) {
+      return resolve();
+    }
+    const scriptId = 'paytm-checkoutjs';
+    const existing = document.getElementById(scriptId);
+    if (existing) existing.remove();
+
+    const host = isStaging ? 'https://securegw-stage.paytm.in' : 'https://securegw.paytm.in';
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.type = 'text/javascript';
+    script.crossOrigin = 'anonymous';
+    script.src = `${host}/merchantpgpui/checkoutjs/merchants/${mid}.js`;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Failed to load Paytm Checkout script. Please check your network connection.'));
+    document.body.appendChild(script);
+  });
+};
+
 export default function Checkout() {
   const {
     items, setPaymentMode,
@@ -78,6 +101,94 @@ export default function Checkout() {
 
   useEffect(() => {
     document.title = 'Checkout & Live Location — Dood Cafe';
+  }, []);
+
+  const finalizePaidOrder = (orderData, resolvedTable, textAddress) => {
+    const invoicePayload = {
+      _id: orderData.orderId || orderData._id || orderData.id,
+      orderNumber: orderData.orderNumber,
+      billNumber: orderData.billNumber,
+      tableNumber: resolvedTable || orderData.tableNumber,
+      customerName: orderData.customerName || (customerName ? customerName.trim() : ''),
+      customerPhone: orderData.customerPhone || (customerPhone ? customerPhone.replace(/\D/g, '') : ''),
+      customerEmail: user?.email || '',
+      customerLocation: selectedOrderType === 'dine-in' ? `Dood Cafe — Dine-in (Table ${resolvedTable || orderData.tableNumber})` : (textAddress || orderData.customerLocation),
+      orderTimestamp: orderData.createdAt ? new Date(orderData.createdAt) : new Date(),
+      formattedDate: new Date().toLocaleString('en-IN', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      }),
+      items: (orderData.items && orderData.items.length > 0 ? orderData.items : items),
+      totalAmount: orderData.totalAmount || totalAmount,
+      paymentMode: 'upi',
+      paymentStatus: 'paid',
+      orderType: selectedOrderType || orderData.orderType,
+      specialInstructions,
+    };
+
+    setInvoiceData(invoicePayload);
+    setShowInvoiceModal(true);
+    clearCart();
+    setIdempotencyKey(crypto.randomUUID());
+    setPlacing(false);
+    toast.success('🎉 Online payment verified! Order placed successfully.');
+  };
+
+  const pollPaymentStatus = (orderId, resolvedTable, textAddress) => {
+    const maxAttempts = 20;
+    let attempts = 0;
+    const toastId = toast.loading('Verifying online payment with bank...');
+
+    const interval = setInterval(async () => {
+      attempts += 1;
+      try {
+        const res = await axiosInstance.get(`/payment/status/${orderId}`);
+        const data = res?.data?.data || {};
+
+        if (data.paymentStatus === 'paid') {
+          clearInterval(interval);
+          toast.dismiss(toastId);
+          finalizePaidOrder(data, resolvedTable, textAddress);
+          return;
+        }
+
+        if (data.paymentStatus === 'failed') {
+          clearInterval(interval);
+          toast.dismiss(toastId);
+          toast.error('❌ Online payment was not completed or failed. Cart preserved — retry or choose Pay at Counter.');
+          setPlacing(false);
+          return;
+        }
+
+        if (attempts >= maxAttempts) {
+          clearInterval(interval);
+          toast.dismiss(toastId);
+          toast.error('Payment verification timed out. If money was debited, check your order history in My Orders.');
+          setPlacing(false);
+        }
+      } catch (_) {
+        if (attempts >= maxAttempts) {
+          clearInterval(interval);
+          toast.dismiss(toastId);
+          toast.error('Unable to verify payment status. Please check My Orders.');
+          setPlacing(false);
+        }
+      }
+    }, 2000);
+  };
+
+  useEffect(() => {
+    const handlePaymentMessage = (event) => {
+      if (event.data && (event.data.type === 'PAYTM_CALLBACK_PROCESSED' || event.data.type === 'PAYTM_PAYMENT_STATUS')) {
+        const orderId = event.data.orderId;
+        if (orderId) {
+          pollPaymentStatus(orderId, null, null);
+        }
+      }
+    };
+    window.addEventListener('message', handlePaymentMessage);
+    return () => window.removeEventListener('message', handlePaymentMessage);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Redirect to /menu if cart is empty, keeping all query params ──
@@ -247,6 +358,55 @@ export default function Checkout() {
         specialInstructions,
         idempotencyKey,
       };
+
+      // If Online Payment (Paytm) is selected, initiate online transaction and invoke JS Checkout
+      if (paymentOption === 'paid') {
+        const response = await axiosInstance.post('/payment/initiate', payload);
+        const initData = response?.data?.data;
+        if (!initData || !initData.txnToken) {
+          throw new Error(response?.data?.message || 'Failed to initialize online payment');
+        }
+
+        await loadPaytmScript(initData.mid, initData.isStaging);
+
+        const config = {
+          root: '',
+          flow: 'DEFAULT',
+          data: {
+            orderId: initData.paytmOrderId,
+            token: initData.txnToken,
+            tokenType: 'TXN_TOKEN',
+            amount: String(initData.amount || totalAmount),
+          },
+          handler: {
+            notifyMerchant: function(eventName) {
+              if (eventName === 'APP_CLOSED' || eventName === 'POPUP_CLOSED') {
+                pollPaymentStatus(initData.orderId, resolvedTable, textAddress);
+              }
+            },
+            transactionStatus: function() {
+              try {
+                if (window.Paytm && window.Paytm.CheckoutJS && typeof window.Paytm.CheckoutJS.close === 'function') {
+                  window.Paytm.CheckoutJS.close();
+                }
+              } catch (_) {}
+              pollPaymentStatus(initData.orderId, resolvedTable, textAddress);
+            },
+          },
+          merchant: {
+            mid: initData.mid,
+            name: 'Dood Cafe',
+          },
+        };
+
+        if (window.Paytm && window.Paytm.CheckoutJS) {
+          await window.Paytm.CheckoutJS.init(config);
+          window.Paytm.CheckoutJS.invoke();
+        } else {
+          throw new Error('Paytm CheckoutJS failed to load. Please verify your connection.');
+        }
+        return;
+      }
 
       const response = await axiosInstance.post('/orders', payload);
       const createdOrder = response?.data?.data || response?.data || {};
@@ -614,7 +774,7 @@ export default function Checkout() {
               <div className="payment-group">
                 {[
                   { value: 'cod', label: '💵 Cash on Delivery / Counter (COD)' },
-                  { value: 'paid', label: '📱 UPI / Online (Paid)' },
+                  ...(ENABLE_ONLINE_PAYMENT ? [{ value: 'paid', label: '📱 UPI / Online (Paytm)' }] : []),
                   { value: 'pending', label: '⏳ Pay at Counter (Pending)' },
                 ].map(({ value, label }) => (
                   <button

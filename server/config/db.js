@@ -12,6 +12,13 @@ const connectDB = async () => {
       await sequelize.query('ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "tableNumber" VARCHAR(20);');
       await sequelize.query('ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "idempotencyKey" VARCHAR(64);');
       await sequelize.query('CREATE UNIQUE INDEX IF NOT EXISTS "orders_idempotency_key_idx" ON "orders" ("idempotencyKey") WHERE "idempotencyKey" IS NOT NULL;');
+      await sequelize.query('ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "paytmOrderId" VARCHAR(100);');
+      await sequelize.query('ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "transactionId" VARCHAR(100);');
+      await sequelize.query('ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "bankTxnId" VARCHAR(100);');
+      await sequelize.query('ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "gatewayName" VARCHAR(50);');
+      await sequelize.query('ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "rawGatewayResponse" JSONB;');
+      await sequelize.query('CREATE INDEX IF NOT EXISTS "orders_paytm_order_id_idx" ON "orders" ("paytmOrderId");');
+      await sequelize.query('CREATE INDEX IF NOT EXISTS "orders_transaction_id_idx" ON "orders" ("transactionId");');
     } catch (_) {
       // Column may already exist or table not created yet
     }

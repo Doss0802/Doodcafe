@@ -41,6 +41,7 @@ const adminMenuRoutes = require('./routes/adminMenu.route');
 const staffRoutes = require('./routes/staff.routes');
 const eventBookingRoutes = require('./routes/eventBooking.routes');
 const offerRoutes = require('./routes/offer.routes');
+const paymentRoutes = require('./routes/payment.routes');
 const { initAdminSocket } = require('./admin/admin.socket');
 
 const app = express();
@@ -204,6 +205,8 @@ app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/staff', staffRoutes);
 app.use('/api/v1/event-bookings', eventBookingRoutes);
 app.use('/api/v1/offers', offerRoutes);
+app.use('/api/v1/payment', paymentRoutes);
+app.use('/api/v1/payments', paymentRoutes);
 
 // ─── Backward Compatibility: /api/* aliases ────────────────────────────────
 app.use('/api/health', healthRoutes);
@@ -218,6 +221,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/staff', staffRoutes);
 app.use('/api/event-bookings', eventBookingRoutes);
 app.use('/api/offers', offerRoutes);
+app.use('/api/payment', paymentRoutes);
+app.use('/api/payments', paymentRoutes);
 
 
 // ─── 6. Client Production Bundle Serving (Hostinger / Unified Deployment) ────

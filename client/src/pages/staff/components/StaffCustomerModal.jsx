@@ -182,7 +182,9 @@ export default function StaffCustomerModal({ order, onClose }) {
                 Payment Status
               </span>
               <span className={`inline-block mt-0.5 px-2.5 py-0.5 rounded-full text-xs font-bold border ${paymentClass}`}>
-                {(order.paymentStatus || 'pending').toUpperCase()} ({(order.paymentMode || 'cash').toUpperCase()})
+                {order.paymentStatus === 'paid'
+                  ? 'Paid (Online / UPI)'
+                  : `${(order.paymentStatus || 'pending').toUpperCase()} (${(order.paymentMode || 'cash').toUpperCase()})`}
               </span>
             </div>
             <div className="text-right">

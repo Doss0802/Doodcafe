@@ -119,6 +119,31 @@ const Order = sequelize.define('Order', {
     allowNull: true,
     defaultValue: null,
   },
+  paytmOrderId: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    defaultValue: null,
+  },
+  transactionId: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    defaultValue: null,
+  },
+  bankTxnId: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    defaultValue: null,
+  },
+  gatewayName: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    defaultValue: null,
+  },
+  rawGatewayResponse: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: null,
+  },
   _id: {
     type: DataTypes.VIRTUAL,
     get() {
@@ -136,6 +161,8 @@ const Order = sequelize.define('Order', {
     { fields: ['billNumber'] },
     { fields: ['paymentStatus'] },
     { fields: ['idempotencyKey'], unique: true, where: { idempotencyKey: { [Op.ne]: null } } },
+    { fields: ['paytmOrderId'] },
+    { fields: ['transactionId'] },
   ],
   hooks: {
     beforeCreate: async (order, options) => {
