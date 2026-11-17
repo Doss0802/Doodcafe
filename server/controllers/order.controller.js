@@ -35,6 +35,15 @@ const placeOrder = async (req, res, next) => {
       }
     }
 
+    // Check if online payment (UPI) is disabled
+    const isOnlinePaymentEnabled = process.env.ENABLE_ONLINE_PAYMENT === 'true';
+    if (paymentMode === 'upi' && !isOnlinePaymentEnabled) {
+      return ApiResponse.error(res, {
+        statusCode: 400,
+        message: 'Online payment (UPI) is currently disabled. Please choose Pay at Counter or Cash on Delivery.',
+      });
+    }
+
     const resolvedOrderType = ['takeaway', 'delivery', 'dine-in'].includes(orderType) ? orderType : 'takeaway';
     const rawTable = tableNumber || tableNo;
     const resolvedTableNumber = resolvedOrderType === 'dine-in' && rawTable ? String(rawTable).trim() : null;

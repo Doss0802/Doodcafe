@@ -23,6 +23,14 @@ const getPaytmConfig = () => {
 // @access Private (authenticated customer)
 const initiatePayment = async (req, res, next) => {
   try {
+    const isOnlinePaymentEnabled = process.env.ENABLE_ONLINE_PAYMENT === 'true';
+    if (!isOnlinePaymentEnabled) {
+      return ApiResponse.error(res, {
+        statusCode: 403,
+        message: 'Online payment is currently disabled. Please use Cash on Delivery or Pay at Counter.',
+      });
+    }
+
     const { mid, merchantKey, website, paytmHost, callbackUrl, isProduction } = getPaytmConfig();
 
     if (!mid || !merchantKey) {

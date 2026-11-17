@@ -7,7 +7,7 @@ import axiosInstance from '../api/axiosInstance';
 import InvoiceModal from '../components/InvoiceModal';
 import toast from 'react-hot-toast';
 
-const ENABLE_ONLINE_PAYMENT = true;
+const ENABLE_ONLINE_PAYMENT = import.meta.env.VITE_ENABLE_ONLINE_PAYMENT === 'true';
 
 const loadPaytmScript = (mid, isStaging) => {
   return new Promise((resolve, reject) => {
@@ -361,6 +361,11 @@ export default function Checkout() {
 
       // If Online Payment (Paytm) is selected, initiate online transaction and invoke JS Checkout
       if (paymentOption === 'paid') {
+        if (!ENABLE_ONLINE_PAYMENT) {
+          toast.error('Online payment is currently disabled. Please choose Pay at Counter or COD.');
+          setPlacing(false);
+          return;
+        }
         const response = await axiosInstance.post('/payment/initiate', payload);
         const initData = response?.data?.data;
         if (!initData || !initData.txnToken) {
@@ -774,7 +779,7 @@ export default function Checkout() {
               <div className="payment-group">
                 {[
                   { value: 'cod', label: '💵 Cash on Delivery / Counter (COD)' },
-                  ...(ENABLE_ONLINE_PAYMENT ? [{ value: 'paid', label: '📱 UPI / Online (Paytm)' }] : []),
+                  ...(ENABLE_ONLINE_PAYMENT ? [{ value: 'paid', label: '📱 UPI / Online (Paid)' }] : []),
                   { value: 'pending', label: '⏳ Pay at Counter (Pending)' },
                 ].map(({ value, label }) => (
                   <button
