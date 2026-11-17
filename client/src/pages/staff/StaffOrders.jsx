@@ -214,6 +214,34 @@ export default function StaffOrders() {
     }
   };
 
+  // ─── Mark as Paid Handler ───
+  const [actionLoadingPaidId, setActionLoadingPaidId] = useState(null);
+
+  const handleMarkPaid = async (orderId) => {
+    setActionLoadingPaidId(orderId);
+    try {
+      await axiosInstance.patch(`/staff/orders/${orderId}/pay`);
+      toast.success('✅ Order marked as Paid!');
+      fetchOrders(true);
+      if (searchedOrder && (searchedOrder.id === orderId || searchedOrder._id === orderId)) {
+        setSearchedOrder({
+          ...searchedOrder,
+          paymentStatus: 'paid',
+        });
+      }
+      if (confirmingHandoverOrder && (confirmingHandoverOrder.id === orderId || confirmingHandoverOrder._id === orderId)) {
+        setConfirmingHandoverOrder({
+          ...confirmingHandoverOrder,
+          paymentStatus: 'paid',
+        });
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update payment status');
+    } finally {
+      setActionLoadingPaidId(null);
+    }
+  };
+
   // ─── Filtered Lists ───
   const displayedTakeawayOrders = takeawayOrders.filter((ord) => {
     if (takeawayFilter === 'pending') return ord.status !== 'handed_over';
@@ -469,6 +497,8 @@ export default function StaffOrders() {
                           order={searchedOrder}
                           isHighlighted={true}
                           onStartHandover={setConfirmingHandoverOrder}
+                          onMarkPaid={handleMarkPaid}
+                          actionLoadingPaidId={actionLoadingPaidId}
                         />
                       </div>
                     )}
@@ -527,6 +557,8 @@ export default function StaffOrders() {
                           key={ord.id}
                           order={ord}
                           onStartHandover={setConfirmingHandoverOrder}
+                          onMarkPaid={handleMarkPaid}
+                          actionLoadingPaidId={actionLoadingPaidId}
                         />
                       ))}
                     </div>
@@ -619,6 +651,8 @@ export default function StaffOrders() {
                         order={ord}
                         onStatusChange={handleDineInStatusChange}
                         actionLoadingId={dineInActionLoadingId}
+                        onMarkPaid={handleMarkPaid}
+                        actionLoadingPaidId={actionLoadingPaidId}
                       />
                     ))}
                   </div>
@@ -793,10 +827,21 @@ export default function StaffOrders() {
               </div>
             </div>
 
-            {confirmingHandoverOrder.paymentStatus === 'pending' && (
-              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-2 font-semibold">
-                <AlertTriangle size={16} className="text-amber-600 flex-shrink-0" />
-                <span>Payment is PENDING! Collect ₹{confirmingHandoverOrder.totalAmount} before parcel handover.</span>
+            {['pending', 'cod'].includes(confirmingHandoverOrder.paymentStatus) && (
+              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 font-semibold">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle size={16} className="text-amber-600 flex-shrink-0" />
+                  <span>Payment is {confirmingHandoverOrder.paymentStatus === 'cod' ? 'COD' : 'PENDING'}! Collect ₹{confirmingHandoverOrder.totalAmount} before parcel handover.</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleMarkPaid(confirmingHandoverOrder.id)}
+                  disabled={actionLoadingPaidId === confirmingHandoverOrder.id}
+                  className="clay-btn clay-gold text-xs font-bold px-3 py-1.5 rounded-lg flex items-center justify-center gap-1 shrink-0 self-end sm:self-auto shadow-xs disabled:opacity-50"
+                >
+                  <CheckCircle2 size={13} />
+                  <span>Mark as Paid</span>
+                </button>
               </div>
             )}
 
@@ -837,9 +882,13 @@ function TakeawayOrderCard({
   order,
   isHighlighted = false,
   onStartHandover,
+  onMarkPaid,
+  actionLoadingPaidId,
 }) {
   const isHandedOver = order.status === 'handed_over';
   const isPaymentPending = order.paymentStatus === 'pending';
+  const canMarkPaid = ['pending', 'cod'].includes(order.paymentStatus);
+  const isMarkingPaid = actionLoadingPaidId === (order.id || order._id);
 
   const paymentClass = PAYMENT_BADGE_CLASSES[order.paymentStatus] || PAYMENT_BADGE_CLASSES.pending;
   const statusClass = STATUS_BADGE_CLASSES[order.status] || STATUS_BADGE_CLASSES.pending;
@@ -874,6 +923,22 @@ function TakeawayOrderCard({
             <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${paymentClass}`}>
               {PAYMENT_LABELS[order.paymentStatus] || order.paymentStatus}
             </span>
+            {canMarkPaid && onMarkPaid && (
+              <button
+                type="button"
+                onClick={() => onMarkPaid(order.id || order._id)}
+                disabled={isMarkingPaid}
+                className="clay-btn clay-gold text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-xs disabled:opacity-50"
+                title="Mark order as paid"
+              >
+                {isMarkingPaid ? (
+                  <span className="w-3 h-3 border-2 border-stone-900 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <CheckCircle2 size={11} />
+                )}
+                <span>Mark as Paid</span>
+              </button>
+            )}
             <span className={`px-2 py-0.5 rounded-md text-[11px] font-semibold border ${statusClass}`}>
               {order.status === 'handed_over' ? '✓ Handed Over' : order.status}
             </span>
@@ -971,11 +1036,13 @@ function TakeawayOrderCard({
 }
 
 /* ─── Dine-In Order Card Component (with Status Management) ─── */
-function DineInOrderCard({ order, onStatusChange, actionLoadingId }) {
+function DineInOrderCard({ order, onStatusChange, actionLoadingId, onMarkPaid, actionLoadingPaidId }) {
   const paymentClass = PAYMENT_BADGE_CLASSES[order.paymentStatus] || PAYMENT_BADGE_CLASSES.pending;
   const statusMeta = getStatusMeta(order.status);
   const orderId = order.id || order._id;
   const isActionLoading = actionLoadingId === orderId;
+  const canMarkPaid = ['pending', 'cod'].includes(order.paymentStatus);
+  const isMarkingPaid = actionLoadingPaidId === orderId;
 
   const tableNum =
     order.tableNumber ||
@@ -1019,6 +1086,22 @@ function DineInOrderCard({ order, onStatusChange, actionLoadingId }) {
             <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${paymentClass}`}>
               {PAYMENT_LABELS[order.paymentStatus] || order.paymentStatus || 'Pending'}
             </span>
+            {canMarkPaid && onMarkPaid && (
+              <button
+                type="button"
+                onClick={() => onMarkPaid(orderId)}
+                disabled={isMarkingPaid}
+                className="clay-btn clay-gold text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-xs disabled:opacity-50"
+                title="Mark order as paid"
+              >
+                {isMarkingPaid ? (
+                  <span className="w-3 h-3 border-2 border-stone-900 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <CheckCircle2 size={11} />
+                )}
+                <span>Mark as Paid</span>
+              </button>
+            )}
             <span
               className="px-2.5 py-0.5 rounded-full text-xs font-bold border inline-flex items-center gap-1"
               style={{ color: statusMeta.color, background: statusMeta.bg, borderColor: statusMeta.color + '40' }}

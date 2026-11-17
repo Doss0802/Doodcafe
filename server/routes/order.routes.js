@@ -1,7 +1,8 @@
 const express = require('express');
 const { body, param, query } = require('express-validator');
 const { placeOrder, getMyOrders, getOrderById, cancelOrder } = require('../controllers/order.controller');
-const { protect } = require('../middleware/auth');
+const { markOrderPaid } = require('../controllers/staff.controller');
+const { protect, requireRole } = require('../middleware/auth');
 const { sensitiveLimiter } = require('../middleware/rateLimiter');
 const validate = require('../middleware/validate');
 
@@ -39,10 +40,6 @@ const orderValidation = [
     .optional()
     .isIn(['cash', 'upi'])
     .withMessage('Invalid payment mode. Only cash and upi are supported.'),
-  body('paymentStatus')
-    .optional()
-    .isIn(['paid', 'pending', 'cod'])
-    .withMessage('Invalid payment status. Must be paid, pending, or cod.'),
   body('customerName')
     .optional()
     .trim()
@@ -126,5 +123,6 @@ router.get('/my', paginationValidation, validate, getMyOrders);
 router.get('/my-orders', paginationValidation, validate, getMyOrders);
 router.get('/:id', idValidation, validate, getOrderById);
 router.patch('/:id/cancel', sensitiveLimiter, idValidation, validate, cancelOrder);
+router.patch('/:id/pay', sensitiveLimiter, requireRole('admin', 'manager', 'staff'), idValidation, validate, markOrderPaid);
 
 module.exports = router;

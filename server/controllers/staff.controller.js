@@ -291,8 +291,70 @@ const markOrderHandedOver = async (req, res, next) => {
   }
 };
 
+/**
+ * ─── 4. Mark Order as Paid ─────────────────────────────────────────────────────
+ * @route PATCH /api/v1/staff/orders/:id/pay
+ * @access Private (admin, manager, staff)
+ */
+const markOrderPaid = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const order = await Order.findByPk(id);
+    if (!order) {
+      return ApiResponse.error(res, {
+        statusCode: 404,
+        message: 'Order not found',
+      });
+    }
+
+    if (order.paymentStatus === 'paid') {
+      return ApiResponse.error(res, {
+        statusCode: 400,
+        message: 'Order is already marked as paid',
+      });
+    }
+
+    if (!['pending', 'cod'].includes(order.paymentStatus)) {
+      return ApiResponse.error(res, {
+        statusCode: 400,
+        message: `Cannot mark order with payment status "${order.paymentStatus}" as paid`,
+      });
+    }
+
+    order.paymentStatus = 'paid';
+    await order.save();
+
+    const plain = order.toJSON();
+    const orderData = {
+      ...plain,
+      paymentStatus: 'paid',
+    };
+
+    // Broadcast live update across sockets
+    try {
+      emitOrderStatusUpdate(orderData);
+      if (req.io) {
+        req.io.emit('order-status-updated', orderData);
+        req.io.emit('orderStatusUpdated', orderData);
+      }
+    } catch (sockErr) {
+      // Non-fatal
+    }
+
+    return ApiResponse.success(res, {
+      statusCode: 200,
+      message: 'Order payment status updated to Paid',
+      data: orderData,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getStaffOrders,
   lookupTakeawayOrder,
   markOrderHandedOver,
+  markOrderPaid,
 };

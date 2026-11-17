@@ -4,6 +4,7 @@ const {
   getStaffOrders,
   lookupTakeawayOrder,
   markOrderHandedOver,
+  markOrderPaid,
 } = require('../controllers/staff.controller');
 const { protect, requireRole } = require('../middleware/auth');
 const validate = require('../middleware/validate');
@@ -54,6 +55,17 @@ router.patch(
   [param('id').isUUID().withMessage('Invalid order ID format')],
   validate,
   markOrderHandedOver
+);
+
+/**
+ * @route  PATCH /api/v1/staff/orders/:id/pay
+ * @desc   Mark order as paid (admin, manager, staff)
+ */
+router.patch(
+  '/orders/:id/pay',
+  [param('id').isUUID().withMessage('Invalid order ID format')],
+  validate,
+  markOrderPaid
 );
 
 module.exports = router;

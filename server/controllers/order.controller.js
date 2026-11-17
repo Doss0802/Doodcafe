@@ -20,7 +20,7 @@ const placeOrder = async (req, res, next) => {
       });
     }
 
-    let { items, paymentMode, paymentStatus, customerName, customerPhone, specialInstructions, orderType, customer_location, deliveryAddress, coordinates, tableNumber, tableNo } = req.body;
+    let { items, paymentMode, customerName, customerPhone, specialInstructions, orderType, customer_location, deliveryAddress, coordinates, tableNumber, tableNo } = req.body;
     const resolvedOrderType = ['takeaway', 'delivery', 'dine-in'].includes(orderType) ? orderType : 'takeaway';
     const rawTable = tableNumber || tableNo;
     const resolvedTableNumber = resolvedOrderType === 'dine-in' && rawTable ? String(rawTable).trim() : null;
@@ -30,13 +30,12 @@ const placeOrder = async (req, res, next) => {
     const resolvedCustomerName = customerName ? customerName.trim() : (req.user?.name || 'Customer');
     const resolvedCustomerPhone = customerPhone ? customerPhone.trim() : (req.user?.phone || '');
 
+    // Server-enforced payment status: never trust client-sent paymentStatus
     let resolvedPaymentStatus = 'pending';
-    if (paymentStatus && ['paid', 'pending', 'cod'].includes(paymentStatus)) {
-      resolvedPaymentStatus = paymentStatus;
-    } else if (resolvedPaymentMode === 'cash') {
+    if (resolvedPaymentMode === 'cash') {
       resolvedPaymentStatus = 'cod';
     } else if (resolvedPaymentMode === 'upi') {
-      resolvedPaymentStatus = 'paid';
+      resolvedPaymentStatus = 'pending';
     }
 
     // Delivery Geofence: Enforce Coimbatore boundary check for delivery orders only
@@ -50,60 +49,61 @@ const placeOrder = async (req, res, next) => {
       }
     }
 
-    // Fallback: If no items provided, use dummy item array
     if (!items || !Array.isArray(items) || items.length === 0) {
-      items = [{ name: 'Classic Cappuccino', price: 149, quantity: 1 }];
+      return ApiResponse.error(res, {
+        statusCode: 400,
+        message: 'Order must contain at least one item',
+      });
     }
 
     const enrichedItems = [];
     let totalAmount = 0;
 
     for (const item of items) {
+      const itemId = item.menuItemId || item.id || item._id;
       let menuItem = null;
 
-      // 1. Try finding by menuItemId (UUID) using Sequelize findByPk
-      if (item.menuItemId && typeof item.menuItemId === 'string' && item.menuItemId.trim()) {
-        menuItem = await MenuItem.findByPk(item.menuItemId);
-      }
-
-      // 2. Try finding by item name (case-insensitive via iLike)
-      if (!menuItem && item.name) {
+      // Find item strictly in database
+      if (itemId && typeof itemId === 'string' && itemId.trim()) {
+        menuItem = await MenuItem.findByPk(itemId.trim());
+      } else if (item.name && typeof item.name === 'string' && item.name.trim()) {
         menuItem = await MenuItem.findOne({
           where: { name: { [Op.iLike]: item.name.trim() } },
         });
       }
 
-      // 3. Try finding any available MenuItem in database
       if (!menuItem) {
-        menuItem = await MenuItem.findOne({ where: { available: true } });
-      }
-
-      // 4. Auto-create fallback Category + MenuItem if none exists
-      if (!menuItem) {
-        let category = await Category.findOne();
-        if (!category) {
-          category = await Category.create({
-            name: 'Quick Bites',
-            slug: 'quick-bites',
-            icon: '🍟',
-            displayOrder: 1,
-          });
-        }
-        menuItem = await MenuItem.create({
-          name: item.name || 'French Fries',
-          price: item.price !== undefined ? Number(item.price) : 99,
-          categoryId: category.id,
-          description: 'Crispy golden fries seasoned with classic salt',
-          available: true,
+        return ApiResponse.error(res, {
+          statusCode: 400,
+          message: `Menu item not found: ${itemId || item.name || 'Unknown item'}`,
         });
       }
 
-      const qty = item.quantity && Number(item.quantity) > 0 ? Number(item.quantity) : 1;
-      const price = item.price !== undefined ? Number(item.price) : menuItem.price;
-      const name = item.name || menuItem.name;
-      totalAmount += price * qty;
+      if (!menuItem.available) {
+        return ApiResponse.error(res, {
+          statusCode: 400,
+          message: `Item "${menuItem.name}" is currently unavailable`,
+        });
+      }
 
-      enrichedItems.push({ menuItemId: menuItem.id, name, price, quantity: qty });
+      const qty = item.quantity && Number(item.quantity) > 0 ? parseInt(item.quantity, 10) : 1;
+      if (isNaN(qty) || qty < 1 || qty > 99) {
+        return ApiResponse.error(res, {
+          statusCode: 400,
+          message: `Invalid quantity for item "${menuItem.name}"`,
+        });
+      }
+
+      // Always use server database price - never trust client-sent price or total
+      const dbPrice = Number(menuItem.price);
+      totalAmount += dbPrice * qty;
+
+      enrichedItems.push({
+        menuItemId: menuItem.id,
+        name: menuItem.name,
+        price: dbPrice,
+        quantity: qty,
+      });
     }
 
     const fallbackLocation = 'Coimbatore, Tamil Nadu';

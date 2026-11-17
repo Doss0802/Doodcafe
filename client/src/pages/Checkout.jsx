@@ -213,13 +213,10 @@ export default function Checkout() {
 
     setPlacing(true);
     try {
-      const isMongoId = (id) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id);
-
-      const orderItems = items.map((i) => {
-        const item = { name: i.name, price: i.price, quantity: i.quantity };
-        if (isMongoId(i._id)) item.menuItemId = i._id;
-        return item;
-      });
+      const orderItems = items.map((i) => ({
+        menuItemId: i.id || i._id,
+        quantity: i.quantity,
+      }));
 
       // Construct rich customer location string
       const addressParts = [street, city, stateName, zipCode].filter(Boolean);
@@ -238,7 +235,6 @@ export default function Checkout() {
         customerName: customerName.trim(),
         customerPhone: cleanPhone,
         paymentMode: resolvedMode,
-        paymentStatus: paymentOption,
         customer_location: selectedOrderType === 'dine-in' ? dineInLocationText : customerLocationString,
         deliveryAddress: selectedOrderType === 'dine-in' ? `Dood Cafe — Dine-in (Table ${resolvedTable})` : textAddress,
         coordinates: { lat: coordinates.lat, lng: coordinates.lng },
@@ -263,10 +259,10 @@ export default function Checkout() {
           dateStyle: 'medium',
           timeStyle: 'short',
         }),
-        items: (createdOrder.items && createdOrder.items.length > 0 ? createdOrder.items : orderItems),
+        items: (createdOrder.items && createdOrder.items.length > 0 ? createdOrder.items : items),
         totalAmount: createdOrder.totalAmount || totalAmount,
-        paymentMode: payload.paymentMode,
-        paymentStatus: payload.paymentStatus,
+        paymentMode: createdOrder.paymentMode || payload.paymentMode,
+        paymentStatus: createdOrder.paymentStatus || (resolvedMode === 'cash' ? 'cod' : 'pending'),
         orderType: payload.orderType,
         specialInstructions,
       };
