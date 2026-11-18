@@ -347,6 +347,10 @@ const handlePaymentCallback = async (req, res, next) => {
     if (!isChecksumValid) {
       order.paymentStatus = 'failed';
       order.gatewayName = 'PAYTM';
+      order.rawGatewayResponse = {
+        ...rawBody,
+        failureReason: 'Invalid Paytm callback checksum signature',
+      };
       await order.save();
 
       if (isHtmlRequest) {
@@ -371,17 +375,32 @@ const handlePaymentCallback = async (req, res, next) => {
     });
 
     const statusData = await statusResponse.json();
-    const verifiedStatus = statusData?.body?.resultInfo?.resultStatus;
-    const isTxnSuccess = verifiedStatus === 'TXN_SUCCESS';
+    const responseBody = statusData?.body || {};
+    const resultStatus = responseBody?.resultInfo?.resultStatus;
 
-    order.paymentStatus = isTxnSuccess ? 'paid' : 'failed';
-    order.transactionId = statusData?.body?.txnId || rawBody.TXNID || null;
-    order.bankTxnId = statusData?.body?.bankTxnId || rawBody.BANKTXNID || null;
-    order.gatewayName = statusData?.body?.gatewayName || statusData?.body?.paymentMode || 'PAYTM';
-    order.rawGatewayResponse = statusData?.body || rawBody;
-    await order.save();
+    // Verify ALL match:
+    // a. Status is success
+    const isStatusSuccess = resultStatus === 'TXN_SUCCESS';
 
-    if (isTxnSuccess) {
+    // b. Paytm paid amount equals order total in DB (compare as numbers with 2 decimals)
+    const paidAmount = parseFloat(Number(responseBody.txnAmount || rawBody.TXNAMOUNT || 0).toFixed(2));
+    const expectedAmount = parseFloat(Number(order.totalAmount || 0).toFixed(2));
+    const isAmountMatched = !isNaN(paidAmount) && paidAmount === expectedAmount;
+
+    // c. MID in the response equals configured PAYTM_MID
+    const responseMid = responseBody.mid || rawBody.MID;
+    const isMidMatched = Boolean(responseMid && responseMid === mid);
+
+    const isVerifiedPaid = isStatusSuccess && isAmountMatched && isMidMatched;
+
+    if (isVerifiedPaid) {
+      order.paymentStatus = 'paid';
+      order.transactionId = responseBody.txnId || rawBody.TXNID || null;
+      order.bankTxnId = responseBody.bankTxnId || rawBody.BANKTXNID || null;
+      order.gatewayName = responseBody.gatewayName || responseBody.paymentMode || 'PAYTM';
+      order.rawGatewayResponse = responseBody;
+      await order.save();
+
       if (req.io) {
         req.io.emit('order-payment-updated', {
           orderId: order.id,
@@ -394,6 +413,25 @@ const handlePaymentCallback = async (req, res, next) => {
       try {
         emitNewOrder(order.toJSON());
       } catch (_) {}
+    } else {
+      let failureReason = 'Transaction not successful';
+      if (!isStatusSuccess) {
+        failureReason = `Status was ${resultStatus || 'UNKNOWN'}: ${responseBody?.resultInfo?.resultMsg || 'Transaction failed'}`;
+      } else if (!isAmountMatched) {
+        failureReason = `Amount mismatch: paid ${paidAmount} does not match expected ${expectedAmount}`;
+      } else if (!isMidMatched) {
+        failureReason = `MID mismatch: received ${responseMid} does not match configured MID`;
+      }
+
+      order.paymentStatus = 'failed';
+      order.transactionId = responseBody.txnId || rawBody.TXNID || null;
+      order.bankTxnId = responseBody.bankTxnId || rawBody.BANKTXNID || null;
+      order.gatewayName = responseBody.gatewayName || responseBody.paymentMode || 'PAYTM';
+      order.rawGatewayResponse = {
+        ...responseBody,
+        failureReason,
+      };
+      await order.save();
     }
 
     if (isHtmlRequest) {
@@ -404,9 +442,7 @@ const handlePaymentCallback = async (req, res, next) => {
       statusCode: 200,
       message: `Payment status updated to ${order.paymentStatus}`,
       data: {
-        orderId: order.id,
-        orderNumber: order.orderNumber,
-        billNumber: order.billNumber,
+        orderId: order.orderNumber,
         paymentStatus: order.paymentStatus,
       },
     });
@@ -422,23 +458,19 @@ const getPaymentStatus = async (req, res, next) => {
   try {
     const { orderId } = req.params;
     if (!orderId) {
-      return ApiResponse.error(res, { statusCode: 400, message: 'Order ID is required' });
+      return ApiResponse.error(res, { statusCode: 400, message: 'paytmOrderId is required' });
     }
 
+    // Look up by paytmOrderId only
     const order = await Order.findOne({
-      where: {
-        [Op.or]: [
-          { id: orderId },
-          { paytmOrderId: orderId },
-        ],
-      },
+      where: { paytmOrderId: orderId },
     });
 
     if (!order) {
       return ApiResponse.error(res, { statusCode: 404, message: 'Order not found' });
     }
 
-    // If order is still pending and has paytmOrderId, proactively check Paytm Transaction Status API
+    // If order is still pending, proactively check Paytm Transaction Status API
     if (order.paymentStatus === 'pending' && order.paytmOrderId) {
       const { mid, merchantKey, paytmHost } = getPaytmConfig();
       if (mid && merchantKey) {
@@ -454,14 +486,24 @@ const getPaymentStatus = async (req, res, next) => {
             }),
           });
           const statusData = await statusRes.json();
-          const verifiedStatus = statusData?.body?.resultInfo?.resultStatus;
+          const responseBody = statusData?.body || {};
+          const verifiedStatus = responseBody?.resultInfo?.resultStatus;
 
-          if (verifiedStatus === 'TXN_SUCCESS') {
+          const isStatusSuccess = verifiedStatus === 'TXN_SUCCESS';
+          const paidAmount = parseFloat(Number(responseBody.txnAmount || 0).toFixed(2));
+          const expectedAmount = parseFloat(Number(order.totalAmount || 0).toFixed(2));
+          const isAmountMatched = !isNaN(paidAmount) && paidAmount === expectedAmount;
+          const responseMid = responseBody.mid;
+          const isMidMatched = Boolean(responseMid && responseMid === mid);
+
+          const isVerifiedPaid = isStatusSuccess && isAmountMatched && isMidMatched;
+
+          if (isVerifiedPaid) {
             order.paymentStatus = 'paid';
-            order.transactionId = statusData?.body?.txnId || null;
-            order.bankTxnId = statusData?.body?.bankTxnId || null;
-            order.gatewayName = statusData?.body?.gatewayName || statusData?.body?.paymentMode || 'PAYTM';
-            order.rawGatewayResponse = statusData?.body || null;
+            order.transactionId = responseBody.txnId || null;
+            order.bankTxnId = responseBody.bankTxnId || null;
+            order.gatewayName = responseBody.gatewayName || responseBody.paymentMode || 'PAYTM';
+            order.rawGatewayResponse = responseBody;
             await order.save();
 
             if (req.io) {
@@ -472,11 +514,23 @@ const getPaymentStatus = async (req, res, next) => {
                 billNumber: order.billNumber,
               });
             }
-          } else if (verifiedStatus === 'TXN_FAILURE') {
+          } else if (verifiedStatus === 'TXN_FAILURE' || (verifiedStatus && (!isAmountMatched || !isMidMatched))) {
+            let failureReason = 'Transaction not successful';
+            if (!isStatusSuccess) {
+              failureReason = `Status was ${verifiedStatus || 'UNKNOWN'}: ${responseBody?.resultInfo?.resultMsg || 'Transaction failed'}`;
+            } else if (!isAmountMatched) {
+              failureReason = `Amount mismatch: paid ${paidAmount} does not match expected ${expectedAmount}`;
+            } else if (!isMidMatched) {
+              failureReason = `MID mismatch: received ${responseMid} does not match configured MID`;
+            }
+
             order.paymentStatus = 'failed';
-            order.transactionId = statusData?.body?.txnId || null;
-            order.gatewayName = statusData?.body?.gatewayName || 'PAYTM';
-            order.rawGatewayResponse = statusData?.body || null;
+            order.transactionId = responseBody.txnId || null;
+            order.gatewayName = responseBody.gatewayName || 'PAYTM';
+            order.rawGatewayResponse = {
+              ...responseBody,
+              failureReason,
+            };
             await order.save();
           }
         } catch (_) {
@@ -485,24 +539,14 @@ const getPaymentStatus = async (req, res, next) => {
       }
     }
 
+    // Return ONLY { orderId (order number), paymentStatus, paymentMode, totalAmount }
     return ApiResponse.success(res, {
       statusCode: 200,
       data: {
-        orderId: order.id,
-        orderNumber: order.orderNumber,
-        billNumber: order.billNumber,
+        orderId: order.orderNumber,
         paymentStatus: order.paymentStatus,
         paymentMode: order.paymentMode,
         totalAmount: order.totalAmount,
-        transactionId: order.transactionId,
-        items: order.items,
-        customerName: order.customerName,
-        customerPhone: order.customerPhone,
-        customerLocation: order.customer_location,
-        deliveryAddress: order.deliveryAddress,
-        orderType: order.orderType,
-        tableNumber: order.tableNumber,
-        createdAt: order.createdAt,
       },
     });
   } catch (error) {

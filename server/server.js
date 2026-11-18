@@ -105,6 +105,10 @@ app.set('trust proxy', 1);
 app.use(requestIdMiddleware);
 
 // ─── 2. HTTP Security & Hardening ─────────────────────────────────────────────
+const paytmOrigin = process.env.PAYTM_ENV === 'production'
+  ? 'https://securegw.paytm.in'
+  : 'https://securegw-stage.paytm.in';
+
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
@@ -112,7 +116,10 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
+        scriptSrc: ["'self'", paytmOrigin],
+        frameSrc: ["'self'", paytmOrigin],
+        connectSrc: ["'self'", paytmOrigin],
+        formAction: ["'self'", paytmOrigin],
         styleSrc: ["'self'", 'https://fonts.googleapis.com'],
         fontSrc: ["'self'", 'https://fonts.gstatic.com'],
         imgSrc: ["'self'", 'data:', 'https:', 'http:'],
@@ -143,23 +150,35 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, or Postman)
-      if (
-        !origin ||
-        allowedOrigins.includes(origin) ||
-        /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin) ||
-        /\.onrender\.com$/i.test(origin)
-      ) {
-        return callback(null, true);
-      }
-      // Reject all other origins explicitly
-      return callback(new Error(`CORS: Origin ${origin} not allowed`), false);
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
+  cors((req, callback) => {
+    // Bypass origin rejection for Paytm callback route ONLY
+    const isPaymentCallback = (req.path && req.path.includes('/payment/callback')) ||
+                              (req.originalUrl && req.originalUrl.includes('/payment/callback'));
+    if (isPaymentCallback) {
+      return callback(null, {
+        origin: true,
+        credentials: true,
+        methods: ['POST', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
+      });
+    }
+
+    const origin = req.headers.origin;
+    if (
+      !origin ||
+      allowedOrigins.includes(origin) ||
+      /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin) ||
+      /\.onrender\.com$/i.test(origin)
+    ) {
+      return callback(null, {
+        origin: true,
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
+      });
+    }
+    // Reject all other origins explicitly
+    return callback(new Error(`CORS: Origin ${origin} not allowed`), false);
   })
 );
 
@@ -181,7 +200,13 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 // ─── 4. Rate Limiting & Static Files ──────────────────────────────────────────
-app.use('/api', apiLimiter);
+// Exempt payment callback route from global apiLimiter
+app.use('/api', (req, res, next) => {
+  if (req.path.includes('/payment/callback') || (req.originalUrl && req.originalUrl.includes('/payment/callback'))) {
+    return next();
+  }
+  return apiLimiter(req, res, next);
+});
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Serve client image assets directly from the server so DB image paths resolve
 app.use('/images', express.static(path.join(__dirname, '../client/src/images')));
