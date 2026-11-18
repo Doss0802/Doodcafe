@@ -1,6 +1,42 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+/**
+ * Extracts a normalized, non-empty string ID from an item or ID parameter.
+ * Returns null if the ID is missing, null, undefined, or empty.
+ */
+export const getItemId = (itemOrId) => {
+  if (!itemOrId) return null;
+  if (typeof itemOrId === 'string' || typeof itemOrId === 'number') {
+    const s = String(itemOrId).trim();
+    return s.length > 0 ? s : null;
+  }
+  const rawId = itemOrId._id ?? itemOrId.id ?? itemOrId.menuItemId;
+  if (rawId === undefined || rawId === null) return null;
+  const s = String(rawId).trim();
+  return s.length > 0 ? s : null;
+};
+
+/**
+ * Sanitizes an array of cart items, dropping any items without a valid ID
+ * and ensuring consistent id, _id, and menuItemId properties.
+ */
+export const sanitizeCartItems = (rawItems) => {
+  if (!Array.isArray(rawItems)) return [];
+  return rawItems
+    .filter((item) => typeof item === 'object' && item !== null && getItemId(item) !== null)
+    .map((item) => {
+      const id = getItemId(item);
+      return {
+        ...item,
+        _id: id,
+        id: id,
+        menuItemId: id,
+        quantity: Math.max(1, parseInt(item.quantity, 10) || 1),
+      };
+    });
+};
+
 const useCartStore = create(
   persist(
     (set, get) => ({
@@ -16,25 +52,60 @@ const useCartStore = create(
       toggleCart: () => set((s) => ({ isOpen: !s.isOpen })),
 
       addItem: (menuItem) => {
+        const targetId = getItemId(menuItem);
+        if (!targetId) return; // Guard: never add item without valid ID
+
         const items = get().items;
-        const existing = items.find((i) => i._id === menuItem._id);
-        if (existing) {
-          set({ items: items.map((i) => i._id === menuItem._id ? { ...i, quantity: i.quantity + 1 } : i) });
+        const existingIndex = items.findIndex((i) => getItemId(i) === targetId);
+        if (existingIndex > -1) {
+          const updated = [...items];
+          updated[existingIndex] = {
+            ...updated[existingIndex],
+            quantity: updated[existingIndex].quantity + 1,
+          };
+          set({ items: updated });
         } else {
-          set({ items: [...items, { ...menuItem, quantity: 1 }] });
+          set({
+            items: [
+              ...items,
+              {
+                ...menuItem,
+                _id: targetId,
+                id: targetId,
+                menuItemId: targetId,
+                quantity: 1,
+              },
+            ],
+          });
         }
       },
 
-      removeItem: (id) => {
-        set({ items: get().items.filter((i) => i._id !== id) });
+      removeItem: (idOrItem) => {
+        const targetId = getItemId(idOrItem);
+        if (!targetId) return; // Guard: undefined ID never matches anything
+        set({ items: get().items.filter((i) => getItemId(i) !== targetId) });
       },
 
-      updateQuantity: (id, quantity) => {
+      updateQuantity: (idOrItem, quantity) => {
+        const targetId = getItemId(idOrItem);
+        if (!targetId) return; // Guard: undefined ID never matches anything
+
         if (quantity < 1) {
-          set({ items: get().items.filter((i) => i._id !== id) });
+          set({ items: get().items.filter((i) => getItemId(i) !== targetId) });
         } else {
-          set({ items: get().items.map((i) => i._id === id ? { ...i, quantity } : i) });
+          set({
+            items: get().items.map((i) =>
+              getItemId(i) === targetId ? { ...i, quantity } : i
+            ),
+          });
         }
+      },
+
+      getItemQuantity: (idOrItem) => {
+        const targetId = getItemId(idOrItem);
+        if (!targetId) return 0;
+        const found = get().items.find((i) => getItemId(i) === targetId);
+        return found ? found.quantity : 0;
       },
 
       clearCart: () => set({ items: [], specialInstructions: '' }),
@@ -59,6 +130,11 @@ const useCartStore = create(
         orderType: state.orderType,
         paymentMode: state.paymentMode,
         specialInstructions: state.specialInstructions,
+      }),
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        ...persistedState,
+        items: sanitizeCartItems(persistedState?.items),
       }),
     }
   )

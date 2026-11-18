@@ -1,5 +1,5 @@
 import { Plus, Minus, Trash2, Leaf, Star, Clock } from 'lucide-react';
-import useCartStore from '../store/cartStore';
+import useCartStore, { getItemId } from '../store/cartStore';
 import { getItemImage } from '../utils/imageMapper';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 import { flyToCart } from '../utils/flyToCart';
@@ -8,7 +8,8 @@ import toast from 'react-hot-toast';
 export default function MenuCard({ item, onItemClick, showPrice = true }) {
   const { items, addItem, updateQuantity, removeItem } = useCartStore();
 
-  const cartItem = items.find((i) => i._id === item._id || i.id === item.id);
+  const itemId = getItemId(item);
+  const cartItem = itemId ? items.find((i) => getItemId(i) === itemId) : null;
 
   // ─── Dynamic Port 5174 -> Port 5000 Resolution Bridge ───────────────────────
   const rawSrc = item.image || item.imageUrl || getItemImage(item) || '';
@@ -16,6 +17,7 @@ export default function MenuCard({ item, onItemClick, showPrice = true }) {
 
   const handleAdd = (e) => {
     e.stopPropagation();
+    if (!itemId) return;
     addItem(item);
 
     // Trigger visual flying cart animation
@@ -26,29 +28,32 @@ export default function MenuCard({ item, onItemClick, showPrice = true }) {
 
   const handleIncrement = (e) => {
     e.stopPropagation();
-    updateQuantity(item._id, (cartItem?.quantity || 1) + 1);
+    if (!itemId) return;
+    updateQuantity(itemId, (cartItem?.quantity || 1) + 1);
   };
 
   const handleDecrement = (e) => {
     e.stopPropagation();
+    if (!itemId) return;
     if (cartItem?.quantity > 1) {
-      updateQuantity(item._id, cartItem.quantity - 1);
+      updateQuantity(itemId, cartItem.quantity - 1);
     } else {
-      removeItem(item._id);
+      removeItem(itemId);
       toast.success(`${item.name} removed from cart`);
     }
   };
 
   const handleRemove = (e) => {
     e.stopPropagation();
-    removeItem(item._id);
+    if (!itemId) return;
+    removeItem(itemId);
     toast.success(`${item.name} removed from cart`);
   };
 
   return (
     <article
       className="menu-card"
-      id={`menu-item-${item._id}`}
+      id={`menu-item-${itemId || 'unknown'}`}
       onClick={() => onItemClick && onItemClick(item)}
       style={{ cursor: onItemClick ? 'pointer' : 'default' }}
     >
@@ -154,7 +159,7 @@ export default function MenuCard({ item, onItemClick, showPrice = true }) {
             </div>
           ) : (
             <button
-              id={`add-to-cart-${item._id}`}
+              id={`add-to-cart-${itemId || 'unknown'}`}
               className="btn-add-cart"
               onClick={handleAdd}
               aria-label={`Add ${item.name} to cart`}
