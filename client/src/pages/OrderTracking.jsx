@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { CheckCircle, Clock, ChefHat, XCircle, ArrowLeft } from 'lucide-react';
 import axiosInstance from '../api/axiosInstance';
+import useOrderBell from '../hooks/useOrderBell';
 
 const STATUS_STEPS = [
   { key: 'placed',    label: 'Placed',           icon: CheckCircle },
@@ -23,6 +24,7 @@ export default function OrderTracking() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const isMountedRef = useRef(true);
+  const { SoundBanner } = useOrderBell(order);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -47,8 +49,8 @@ export default function OrderTracking() {
 
     fetchOrder();
 
-    // Poll every 15 seconds for status updates
-    const interval = setInterval(fetchOrder, 15000);
+    // Light polling every 10 seconds for real-time status updates while page is open
+    const interval = setInterval(fetchOrder, 10000);
     return () => {
       isMountedRef.current = false;
       clearInterval(interval);
@@ -85,6 +87,7 @@ export default function OrderTracking() {
         </Link>
 
         <div className="tracking-card">
+          <SoundBanner />
           <div className="tracking-header">
             <div>
               <h1 className="tracking-order-id">Order #{order.orderNumber || 1}</h1>

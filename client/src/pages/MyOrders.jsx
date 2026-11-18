@@ -9,6 +9,7 @@ import { toPng } from 'html-to-image';
 import toast from 'react-hot-toast';
 import axiosInstance from '../api/axiosInstance';
 import cafeLogo from '../images/cafe_logo.png';
+import useOrderBell from '../hooks/useOrderBell';
 
 /* ── Status config ─────────────────────────────────────────── */
 const STATUS_META = {
@@ -250,6 +251,9 @@ export default function MyOrders() {
   const navigate = useNavigate();
   const page = parseInt(searchParams.get('page') || '1');
 
+  // Customer order completion bell notifications
+  useOrderBell(orders);
+
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -289,6 +293,31 @@ export default function MyOrders() {
           .catch(() => { })
       );
   }, [fetchOrders]);
+
+  // Light polling every 10 seconds for customer's own active orders only while page is open
+  useEffect(() => {
+    const hasActiveOrders = orders.some(
+      (o) => o && !['delivered', 'handed_over', 'cancelled'].includes(o.status)
+    );
+    if (!hasActiveOrders) return;
+
+    const interval = setInterval(async () => {
+      try {
+        let res;
+        try {
+          res = await axiosInstance.get(`/orders/my-orders?page=${page}&limit=8`);
+        } catch (_) {
+          res = await axiosInstance.get(`/orders/my?page=${page}&limit=8`);
+        }
+        const data = res?.data;
+        if (data?.data && Array.isArray(data.data)) {
+          setOrders(data.data);
+        }
+      } catch (_) {}
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [orders, page]);
 
   return (
     <main className="mo-page">
