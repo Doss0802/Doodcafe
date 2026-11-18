@@ -19,6 +19,38 @@ const getPaytmConfig = () => {
   };
 };
 
+const getFrontendUrl = () => {
+  let url = process.env.FRONTEND_URL || process.env.CLIENT_ORIGIN;
+  if (url && typeof url === 'string') {
+    if (url.includes(',')) {
+      url = url.split(',')[0].trim();
+    }
+    url = url.trim().replace(/\/+$/, '');
+  }
+
+  if (!url) {
+    console.warn('[Payment Callback] FRONTEND_URL / CLIENT_ORIGIN missing, falling back to allowed origin');
+    url = 'https://doodcafe-frontend.onrender.com';
+  }
+
+  return url;
+};
+
+const redirectToCheckout = (res, rawStatus, safeOrderId) => {
+  let status = 'failed';
+  if (rawStatus === 'paid' || rawStatus === 'success') {
+    status = 'success';
+  } else if (rawStatus === 'pending') {
+    status = 'pending';
+  }
+
+  const frontendUrl = getFrontendUrl();
+  const orderIdParam = typeof safeOrderId === 'string' ? safeOrderId.trim() : '';
+  const redirectUrl = `${frontendUrl}/checkout?payment_status=${encodeURIComponent(status)}&orderId=${encodeURIComponent(orderIdParam)}`;
+
+  return res.redirect(303, redirectUrl);
+};
+
 // @desc   Initiate Paytm JS Checkout transaction
 // @route  POST /api/payment/initiate
 // @access Private (authenticated customer)
@@ -261,46 +293,16 @@ const handlePaymentCallback = async (req, res, next) => {
     const paytmOrderId = rawBody.ORDERID;
     const paytmChecksum = rawBody.CHECKSUMHASH;
 
-    const isHtmlRequest = Boolean(req.headers.accept && req.headers.accept.includes('text/html'));
-
-    const renderHtmlResponse = (orderId, status) => {
-      return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>Payment Status — Dood Cafe</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fafaf9; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-    .card { background: #ffffff; padding: 2rem; border-radius: 1.25rem; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.08); text-align: center; max-width: 420px; width: 90%; }
-    .title { font-size: 1.25rem; font-weight: 800; color: #1c1917; margin-bottom: 0.5rem; }
-    .sub { font-size: 0.875rem; color: #78716c; margin-bottom: 1.25rem; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <div class="title">${status === 'paid' ? '✅ Payment Successful' : '❌ Payment Not Completed'}</div>
-    <div class="sub">Returning you to Dood Cafe checkout...</div>
-  </div>
-  <script>
-    try {
-      if (window.opener) {
-        window.opener.postMessage({ type: 'PAYTM_CALLBACK_PROCESSED', orderId: '${orderId || ''}', status: '${status}' }, '*');
-        window.close();
-      } else {
-        window.location.href = '/checkout?payment_status=${status}&orderId=${orderId || ''}';
-      }
-    } catch (_) {
-      window.location.href = '/checkout?payment_status=${status}&orderId=${orderId || ''}';
-    }
-  </script>
-</body>
-</html>`;
-    };
+    const isBrowserRequest = Boolean(
+      (req.headers.accept && req.headers.accept.includes('text/html')) ||
+      req.is('application/x-www-form-urlencoded') ||
+      (req.headers['content-type'] && req.headers['content-type'].includes('application/x-www-form-urlencoded')) ||
+      (!req.xhr && !req.headers.accept?.includes('application/json'))
+    );
 
     if (!paytmOrderId) {
-      if (isHtmlRequest) {
-        return res.status(400).send(renderHtmlResponse('', 'failed'));
+      if (isBrowserRequest) {
+        return redirectToCheckout(res, 'failed', '');
       }
       return ApiResponse.error(res, { statusCode: 400, message: 'Missing ORDERID in callback' });
     }
@@ -315,21 +317,21 @@ const handlePaymentCallback = async (req, res, next) => {
     });
 
     if (!order) {
-      if (isHtmlRequest) {
-        return res.status(404).send(renderHtmlResponse(paytmOrderId, 'failed'));
+      if (isBrowserRequest) {
+        return redirectToCheckout(res, 'failed', paytmOrderId);
       }
       return ApiResponse.error(res, { statusCode: 404, message: 'Order not found' });
     }
 
     // Idempotent: if already paid, do nothing
     if (order.paymentStatus === 'paid') {
-      if (isHtmlRequest) {
-        return res.send(renderHtmlResponse(order.paytmOrderId, 'paid'));
+      if (isBrowserRequest) {
+        return redirectToCheckout(res, 'success', order.paytmOrderId);
       }
       return ApiResponse.success(res, {
         statusCode: 200,
         message: 'Order already paid (idempotent)',
-        data: { orderId: order.id, paymentStatus: 'paid' },
+        data: { orderId: order.orderNumber, paymentStatus: 'paid' },
       });
     }
 
@@ -355,8 +357,8 @@ const handlePaymentCallback = async (req, res, next) => {
       };
       await order.save();
 
-      if (isHtmlRequest) {
-        return res.status(400).send(renderHtmlResponse(order.paytmOrderId, 'failed'));
+      if (isBrowserRequest) {
+        return redirectToCheckout(res, 'failed', order.paytmOrderId);
       }
       return ApiResponse.error(res, { statusCode: 400, message: 'Invalid Paytm callback checksum signature' });
     }
@@ -441,8 +443,8 @@ const handlePaymentCallback = async (req, res, next) => {
       await order.save();
     }
 
-    if (isHtmlRequest) {
-      return res.send(renderHtmlResponse(order.paytmOrderId, order.paymentStatus));
+    if (isBrowserRequest) {
+      return redirectToCheckout(res, order.paymentStatus, order.paytmOrderId);
     }
 
     return ApiResponse.success(res, {

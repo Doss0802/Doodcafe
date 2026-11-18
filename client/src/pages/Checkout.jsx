@@ -208,27 +208,43 @@ export default function Checkout() {
     }, 2000);
   };
 
+  // ── Handle payment callback redirect hint from query parameters ──
+  // Treat payment_status & orderId strictly as a hint. Always verify against backend status API.
   useEffect(() => {
-    const handlePaymentMessage = (event) => {
-      if (event.data && (event.data.type === 'PAYTM_CALLBACK_PROCESSED' || event.data.type === 'PAYTM_PAYMENT_STATUS')) {
-        const orderId = event.data.orderId;
-        if (orderId) {
-          pollPaymentStatus(orderId, null, null, null);
-        }
+    if (typeof window === 'undefined') return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const orderIdHint = urlParams.get('orderId');
+    const statusHint = urlParams.get('payment_status');
+
+    if (orderIdHint || statusHint) {
+      // Strip params from the URL immediately so reload does not re-trigger
+      urlParams.delete('orderId');
+      urlParams.delete('payment_status');
+      const newQuery = urlParams.toString();
+      const newUrl = `${window.location.pathname}${newQuery ? `?${newQuery}` : ''}${window.location.hash}`;
+      window.history.replaceState(null, '', newUrl);
+
+      const cleanOrderId = orderIdHint ? orderIdHint.trim() : '';
+      if (cleanOrderId) {
+        // Query param is only a hint: verify strictly via backend status endpoint
+        pollPaymentStatus(cleanOrderId, null, null, null);
+      } else if (statusHint === 'failed') {
+        toast.error('❌ Online payment was not completed or failed.');
       }
-    };
-    window.addEventListener('message', handlePaymentMessage);
-    return () => window.removeEventListener('message', handlePaymentMessage);
+      // Never show success on ?payment_status=success without valid backend orderId verification
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Redirect to /menu if cart is empty, keeping all query params ──
   useEffect(() => {
-    if (items.length === 0) {
+    const currentParams = new URLSearchParams(window.location.search);
+    const hasIncomingPayment = Boolean(searchParams.get('orderId') || currentParams.get('orderId'));
+    if (items.length === 0 && !showInvoiceModal && !hasIncomingPayment) {
       const q = searchParams.toString();
       navigate(q ? `/menu?${q}` : '/menu', { replace: true });
     }
-  }, [items.length, searchParams, navigate]);
+  }, [items.length, searchParams, navigate, showInvoiceModal]);
 
   const displayItems = items;
   const totalAmount = displayItems.reduce((s, i) => s + i.price * i.quantity, 0);
@@ -485,7 +501,7 @@ export default function Checkout() {
   const mapEmbedUrl = `https://maps.google.com/maps?q=${coordinates.lat},${coordinates.lng}&hl=en&z=13&output=embed`;
   const externalMapsLink = `https://www.google.com/maps?q=${coordinates.lat},${coordinates.lng}`;
 
-  if (items.length === 0) {
+  if (items.length === 0 && !showInvoiceModal) {
     return null;
   }
 
