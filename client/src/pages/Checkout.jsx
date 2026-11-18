@@ -103,38 +103,69 @@ export default function Checkout() {
     document.title = 'Checkout & Live Location — Dood Cafe';
   }, []);
 
-  const finalizePaidOrder = (orderData, resolvedTable, textAddress) => {
-    const invoicePayload = {
-      _id: orderData.orderId || orderData._id || orderData.id,
-      orderNumber: orderData.orderNumber,
-      billNumber: orderData.billNumber,
-      tableNumber: resolvedTable || orderData.tableNumber,
-      customerName: orderData.customerName || (customerName ? customerName.trim() : ''),
-      customerPhone: orderData.customerPhone || (customerPhone ? customerPhone.replace(/\D/g, '') : ''),
-      customerEmail: user?.email || '',
-      customerLocation: selectedOrderType === 'dine-in' ? `Dood Cafe — Dine-in (Table ${resolvedTable || orderData.tableNumber})` : (textAddress || orderData.customerLocation),
-      orderTimestamp: orderData.createdAt ? new Date(orderData.createdAt) : new Date(),
-      formattedDate: new Date().toLocaleString('en-IN', {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-      }),
-      items: (orderData.items && orderData.items.length > 0 ? orderData.items : items),
-      totalAmount: orderData.totalAmount || totalAmount,
-      paymentMode: 'upi',
-      paymentStatus: 'paid',
-      orderType: selectedOrderType || orderData.orderType,
-      specialInstructions,
-    };
+  const finalizePaidOrder = async (statusData, dbOrderId, resolvedTable, textAddress) => {
+    // statusData only contains { orderId, paymentStatus, paymentMode, totalAmount }
+    // Fetch order details through the authenticated GET /api/orders/:id (owner only)
+    try {
+      let fullOrder = null;
+      const targetId = dbOrderId;
+      if (targetId) {
+        try {
+          const orderRes = await axiosInstance.get(`/orders/${targetId}`);
+          fullOrder = orderRes?.data?.data || orderRes?.data;
+        } catch (_) {}
+      }
 
-    setInvoiceData(invoicePayload);
-    setShowInvoiceModal(true);
-    clearCart();
-    setIdempotencyKey(crypto.randomUUID());
-    setPlacing(false);
-    toast.success('🎉 Online payment verified! Order placed successfully.');
+      if (!fullOrder && statusData.orderId) {
+        try {
+          const myOrdersRes = await axiosInstance.get('/orders/my?page=1&limit=5');
+          const myOrders = myOrdersRes?.data?.data || [];
+          fullOrder = myOrders.find(
+            (o) => String(o.orderNumber) === String(statusData.orderId) || o.orderNumber === statusData.orderId
+          ) || myOrders[0];
+        } catch (_) {}
+      }
+
+      const invoicePayload = {
+        _id: fullOrder?._id || fullOrder?.id || dbOrderId || statusData.orderId,
+        orderNumber: fullOrder?.orderNumber || statusData.orderId,
+        billNumber: fullOrder?.billNumber,
+        tableNumber: resolvedTable || fullOrder?.tableNumber,
+        customerName: fullOrder?.customerName || (customerName ? customerName.trim() : ''),
+        customerPhone: fullOrder?.customerPhone || (customerPhone ? customerPhone.replace(/\D/g, '') : ''),
+        customerEmail: user?.email || '',
+        customerLocation: selectedOrderType === 'dine-in'
+          ? `Dood Cafe — Dine-in (Table ${resolvedTable || fullOrder?.tableNumber})`
+          : (textAddress || fullOrder?.customer_location || fullOrder?.deliveryAddress || ''),
+        orderTimestamp: fullOrder?.createdAt ? new Date(fullOrder.createdAt) : new Date(),
+        formattedDate: new Date().toLocaleString('en-IN', {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        }),
+        items: (fullOrder?.items && fullOrder.items.length > 0 ? fullOrder.items : items),
+        totalAmount: fullOrder?.totalAmount || statusData.totalAmount || totalAmount,
+        paymentMode: 'upi',
+        paymentStatus: 'paid',
+        orderType: fullOrder?.orderType || selectedOrderType,
+        specialInstructions: fullOrder?.specialInstructions || specialInstructions,
+      };
+
+      setInvoiceData(invoicePayload);
+      setShowInvoiceModal(true);
+      clearCart();
+      setIdempotencyKey(crypto.randomUUID());
+      setPlacing(false);
+      toast.success('🎉 Online payment verified! Order placed successfully.');
+    } catch (_) {
+      // Even if fetch fails, clear cart and show success — payment was verified
+      clearCart();
+      setIdempotencyKey(crypto.randomUUID());
+      setPlacing(false);
+      toast.success('🎉 Online payment verified! Check My Orders for details.');
+    }
   };
 
-  const pollPaymentStatus = (orderId, resolvedTable, textAddress) => {
+  const pollPaymentStatus = (paytmOrderId, dbOrderId, resolvedTable, textAddress) => {
     const maxAttempts = 20;
     let attempts = 0;
     const toastId = toast.loading('Verifying online payment with bank...');
@@ -142,13 +173,13 @@ export default function Checkout() {
     const interval = setInterval(async () => {
       attempts += 1;
       try {
-        const res = await axiosInstance.get(`/payment/status/${orderId}`);
+        const res = await axiosInstance.get(`/payment/status/${paytmOrderId}`);
         const data = res?.data?.data || {};
 
         if (data.paymentStatus === 'paid') {
           clearInterval(interval);
           toast.dismiss(toastId);
-          finalizePaidOrder(data, resolvedTable, textAddress);
+          finalizePaidOrder(data, dbOrderId, resolvedTable, textAddress);
           return;
         }
 
@@ -182,7 +213,7 @@ export default function Checkout() {
       if (event.data && (event.data.type === 'PAYTM_CALLBACK_PROCESSED' || event.data.type === 'PAYTM_PAYMENT_STATUS')) {
         const orderId = event.data.orderId;
         if (orderId) {
-          pollPaymentStatus(orderId, null, null);
+          pollPaymentStatus(orderId, null, null, null);
         }
       }
     };
@@ -386,7 +417,7 @@ export default function Checkout() {
           handler: {
             notifyMerchant: function(eventName) {
               if (eventName === 'APP_CLOSED' || eventName === 'POPUP_CLOSED') {
-                pollPaymentStatus(initData.orderId, resolvedTable, textAddress);
+                pollPaymentStatus(initData.paytmOrderId, initData.orderId, resolvedTable, textAddress);
               }
             },
             transactionStatus: function() {
@@ -395,7 +426,7 @@ export default function Checkout() {
                   window.Paytm.CheckoutJS.close();
                 }
               } catch (_) {}
-              pollPaymentStatus(initData.orderId, resolvedTable, textAddress);
+              pollPaymentStatus(initData.paytmOrderId, initData.orderId, resolvedTable, textAddress);
             },
           },
           merchant: {

@@ -37,6 +37,7 @@ export default function InvoiceModal({ isOpen, onClose, invoiceData }) {
     items = [],
     totalAmount = 0,
     paymentMode = 'cash',
+    paymentStatus = 'paid',
     orderType = 'takeaway',
     tableNumber,
     specialInstructions = ''
@@ -232,7 +233,11 @@ ${trackingUrl}
               <div className="invoice-info-block">
                 <span className="invoice-info-label"><CreditCard size={13} /> Payment Mode</span>
                 <span className="invoice-info-value uppercase-text">
-                  <span className="payment-pill">{paymentMode}</span>
+                  <span className="payment-pill">
+                    {paymentMode === 'upi'
+                      ? (paymentStatus === 'paid' ? 'UPI (Paid)' : paymentStatus === 'failed' ? 'UPI (Failed)' : 'UPI (Pending)')
+                      : (paymentMode === 'cash' ? 'Cash / Counter' : paymentMode)}
+                  </span>
                 </span>
               </div>
 

@@ -51,9 +51,27 @@ const getStaffOrders = async (req, res, next) => {
       }
     }
 
-    // Payment status filter for dine-in or takeaway
-    if (paymentStatus && paymentStatus !== 'all') {
-      where.paymentStatus = paymentStatus;
+    // Payment status filter & online pending/failed order exclusion
+    // Online orders (paymentMode: 'upi') whose paymentStatus is pending or failed are excluded
+    // from the staff/kitchen board query. Orders become visible only after paymentStatus is paid.
+    // COD and Pay at Counter orders stay unaffected.
+    if (paymentStatus === 'failed') {
+      where.paymentStatus = 'failed';
+    } else {
+      where[Op.and] = where[Op.and] || [];
+      where[Op.and].push({
+        [Op.or]: [
+          { paymentMode: { [Op.or]: [{ [Op.ne]: 'upi' }, null] } },
+          {
+            paymentMode: 'upi',
+            paymentStatus: 'paid',
+          },
+        ],
+      });
+
+      if (paymentStatus && paymentStatus !== 'all') {
+        where.paymentStatus = paymentStatus;
+      }
     }
 
     const orders = await Order.findAll({
@@ -179,6 +197,14 @@ const lookupTakeawayOrder = async (req, res, next) => {
       });
     }
 
+    // Block takeaway lookup/processing for unpaid online orders
+    if (order.paymentMode === 'upi' && order.paymentStatus !== 'paid') {
+      return ApiResponse.error(res, {
+        statusCode: 400,
+        message: `Online order payment is ${order.paymentStatus || 'unverified'}. Only paid online orders can be fulfilled at counter.`,
+      });
+    }
+
     const plain = order.toJSON();
     const customerName = plain.customerName || plain.user?.name || 'Customer';
     const customerPhone = plain.customerPhone || plain.user?.phone || '';
@@ -239,6 +265,14 @@ const markOrderHandedOver = async (req, res, next) => {
       return ApiResponse.error(res, {
         statusCode: 400,
         message: 'Handover is only applicable to takeaway orders',
+      });
+    }
+
+    // Block handover if online order payment is pending or failed
+    if (order.paymentMode === 'upi' && order.paymentStatus !== 'paid') {
+      return ApiResponse.error(res, {
+        statusCode: 400,
+        message: 'Cannot hand over online order until payment is verified as paid',
       });
     }
 
@@ -352,9 +386,60 @@ const markOrderPaid = async (req, res, next) => {
   }
 };
 
+/**
+ * ─── 5. Update Order Status (Kitchen / Staff Moves) ───────────────────────────
+ * @route PATCH /api/v1/staff/orders/:id/status
+ * @access Private (admin, manager, staff)
+ */
+const updateStaffOrderStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const order = await Order.findByPk(id);
+    if (!order) {
+      return ApiResponse.error(res, {
+        statusCode: 404,
+        message: 'Order not found',
+      });
+    }
+
+    // Block "Start Preparing" and any other status moves for unpaid or failed online orders
+    if (order.paymentMode === 'upi' && order.paymentStatus !== 'paid') {
+      return ApiResponse.error(res, {
+        statusCode: 400,
+        message: 'Cannot update order status: online order payment is not verified as paid',
+      });
+    }
+
+    order.status = status;
+    await order.save();
+
+    const plain = order.toJSON();
+    try {
+      emitOrderStatusUpdate(plain);
+      if (req.io) {
+        req.io.emit('order-status-updated', plain);
+        req.io.emit('orderStatusUpdated', plain);
+      }
+    } catch (_) {
+      // Non-fatal
+    }
+
+    return ApiResponse.success(res, {
+      statusCode: 200,
+      message: `Order status updated to "${status}"`,
+      data: plain,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getStaffOrders,
   lookupTakeawayOrder,
   markOrderHandedOver,
   markOrderPaid,
+  updateStaffOrderStatus,
 };

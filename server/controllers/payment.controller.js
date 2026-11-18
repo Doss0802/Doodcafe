@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const PaytmChecksum = require('paytmchecksum');
 const { Op } = require('sequelize');
 const sequelize = require('../src/config/db');
@@ -161,7 +162,8 @@ const initiatePayment = async (req, res, next) => {
       );
       const nextOrderNumber = (maxResult && maxResult.next) ? Number(maxResult.next) : 1001;
       const billNumber = `ORD-${nextOrderNumber}`;
-      const paytmOrderId = `ORD_${nextOrderNumber}_${Date.now().toString().slice(-6)}`;
+      // Crypto-based random and unguessable paytmOrderId satisfying Paytm's ^[A-Za-z0-9_-]{1,50}$ rules
+      const paytmOrderId = `PTM_${crypto.randomBytes(16).toString('hex')}`;
 
       return await Order.create({
         userId: req.user.id,
@@ -322,7 +324,7 @@ const handlePaymentCallback = async (req, res, next) => {
     // Idempotent: if already paid, do nothing
     if (order.paymentStatus === 'paid') {
       if (isHtmlRequest) {
-        return res.send(renderHtmlResponse(order.id, 'paid'));
+        return res.send(renderHtmlResponse(order.paytmOrderId, 'paid'));
       }
       return ApiResponse.success(res, {
         statusCode: 200,
@@ -354,7 +356,7 @@ const handlePaymentCallback = async (req, res, next) => {
       await order.save();
 
       if (isHtmlRequest) {
-        return res.status(400).send(renderHtmlResponse(order.id, 'failed'));
+        return res.status(400).send(renderHtmlResponse(order.paytmOrderId, 'failed'));
       }
       return ApiResponse.error(res, { statusCode: 400, message: 'Invalid Paytm callback checksum signature' });
     }
@@ -413,6 +415,11 @@ const handlePaymentCallback = async (req, res, next) => {
       try {
         emitNewOrder(order.toJSON());
       } catch (_) {}
+    } else if (resultStatus === 'PENDING') {
+      // Item 5: Paytm status "PENDING" leaves the order pending (never mark failed or paid)
+      order.transactionId = responseBody.txnId || rawBody.TXNID || order.transactionId;
+      order.rawGatewayResponse = responseBody;
+      await order.save();
     } else {
       let failureReason = 'Transaction not successful';
       if (!isStatusSuccess) {
@@ -435,7 +442,7 @@ const handlePaymentCallback = async (req, res, next) => {
     }
 
     if (isHtmlRequest) {
-      return res.send(renderHtmlResponse(order.id, order.paymentStatus));
+      return res.send(renderHtmlResponse(order.paytmOrderId, order.paymentStatus));
     }
 
     return ApiResponse.success(res, {
@@ -514,7 +521,9 @@ const getPaymentStatus = async (req, res, next) => {
                 billNumber: order.billNumber,
               });
             }
-          } else if (verifiedStatus === 'TXN_FAILURE' || (verifiedStatus && (!isAmountMatched || !isMidMatched))) {
+          } else if (verifiedStatus === 'PENDING') {
+            // Item 5: Paytm status "PENDING" leaves the order pending (never mark failed or paid)
+          } else if (verifiedStatus === 'TXN_FAILURE' || (isStatusSuccess && (!isAmountMatched || !isMidMatched))) {
             let failureReason = 'Transaction not successful';
             if (!isStatusSuccess) {
               failureReason = `Status was ${verifiedStatus || 'UNKNOWN'}: ${responseBody?.resultInfo?.resultMsg || 'Transaction failed'}`;

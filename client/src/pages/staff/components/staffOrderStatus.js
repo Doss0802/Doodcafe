@@ -65,6 +65,7 @@ export const PAYMENT_BADGE_CLASSES = {
   paid: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   pending: 'bg-amber-50 text-amber-700 border-amber-200',
   cod: 'bg-blue-50 text-blue-700 border-blue-200',
+  failed: 'bg-rose-50 text-rose-700 border-rose-200',
 };
 
 export const STATUS_BADGE_CLASSES = {
@@ -81,6 +82,19 @@ export const PAYMENT_LABELS = {
   paid: 'Paid (Online / UPI)',
   pending: 'Payment Pending',
   cod: 'Cash on Delivery (COD)',
+  failed: 'Payment Failed',
+};
+
+export const getPaymentLabel = (order) => {
+  if (!order) return 'Payment Pending';
+  const status = order.paymentStatus;
+  const mode = order.paymentMode;
+  if (status === 'paid') {
+    return mode === 'upi' ? 'Paid (Online / UPI)' : 'Paid (Cash / Counter)';
+  }
+  if (status === 'failed') return 'Payment Failed';
+  if (status === 'cod') return 'Cash on Delivery (COD)';
+  return 'Payment Pending';
 };
 
 export const getStatusMeta = (status) => STATUS_CONFIG[status] || STATUS_CONFIG.pending;

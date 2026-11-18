@@ -27,6 +27,7 @@ const PAYMENT_BADGE_CLASSES = {
   paid: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   pending: 'bg-amber-50 text-amber-700 border-amber-200',
   cod: 'bg-blue-50 text-blue-700 border-blue-200',
+  failed: 'bg-rose-50 text-rose-700 border-rose-200',
 };
 
 const STATUS_BADGE_CLASSES = {
@@ -39,10 +40,16 @@ const STATUS_BADGE_CLASSES = {
   cancelled: 'bg-rose-50 text-rose-700 border-rose-200',
 };
 
-const PAYMENT_LABELS = {
-  paid: 'Paid (Online / UPI)',
-  pending: 'Payment Pending',
-  cod: 'Cash on Delivery (COD)',
+const getStaffPaymentBadgeLabel = (order) => {
+  if (!order) return 'Payment Pending';
+  const status = order.paymentStatus;
+  const mode = order.paymentMode;
+  if (status === 'paid') {
+    return mode === 'upi' ? 'Paid (Online / UPI)' : 'Paid (Cash / Counter)';
+  }
+  if (status === 'failed') return 'Payment Failed';
+  if (status === 'cod') return 'Cash on Delivery (COD)';
+  return 'Payment Pending';
 };
 
 /* ─── Reusable Card Component ─── */
@@ -589,6 +596,7 @@ export default function StaffOrders() {
                       { key: 'paid', label: 'Paid' },
                       { key: 'pending', label: 'Pending' },
                       { key: 'cod', label: 'COD / Counter' },
+                      { key: 'failed', label: 'Failed' },
                     ].map((f) => (
                       <button
                         key={f.key}
@@ -921,7 +929,7 @@ function TakeawayOrderCard({
 
           <div className="flex flex-col items-end gap-1.5">
             <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${paymentClass}`}>
-              {PAYMENT_LABELS[order.paymentStatus] || order.paymentStatus}
+              {getStaffPaymentBadgeLabel(order)}
             </span>
             {canMarkPaid && onMarkPaid && (
               <button
@@ -1084,7 +1092,7 @@ function DineInOrderCard({ order, onStatusChange, actionLoadingId, onMarkPaid, a
 
           <div className="flex flex-col items-end gap-1.5 shrink-0">
             <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${paymentClass}`}>
-              {PAYMENT_LABELS[order.paymentStatus] || order.paymentStatus || 'Pending'}
+              {getStaffPaymentBadgeLabel(order)}
             </span>
             {canMarkPaid && onMarkPaid && (
               <button

@@ -138,7 +138,13 @@ export default function OrderTracking() {
             </div>
             <div className="tracking-info-row">
               <span>Payment</span>
-              <span className="info-value">{(order.paymentMode || 'cash').toUpperCase()}</span>
+              <span className="info-value">
+                {order.paymentMode === 'upi' && order.paymentStatus === 'pending'
+                  ? '⏳ Pending (UPI)'
+                  : order.paymentMode === 'upi' && order.paymentStatus === 'failed'
+                  ? '❌ Failed (UPI)'
+                  : (order.paymentMode || 'cash').toUpperCase()}
+              </span>
             </div>
           </div>
 

@@ -120,7 +120,12 @@ function BillSummary({ order, orderNumber }) {
       </div>
       {order.paymentMode && (
         <div className="mo-bill-payment">
-          Paid via <strong>{order.paymentMode.toUpperCase()}</strong> ({order.orderType || 'takeaway'})
+          {order.paymentMode === 'upi' && order.paymentStatus === 'pending'
+            ? <span style={{ color: '#D97706' }}>⏳ Payment Pending (Online / UPI)</span>
+            : order.paymentMode === 'upi' && order.paymentStatus === 'failed'
+            ? <span style={{ color: '#EF4444' }}>❌ Payment Failed (Online / UPI)</span>
+            : <>Paid via <strong>{order.paymentMode.toUpperCase()}</strong> ({order.orderType || 'takeaway'})</>
+          }
         </div>
       )}
 

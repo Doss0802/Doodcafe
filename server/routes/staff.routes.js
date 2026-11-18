@@ -1,10 +1,11 @@
 const express = require('express');
-const { param, query } = require('express-validator');
+const { body, param, query } = require('express-validator');
 const {
   getStaffOrders,
   lookupTakeawayOrder,
   markOrderHandedOver,
   markOrderPaid,
+  updateStaffOrderStatus,
 } = require('../controllers/staff.controller');
 const { protect, requireRole } = require('../middleware/auth');
 const validate = require('../middleware/validate');
@@ -23,7 +24,7 @@ router.get(
   [
     query('type').optional().isIn(['takeaway', 'dine-in']).withMessage('Type must be takeaway or dine-in'),
     query('status').optional().isString().withMessage('Status must be a string'),
-    query('paymentStatus').optional().isIn(['all', 'paid', 'pending', 'cod']).withMessage('Invalid paymentStatus'),
+    query('paymentStatus').optional().isIn(['all', 'paid', 'pending', 'cod', 'failed']).withMessage('Invalid paymentStatus'),
   ],
   validate,
   getStaffOrders
@@ -66,6 +67,22 @@ router.patch(
   [param('id').isUUID().withMessage('Invalid order ID format')],
   validate,
   markOrderPaid
+);
+
+/**
+ * @route  PATCH /api/v1/staff/orders/:id/status
+ * @desc   Update order kitchen status (Start Preparing, Mark Ready, etc.)
+ */
+router.patch(
+  '/orders/:id/status',
+  [
+    param('id').isUUID().withMessage('Invalid order ID format'),
+    body('status')
+      .isIn(['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled', 'handed_over'])
+      .withMessage('Invalid status lifecycle value'),
+  ],
+  validate,
+  updateStaffOrderStatus
 );
 
 module.exports = router;
