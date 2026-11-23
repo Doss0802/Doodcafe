@@ -256,7 +256,9 @@ async function deleteOfferImageFile(imageUrl) {
 }
 
 /**
- * Format relative /uploads/... image path to an absolute URL using BACKEND_URL or request origin.
+ * Format relative /uploads/... image path to an absolute URL.
+ * Reads PUBLIC_BACKEND_URL env var first (required on Render / reverse-proxy),
+ * falls back to BACKEND_URL, then falls back to request origin (local dev only).
  * External URLs (http:// or https://) or data URIs pass through unchanged.
  *
  * @param {string} imageUrl - Image URL or path
@@ -273,9 +275,24 @@ function formatOfferImageUrl(imageUrl, req) {
 
   // If relative path starting with /uploads/
   if (imageUrl.startsWith('/uploads/')) {
-    const backendOrigin = process.env.BACKEND_URL
-      ? process.env.BACKEND_URL.replace(/\/+$/, '')
-      : (req && req.protocol && req.get && req.get('host') ? `${req.protocol}://${req.get('host')}` : '');
+    // Check PUBLIC_BACKEND_URL first (required on Render / reverse-proxy deployments),
+    // then fall back to BACKEND_URL for backwards compatibility,
+    // then fall back to request origin (dev/local only — may be wrong behind a proxy).
+    const envOrigin =
+      process.env.PUBLIC_BACKEND_URL || process.env.BACKEND_URL || '';
+
+    const backendOrigin = envOrigin
+      ? envOrigin.replace(/\/+$/, '')
+      : req && req.protocol && req.get && req.get('host')
+        ? `${req.protocol}://${req.get('host')}`
+        : '';
+
+    if (!envOrigin && backendOrigin) {
+      logger.warn(
+        'PUBLIC_BACKEND_URL is not set. Falling back to request origin for image URLs. ' +
+          'Set PUBLIC_BACKEND_URL to the public backend URL (e.g. https://doodcafe.onrender.com).'
+      );
+    }
 
     return backendOrigin ? `${backendOrigin}${imageUrl}` : imageUrl;
   }

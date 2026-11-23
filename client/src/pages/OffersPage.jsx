@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { ArrowRight, X } from 'lucide-react';
 import axiosInstance from '../api/axiosInstance';
+import { resolveImageUrl } from '../utils/resolveImageUrl';
 
 /* ── Format endAt in IST ──────────────────────────────────────── */
 function fmtIST(isoStr) {
@@ -19,6 +20,7 @@ function fmtIST(isoStr) {
 
 export default function OffersPage() {
   const { type } = useParams(); // 'dine-in' | 'delivery'
+  const navigate = useNavigate();
   const isDineIn = type === 'dine-in';
 
   const title   = isDineIn ? 'Dine-in Offers' : 'Live Delivery Offers';
@@ -46,9 +48,20 @@ export default function OffersPage() {
     fetchOffers();
   }, [title, fetchOffers]);
 
-  // Poll every 60 s so scheduled offers appear / disappear automatically
+  // Keyboard accessibility: Escape key returns to Home page
   useEffect(() => {
-    const id = setInterval(fetchOffers, 60000);
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        navigate('/');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [navigate]);
+
+  // Poll every 30 s so scheduled offers appear / disappear automatically
+  useEffect(() => {
+    const id = setInterval(fetchOffers, 30000);
     return () => clearInterval(id);
   }, [fetchOffers]);
 
@@ -56,11 +69,25 @@ export default function OffersPage() {
     <main className="offers-page">
       <div className="container">
 
-        {/* ── Header ── */}
-        <div className="offers-header">
-          <h1 className="offers-page-title">
+        {/* ── Top Header with Title and Close (X) Button ── */}
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <h1 className="offers-page-title m-0 flex-1">
             {isDineIn ? '🍽' : '🛵'} {title}
           </h1>
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            aria-label="Close offers and return to home"
+            title="Close (Esc)"
+            className="clay-btn clay-light min-h-[44px] min-w-[44px] w-11 h-11 p-0 flex items-center justify-center rounded-xl text-stone-700 hover:text-stone-900 flex-shrink-0 cursor-pointer shadow-sm transition-transform active:scale-95"
+          >
+            <X size={22} />
+          </button>
+        </div>
+
+        {/* ── Sub Navigation Row ── */}
+        <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
+          <Link to="/" className="offers-back-link mb-0">← Back to Home</Link>
           <Link
             to={menuLink}
             onClick={() => {
@@ -71,14 +98,11 @@ export default function OffersPage() {
                 );
               } catch (_e) {}
             }}
-            className="clay-btn clay-gold min-h-[48px] px-5 py-2.5 font-bold text-sm flex items-center gap-2"
+            className="clay-btn clay-gold min-h-[44px] px-5 py-2.5 font-bold text-sm flex items-center gap-2"
           >
             {menuLabel} <ArrowRight size={16} />
           </Link>
         </div>
-
-        {/* ── Back to home ── */}
-        <Link to="/" className="offers-back-link">← Back to Home</Link>
 
         {/* ── Content ── */}
         {offers === null ? (
@@ -106,18 +130,25 @@ export default function OffersPage() {
 
 function OfferCard({ offer }) {
   const validTill = fmtIST(offer.endAt);
+  const imgSrc = resolveImageUrl(offer.imageUrl);
 
   return (
     <div className="offer-card">
-      {offer.imageUrl && (
+      {imgSrc && (
         <div className="offer-card-img-wrap">
           <img
-            src={offer.imageUrl}
+            src={imgSrc}
             alt={offer.title}
             className="offer-card-img"
             loading="lazy"
             decoding="async"
-            onError={(e) => { e.currentTarget.parentElement.style.display = 'none'; }}
+            onError={(e) => {
+              if (e.currentTarget.parentElement) {
+                e.currentTarget.parentElement.style.display = 'none';
+              } else {
+                e.currentTarget.style.display = 'none';
+              }
+            }}
           />
         </div>
       )}

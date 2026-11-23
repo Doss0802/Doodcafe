@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { UploadCloud, X } from 'lucide-react';
 import axiosInstance from '../../api/axiosInstance';
+import { resolveImageUrl } from '../../utils/resolveImageUrl';
 import toast from 'react-hot-toast';
 
 /* ── Helpers ───────────────────────────────────────────────── */
@@ -51,19 +53,30 @@ const EMPTY_FORM = {
   title: '',
   description: '',
   offerType: 'dine-in',
-  imageUrl: '',
   startAt: '',
   endAt: '',
 };
 
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
+
 export default function AdminOffers() {
-  const [offers, setOffers]       = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [form, setForm]           = useState(EMPTY_FORM);
-  const [editingId, setEditingId] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [removing, setRemoving]   = useState(null);
-  const [formError, setFormError] = useState('');
+  const [offers, setOffers]           = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [form, setForm]               = useState(EMPTY_FORM);
+  const [editingId, setEditingId]     = useState(null);
+  const [submitting, setSubmitting]   = useState(false);
+  const [removing, setRemoving]       = useState(null);
+  const [formError, setFormError]     = useState('');
+
+  // Image upload state
+  const [imageFile, setImageFile]             = useState(null);
+  const [imagePreview, setImagePreview]       = useState('');
+  const [existingImageUrl, setExistingImageUrl] = useState('');
+  const [imageRemoved, setImageRemoved]       = useState(false);
+  const [imageError, setImageError]           = useState('');
+
+  const fileInputRef = useRef(null);
 
   /* ── Fetch ─────────────────────────────────────────────────── */
   const fetchOffers = useCallback(async () => {
@@ -83,31 +96,104 @@ export default function AdminOffers() {
     fetchOffers();
   }, [fetchOffers]);
 
+  // Cleanup object URLs on unmount
+  useEffect(() => {
+    return () => {
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]);
+
   /* ── Form helpers ─────────────────────────────────────────── */
   const setField = (field) => (e) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
   const resetForm = () => {
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+    }
     setForm(EMPTY_FORM);
     setEditingId(null);
     setFormError('');
+    setImageError('');
+    setImageFile(null);
+    setImagePreview('');
+    setExistingImageUrl('');
+    setImageRemoved(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const startEdit = (offer) => {
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+    }
     setEditingId(offer.id);
     setFormError('');
+    setImageError('');
     setForm({
       title:       offer.title || '',
       description: offer.description || '',
       offerType:   offer.offerType || 'dine-in',
-      imageUrl:    offer.imageUrl || '',
       startAt:     toLocalInput(offer.startAt),
       endAt:       toLocalInput(offer.endAt),
     });
+    setExistingImageUrl(offer.imageUrl || '');
+    setImageFile(null);
+    setImagePreview('');
+    setImageRemoved(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  /* ── Submit (create or update) ────────────────────────────── */
+  /* ── File selection & removal ──────────────────────────────── */
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImageError('');
+
+    // Check type: only JPEG, PNG, WEBP
+    if (!ALLOWED_MIME_TYPES.includes(file.type.toLowerCase())) {
+      setImageError('Invalid file type. Only JPEG, PNG, and WebP images are allowed.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    // Check size: max 2 MB
+    if (file.size > MAX_FILE_SIZE) {
+      setImageError('Image file size exceeds 2 MB limit. Please select a smaller image.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+    }
+
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+    setImageRemoved(false);
+  };
+
+  const handleRemoveImage = () => {
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+    }
+    setImageFile(null);
+    setImagePreview('');
+    setImageRemoved(true);
+    setImageError('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  /* ── Submit (create or update with FormData) ──────────────── */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
@@ -128,27 +214,55 @@ export default function AdminOffers() {
       setFormError('End date/time must be after start date/time.');
       return;
     }
+    if (imageError) {
+      setFormError('Please resolve the image error before submitting.');
+      return;
+    }
 
-    const payload = {
-      title:       form.title.trim(),
-      description: form.description.trim() || null,
-      offerType:   form.offerType,
-      imageUrl:    form.imageUrl.trim() || null,
-      startAt:     localInputToUTC(form.startAt),
-      endAt:       localInputToUTC(form.endAt),
-    };
+    const formData = new FormData();
+    formData.append('title', form.title.trim());
+    if (form.description && form.description.trim()) {
+      formData.append('description', form.description.trim());
+    }
+    formData.append('offerType', form.offerType);
+
+    const startUtc = localInputToUTC(form.startAt);
+    if (startUtc) {
+      formData.append('startAt', startUtc);
+    }
+    const endUtc = localInputToUTC(form.endAt);
+    if (endUtc) {
+      formData.append('endAt', endUtc);
+    }
+
+    // Handle image payload
+    if (imageFile) {
+      formData.append('image', imageFile);
+    } else if (editingId) {
+      if (imageRemoved) {
+        // Explicitly clear image on update
+        formData.append('imageUrl', '');
+      } else if (existingImageUrl) {
+        // Keep existing image
+        formData.append('imageUrl', existingImageUrl);
+      }
+    }
 
     setSubmitting(true);
     try {
       if (editingId) {
-        const res = await axiosInstance.put(`/offers/${editingId}`, payload);
+        const res = await axiosInstance.put(`/offers/${editingId}`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
         const updated = res.data?.data;
         setOffers((prev) =>
           prev.map((o) => (o.id === editingId ? updated : o))
         );
         toast.success('Offer updated');
       } else {
-        const res = await axiosInstance.post('/offers', payload);
+        const res = await axiosInstance.post('/offers', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
         const created = res.data?.data;
         setOffers((prev) => [created, ...prev]);
         toast.success('Offer created');
@@ -181,6 +295,9 @@ export default function AdminOffers() {
       setRemoving(null);
     }
   };
+
+  // Determine current active preview image URL
+  const activePreviewUrl = imagePreview || (!imageRemoved && existingImageUrl ? resolveImageUrl(existingImageUrl) : '');
 
   /* ── Render ─────────────────────────────────────────────────── */
   return (
@@ -270,18 +387,6 @@ export default function AdminOffers() {
                 </select>
               </div>
 
-              {/* Image URL */}
-              <div className="off-field">
-                <label className="off-label">Image URL (optional)</label>
-                <input
-                  className="off-input"
-                  type="url"
-                  placeholder="https://…"
-                  value={form.imageUrl}
-                  onChange={setField('imageUrl')}
-                />
-              </div>
-
               {/* Start Date/Time */}
               <div className="off-field">
                 <label className="off-label">Start Date &amp; Time (IST)</label>
@@ -306,20 +411,76 @@ export default function AdminOffers() {
                 <span className="off-hint">Empty = stays until manually removed</span>
               </div>
 
+              {/* Image Upload Control */}
+              <div className="off-field off-field--full">
+                <label className="off-label">Offer Banner Image (optional)</label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  id="offer-image-file-input"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+
+                {activePreviewUrl ? (
+                  <div className="flex items-center gap-4 p-3 bg-stone-100/80 rounded-xl border border-stone-200">
+                    <img
+                      src={activePreviewUrl}
+                      alt="Offer preview"
+                      className="w-20 h-20 object-cover rounded-lg border border-stone-300 flex-shrink-0"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                    <div className="flex flex-col gap-2 min-w-0">
+                      <span className="text-xs font-semibold text-stone-700 truncate">
+                        {imageFile ? imageFile.name : (existingImageUrl ? 'Current saved image' : 'Selected image')}
+                      </span>
+                      {imageFile && (
+                        <span className="text-[11px] text-stone-500">
+                          {(imageFile.size / 1024).toFixed(0)} KB · Ready to save
+                        </span>
+                      )}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <label
+                          htmlFor="offer-image-file-input"
+                          className="clay-btn clay-light text-xs font-bold px-3 py-1.5 min-h-[36px] cursor-pointer flex items-center gap-1.5 text-stone-700"
+                        >
+                          <UploadCloud size={14} /> {imageFile ? 'Change file' : 'Replace image'}
+                        </label>
+                        <button
+                          type="button"
+                          onClick={handleRemoveImage}
+                          disabled={submitting}
+                          className="clay-btn clay-danger text-xs font-bold px-3 py-1.5 min-h-[36px] flex items-center gap-1.5"
+                        >
+                          <X size={14} /> Remove image
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <label
+                      htmlFor="offer-image-file-input"
+                      className="clay-btn clay-light min-h-[44px] px-4 py-2.5 font-bold text-sm flex items-center gap-2 cursor-pointer text-stone-700 border border-stone-300 rounded-xl hover:text-stone-900"
+                    >
+                      <UploadCloud size={18} className="text-amber-600" />
+                      <span>Choose Image File</span>
+                    </label>
+                    <span className="text-xs text-stone-500">
+                      JPEG, PNG, or WebP (max 2 MB)
+                    </span>
+                  </div>
+                )}
+
+                {imageError && (
+                  <p className="off-form-error mt-1">{imageError}</p>
+                )}
+              </div>
+
             </div>
 
-            {/* Image preview */}
-            {form.imageUrl && (
-              <div className="off-img-preview">
-                <img
-                  src={form.imageUrl}
-                  alt="Offer preview"
-                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                />
-              </div>
-            )}
-
-            {/* Error */}
+            {/* Form Error */}
             {formError && (
               <p className="off-form-error">{formError}</p>
             )}
@@ -332,7 +493,7 @@ export default function AdminOffers() {
                 className="clay-btn clay-gold min-h-[44px] px-6 py-2.5 font-bold text-sm disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {submitting
-                  ? (editingId ? 'Saving…' : 'Creating…')
+                  ? (editingId ? 'Saving Changes…' : 'Creating Offer…')
                   : (editingId ? 'Save Changes' : 'Create Offer')}
               </button>
               {editingId && (
@@ -365,7 +526,7 @@ export default function AdminOffers() {
                   {offer.imageUrl && (
                     <div className="off-card-img">
                       <img
-                        src={offer.imageUrl}
+                        src={resolveImageUrl(offer.imageUrl)}
                         alt={offer.title}
                         onError={(e) => { e.currentTarget.parentElement.style.display = 'none'; }}
                       />
