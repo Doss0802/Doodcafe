@@ -207,7 +207,15 @@ app.use('/api', (req, res, next) => {
   }
   return apiLimiter(req, res, next);
 });
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+const uploadDirectory = path.resolve(__dirname, process.env.UPLOAD_DIR || 'uploads');
+if (!fs.existsSync(uploadDirectory)) {
+  fs.mkdirSync(uploadDirectory, { recursive: true });
+}
+const offersUploadDirectory = path.join(uploadDirectory, 'offers');
+if (!fs.existsSync(offersUploadDirectory)) {
+  fs.mkdirSync(offersUploadDirectory, { recursive: true });
+}
+app.use('/uploads', express.static(uploadDirectory));
 // Serve client image assets directly from the server so DB image paths resolve
 app.use('/images', express.static(path.join(__dirname, '../client/src/images')));
 app.use('/images', express.static(path.join(__dirname, '../client/public')));

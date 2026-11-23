@@ -6,11 +6,21 @@ const {
   createOffer,
   updateOffer,
   removeOffer,
+  uploadOfferImage,
 } = require('../controllers/offer.controller');
 const { protect, requireRole } = require('../middleware/auth');
 const validate = require('../middleware/validate');
+const { uploadLimiter } = require('../middleware/rateLimiter');
+const {
+  offerUploadSingle,
+  verifyAndSaveOfferImage,
+} = require('../middleware/offerUpload');
 
 const router = express.Router();
+
+// Upload middleware arrays
+const optionalOfferUpload = [offerUploadSingle, verifyAndSaveOfferImage({ required: false })];
+const requiredOfferUpload = [offerUploadSingle, verifyAndSaveOfferImage({ required: true })];
 
 // ── Shared validation for create / update ──────────────────────
 const offerBodyValidation = [
@@ -69,24 +79,40 @@ router.get(
 router.get('/admin', protect, requireRole('admin', 'manager'), getAllOffersAdmin);
 
 /**
- * ADMIN: POST /api/offers — create offer
+ * ADMIN: POST /api/offers/upload-image — upload offer banner image
+ */
+router.post(
+  '/upload-image',
+  protect,
+  requireRole('admin', 'manager'),
+  uploadLimiter,
+  ...requiredOfferUpload,
+  uploadOfferImage
+);
+
+/**
+ * ADMIN: POST /api/offers — create offer (accepts JSON or multipart/form-data with optional 'image')
  */
 router.post(
   '/',
   protect,
   requireRole('admin', 'manager'),
+  uploadLimiter,
+  ...optionalOfferUpload,
   offerBodyValidation,
   validate,
   createOffer
 );
 
 /**
- * ADMIN: PUT /api/offers/:id — update offer
+ * ADMIN: PUT /api/offers/:id — update offer (accepts JSON or multipart/form-data with optional 'image')
  */
 router.put(
   '/:id',
   protect,
   requireRole('admin', 'manager'),
+  uploadLimiter,
+  ...optionalOfferUpload,
   [
     param('id').notEmpty().withMessage('Offer ID required'),
     ...offerBodyValidation,

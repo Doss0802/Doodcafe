@@ -87,11 +87,26 @@ const paymentStatusLimiter = rateLimit({
   },
 });
 
+// Rate limiter for file upload routes (menu images, offer banners)
+const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: isDev ? 500 : 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    return ApiResponse.error(res, {
+      statusCode: 429,
+      message: 'Too many file uploads from this IP. Please try again after 15 minutes.',
+    });
+  },
+});
+
 module.exports = {
   authLimiter,
   apiLimiter,
   sensitiveLimiter,
   paymentCallbackLimiter,
   paymentStatusLimiter,
+  uploadLimiter,
 };
 
