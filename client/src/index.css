@@ -8567,6 +8567,128 @@
 }
 
 /* ════════════════════════════════════════════════════════════════
+   OFFERS GLASSMORPHISM OVERLAY & DETAIL MODAL
+   Pure glass styling: transparent backdrop, blur(24px) saturate(160%)
+   No solid colors, rounded-3xl, accessible contrast text-shadow
+════════════════════════════════════════════════════════════════ */
+
+.offers-glass-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9990;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+@media (min-width: 640px) {
+  .offers-glass-backdrop {
+    padding: 1.25rem;
+  }
+}
+
+.offers-glass-backdrop-detail {
+  z-index: 10000;
+  padding: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .offers-glass-backdrop-detail {
+    padding: 1.5rem;
+  }
+}
+
+.offers-glass-panel {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 1.5rem; /* rounded-3xl */
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+}
+
+.offers-glass-card {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 1.5rem; /* rounded-3xl */
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.offers-glass-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.offers-glass-card:active {
+  transform: scale(0.98);
+}
+
+.offers-glass-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 9999px; /* circle */
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+}
+
+.offers-glass-close-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
+  border-color: rgba(255, 255, 255, 0.55);
+  transform: scale(1.05);
+}
+
+.offers-glass-close-btn:active {
+  transform: scale(0.95);
+}
+
+.offers-glass-title {
+  color: #f5c518;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.65), 0 1px 2px rgba(0, 0, 0, 0.85);
+  letter-spacing: -0.01em;
+}
+
+.offers-glass-text-shadow {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65), 0 1px 1px rgba(0, 0, 0, 0.8);
+}
+
+/* Fallback when backdrop-filter is not supported */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .offers-glass-backdrop {
+    background: rgba(18, 18, 18, 0.75);
+  }
+  .offers-glass-panel,
+  .offers-glass-card {
+    background: rgba(28, 25, 23, 0.94);
+    border-color: rgba(255, 255, 255, 0.25);
+  }
+  .offers-glass-close-btn {
+    background: rgba(45, 40, 35, 0.9);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
    OFFERS PAGE  (.offers-page, .offer-card)
 ════════════════════════════════════════════════════════════════ */
 

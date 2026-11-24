@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Sparkles } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
 import OfferCard from './OfferCard';
 import OfferDetailModal from './OfferDetailModal';
 
@@ -126,11 +127,11 @@ export default function OffersOverlay({ isOpen, onClose, offers = [], triggerRef
     onClose();
   }, [onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === 'undefined') return null;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 md:p-6 bg-black/85 backdrop-blur-md animate-fade-in"
+      className="offers-glass-backdrop animate-fade-in"
       onClick={(e) => {
         if (e.target === e.currentTarget && !selectedOffer) {
           handleCloseList();
@@ -140,41 +141,31 @@ export default function OffersOverlay({ isOpen, onClose, offers = [], triggerRef
       aria-modal="true"
       aria-label="Offers"
     >
-      <div className="relative w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-4xl flex flex-col bg-stone-900 border-0 sm:border sm:border-amber-500/30 sm:rounded-3xl shadow-2xl overflow-hidden text-stone-100">
+      <div className="offers-glass-panel relative w-full max-h-[92vh] sm:max-h-[90vh] sm:max-w-4xl flex flex-col overflow-hidden text-stone-100">
 
-        {/* ── Overlay Header ── */}
-        <div className="flex items-center justify-between px-5 sm:px-8 py-4 sm:py-5 border-b border-stone-800 bg-stone-950/80 flex-shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-amber-400">
-              <Sparkles size={18} />
-            </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-black text-amber-400 m-0 leading-tight">
-                Offers
-              </h1>
-              <p className="text-xs text-stone-400 m-0">
-                Exclusive deals for Dine-in &amp; Live Delivery
-              </p>
-            </div>
-          </div>
+        {/* ── Overlay Header: Clean Glassmorphism Title & Close (X) ── */}
+        <div className="flex items-center justify-between px-5 sm:px-8 py-4 sm:py-5 border-b border-white/20 flex-shrink-0">
+          <h1 className="offers-glass-title text-2xl sm:text-3xl font-black m-0 leading-tight">
+            Offers
+          </h1>
 
           <button
             ref={closeBtnRef}
             type="button"
             onClick={handleCloseList}
             aria-label="Close offers"
-            className="clay-btn clay-light min-w-[44px] min-h-[44px] w-11 h-11 p-0 flex items-center justify-center rounded-xl text-stone-300 hover:text-white bg-stone-800 hover:bg-stone-700 cursor-pointer shadow-sm transition-transform active:scale-95 flex-shrink-0"
+            className="offers-glass-close-btn flex-shrink-0"
           >
-            <X size={22} />
+            <X size={20} />
           </button>
         </div>
 
         {/* ── Responsive Grid of Offer Cards ── */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 bg-stone-950/40">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8">
           {offers.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center text-stone-400">
+            <div className="flex flex-col items-center justify-center py-16 text-center text-stone-200 offers-glass-text-shadow">
               <p className="text-base font-semibold">No offers currently active.</p>
-              <p className="text-xs text-stone-500 mt-1">Check back soon for fresh deals!</p>
+              <p className="text-xs text-stone-300/80 mt-1">Check back soon for fresh deals!</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 min-[480px]:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
@@ -198,6 +189,7 @@ export default function OffersOverlay({ isOpen, onClose, offers = [], triggerRef
           onClose={handleCloseDetail}
         />
       )}
-    </div>
+    </div>,
+    document.body
   );
 }
