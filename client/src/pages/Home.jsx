@@ -58,7 +58,7 @@ export default function Home() {
       scrollLeft = el.scrollLeft;
       try {
         el.setPointerCapture(e.pointerId);
-      } catch (_) {}
+      } catch {}
     };
 
     const onPointerMove = (e) => {
@@ -77,7 +77,7 @@ export default function Home() {
         if (el.hasPointerCapture(e.pointerId)) {
           el.releasePointerCapture(e.pointerId);
         }
-      } catch (_) {}
+      } catch {}
     };
 
     el.addEventListener('pointerdown', onPointerDown);
@@ -100,9 +100,9 @@ export default function Home() {
       {/* ── Hero ── */}
       <section className="hero">
         <div className="hero-bg-pattern" aria-hidden="true" />
+        <HeroOffersBadge />
         <div className="container hero-container">
           <div className="hero-left animate-fade-up">
-            <HeroOffersBadge />
             <h1 className="hero-title">
               Open Door Cafe
               <span className="hero-title-accent"> — Welcome Always</span>
@@ -114,7 +114,7 @@ export default function Home() {
                   <Link
                     to="/menu?type=dinein"
                     onClick={() => {
-                      try { sessionStorage.setItem('doodcafe_order_type', 'dine-in'); } catch (_) {}
+                      try { sessionStorage.setItem('doodcafe_order_type', 'dine-in'); } catch {}
                     }}
                     className="hero-btn hero-btn-gold"
                   >
@@ -125,7 +125,7 @@ export default function Home() {
                   <Link
                     to="/menu?type=takeaway"
                     onClick={() => {
-                      try { sessionStorage.setItem('doodcafe_order_type', 'takeaway'); } catch (_) {}
+                      try { sessionStorage.setItem('doodcafe_order_type', 'takeaway'); } catch {}
                     }}
                     className="hero-btn hero-btn-gold"
                   >
@@ -136,7 +136,7 @@ export default function Home() {
                   <Link
                     to="/menu?type=delivery"
                     onClick={() => {
-                      try { sessionStorage.setItem('doodcafe_order_type', 'delivery'); } catch (_) {}
+                      try { sessionStorage.setItem('doodcafe_order_type', 'delivery'); } catch {}
                     }}
                     className="hero-btn hero-btn-gold"
                   >
@@ -158,7 +158,7 @@ export default function Home() {
                   <Link
                     to="/menu"
                     onClick={() => {
-                      try { sessionStorage.removeItem('doodcafe_order_type'); } catch (_) {}
+                      try { sessionStorage.removeItem('doodcafe_order_type'); } catch {}
                     }}
                     className="hero-btn hero-btn-glass"
                   >

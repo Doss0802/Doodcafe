@@ -129,67 +129,71 @@ export default function OffersOverlay({ isOpen, onClose, offers = [], triggerRef
 
   if (!isOpen || typeof document === 'undefined') return null;
 
-  return createPortal(
-    <div
-      className="offers-glass-backdrop animate-fade-in"
-      onClick={(e) => {
-        if (e.target === e.currentTarget && !selectedOffer) {
-          handleCloseList();
-        }
-      }}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Offers"
-    >
-      <div className="offers-glass-panel relative w-full max-h-[92vh] sm:max-h-[90vh] sm:max-w-4xl flex flex-col overflow-hidden text-stone-100">
+  return (
+    <>
+      {createPortal(
+        <div
+          className="offers-glass-backdrop animate-fade-in"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !selectedOffer) {
+              handleCloseList();
+            }
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Offers"
+        >
+          <div className="offers-glass-panel relative w-full max-h-[92vh] sm:max-h-[90vh] sm:max-w-4xl flex flex-col overflow-hidden text-stone-100">
 
-        {/* ── Overlay Header: Clean Glassmorphism Title & Close (X) ── */}
-        <div className="flex items-center justify-between px-5 sm:px-8 py-4 sm:py-5 border-b border-white/20 flex-shrink-0">
-          <h1 className="offers-glass-title text-2xl sm:text-3xl font-black m-0 leading-tight">
-            Offers
-          </h1>
+            {/* ── Overlay Header: Clean Glassmorphism Title & Close (X) ── */}
+            <div className="flex items-center justify-between px-5 sm:px-8 py-4 sm:py-5 border-b border-white/15 flex-shrink-0">
+              <h1 className="offers-glass-title text-2xl sm:text-3xl font-black m-0 leading-tight">
+                Offers
+              </h1>
 
-          <button
-            ref={closeBtnRef}
-            type="button"
-            onClick={handleCloseList}
-            aria-label="Close offers"
-            className="offers-glass-close-btn flex-shrink-0"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* ── Responsive Grid of Offer Cards ── */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8">
-          {offers.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center text-stone-200 offers-glass-text-shadow">
-              <p className="text-base font-semibold">No offers currently active.</p>
-              <p className="text-xs text-stone-300/80 mt-1">Check back soon for fresh deals!</p>
+              <button
+                ref={closeBtnRef}
+                type="button"
+                onClick={handleCloseList}
+                aria-label="Close offers"
+                className="offers-glass-close-btn flex-shrink-0"
+              >
+                <X size={20} />
+              </button>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 min-[480px]:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-              {offers.map((offer) => (
-                <OfferCard
-                  key={offer.id}
-                  offer={offer}
-                  onClick={handleOpenDetail}
-                />
-              ))}
+
+            {/* ── Responsive Grid of Offer Cards ── */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8">
+              {offers.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center text-stone-200 offers-glass-text-shadow">
+                  <p className="text-base font-semibold">No offers currently active.</p>
+                  <p className="text-xs text-stone-300/80 mt-1">Check back soon for fresh deals!</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 min-[480px]:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+                  {offers.map((offer) => (
+                    <OfferCard
+                      key={offer.id}
+                      offer={offer}
+                      onClick={handleOpenDetail}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-      </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
-      {/* ── Detail Modal on Top ── */}
+      {/* ── Detail Modal Portaled on Top ── */}
       {selectedOffer && (
         <OfferDetailModal
           offer={selectedOffer}
           onClose={handleCloseDetail}
         />
       )}
-    </div>,
-    document.body
+    </>
   );
 }

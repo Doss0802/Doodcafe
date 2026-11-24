@@ -8457,130 +8457,196 @@
 
 
 /* ════════════════════════════════════════════════════════════════
-   HERO OFFERS BADGE  (.hero-offers-badge)
-   Single gold clay pill badge directly above hero title
+   HERO OFFERS STARBURST BADGE (.hero-starburst-wrapper)
+   Red 20-spike starburst "sale" seal with -8deg tilt, red glow,
+   subtle pulse, count bubble, and top-right hero absolute placement
 ════════════════════════════════════════════════════════════════ */
 
-.hero-offers-badge-wrapper {
+.hero-starburst-wrapper {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 40;
+  width: 76px;
+  height: 76px;
   display: flex;
-  justify-content: center;
   align-items: center;
-  width: 100%;
-  margin: 0 auto 16px auto;
-  z-index: 5;
+  justify-content: center;
+  filter: drop-shadow(0 0 10px rgba(255, 0, 0, 0.55));
+  animation: starburstPulse 2.8s ease-in-out infinite;
+  pointer-events: auto;
 }
 
-@media (min-width: 1024px) {
-  .hero-offers-badge-wrapper {
-    justify-content: flex-start;
-    margin: 0 0 18px 0;
+@media (min-width: 640px) {
+  .hero-starburst-wrapper {
+    top: 16px;
+    right: 18px;
+    width: 86px;
+    height: 86px;
   }
 }
 
-.hero-offers-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  min-height: 44px;
+@media (min-width: 1024px) {
+  .hero-starburst-wrapper {
+    top: 24px;
+    right: 28px;
+    width: 98px;
+    height: 98px;
+  }
+}
+
+.hero-starburst-badge {
+  width: 100%;
+  height: 100%;
   min-width: 44px;
-  padding: 8px 20px;
-  border-radius: 9999px;
-  text-decoration: none;
+  min-height: 44px;
+  border: none;
+  outline: none;
   cursor: pointer;
-  border: 1.5px solid rgba(245, 197, 24, 0.75);
-  background: linear-gradient(135deg, #f5c518 0%, #d4a017 100%);
-  color: #1a1a1a;
-  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
-  font-weight: 800;
-  font-size: 0.88rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  box-shadow:
-    0 4px 15px rgba(212, 160, 23, 0.4),
-    inset 0 2px 2px rgba(255, 255, 255, 0.7),
-    inset 0 -2px 2px rgba(0, 0, 0, 0.2);
-  transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease;
-  animation: goldBadgeGlow 2.8s ease-in-out infinite;
-}
-
-.hero-offers-badge:hover {
-  transform: translateY(-1px) scale(1.02);
-  filter: brightness(1.06);
-  box-shadow:
-    0 6px 20px rgba(212, 160, 23, 0.55),
-    inset 0 2px 2px rgba(255, 255, 255, 0.8),
-    inset 0 -2px 2px rgba(0, 0, 0, 0.2);
-}
-
-.hero-offers-badge:active {
-  transform: translateY(1px) scale(0.98);
-}
-
-.hero-offers-badge-icon {
+  background: linear-gradient(135deg, #ff3b30 0%, #c40000 100%);
+  clip-path: polygon(
+    100.0% 50.0%, 89.5% 56.3%, 97.6% 65.5%, 85.6% 68.2%, 90.5% 79.4%,
+    78.3% 78.3%, 79.4% 90.5%, 68.2% 85.6%, 65.5% 97.6%, 56.3% 89.5%,
+    50.0% 100.0%, 43.7% 89.5%, 34.5% 97.6%, 31.8% 85.6%, 20.6% 90.5%,
+    21.7% 78.3%, 9.5% 79.4%, 14.4% 68.2%, 2.4% 65.5%, 10.5% 56.3%,
+    0.0% 50.0%, 10.5% 43.7%, 2.4% 34.5%, 14.4% 31.8%, 9.5% 20.6%,
+    21.7% 21.7%, 20.6% 9.5%, 31.8% 14.4%, 34.5% 2.4%, 43.7% 10.5%,
+    50.0% 0.0%, 56.3% 10.5%, 65.5% 2.4%, 68.2% 14.4%, 79.4% 9.5%,
+    78.3% 21.7%, 90.5% 20.6%, 85.6% 31.8%, 97.6% 34.5%, 89.5% 43.7%
+  );
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 1px;
+  padding: 0;
+  text-decoration: none;
+  transform: rotate(-8deg);
+  transition: transform 0.18s ease, filter 0.18s ease;
+  user-select: none;
 }
 
-.hero-offers-badge-label {
+.hero-starburst-badge:hover {
+  filter: brightness(1.12);
+  transform: rotate(-4deg) scale(1.05);
+}
+
+.hero-starburst-badge:active {
+  transform: rotate(-8deg) scale(0.96);
+}
+
+.hero-starburst-tap {
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #ffe5e5;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
   line-height: 1;
 }
 
-.hero-offers-badge-count {
+@media (min-width: 1024px) {
+  .hero-starburst-tap {
+    font-size: 0.65rem;
+  }
+}
+
+.hero-starburst-title {
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+  font-size: 0.85rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #ffffff;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.8),
+    0 2px 6px rgba(0, 0, 0, 0.55);
+  line-height: 1;
+}
+
+@media (min-width: 1024px) {
+  .hero-starburst-title {
+    font-size: 1.05rem;
+  }
+}
+
+/* Count bubble placed on top-right edge outside clip-path */
+.hero-starburst-count {
+  position: absolute;
+  top: -2px;
+  right: -2px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 22px;
   height: 22px;
-  padding: 0 6px;
+  padding: 0 5px;
   border-radius: 9999px;
-  background: #1a1a1a;
-  color: #f5c518;
+  background: #ffffff;
+  color: #c40000;
+  border: 1.5px solid #ff3b30;
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
   font-size: 0.72rem;
   font-weight: 900;
   line-height: 1;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  z-index: 2;
 }
 
-/* Subtle pulse / glow animation */
-@keyframes goldBadgeGlow {
+@media (min-width: 1024px) {
+  .hero-starburst-count {
+    min-width: 26px;
+    height: 26px;
+    font-size: 0.78rem;
+    top: -4px;
+    right: -4px;
+  }
+}
+
+/* Subtle pulse animation */
+@keyframes starburstPulse {
   0%, 100% {
-    box-shadow:
-      0 4px 14px rgba(212, 160, 23, 0.35),
-      inset 0 2px 2px rgba(255, 255, 255, 0.7),
-      inset 0 -2px 2px rgba(0, 0, 0, 0.2);
+    filter: drop-shadow(0 0 8px rgba(255, 0, 0, 0.5));
+    transform: scale(1);
   }
   50% {
-    box-shadow:
-      0 0 24px rgba(245, 197, 24, 0.7),
-      inset 0 2px 3px rgba(255, 255, 255, 0.85),
-      inset 0 -2px 2px rgba(0, 0, 0, 0.15);
+    filter: drop-shadow(0 0 16px rgba(255, 40, 40, 0.85));
+    transform: scale(1.04);
   }
 }
 
-/* Disable pulse animation under prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
-  .hero-offers-badge {
+  .hero-starburst-wrapper {
     animation: none !important;
   }
 }
 
 /* ════════════════════════════════════════════════════════════════
    OFFERS GLASSMORPHISM OVERLAY & DETAIL MODAL
-   Pure glass styling: transparent backdrop, blur(24px) saturate(160%)
-   No solid colors, rounded-3xl, accessible contrast text-shadow
+   Reduced white shade, realistic smoked glass with top-left highlight:
+   - Panel: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)) + smoked tint rgba(0,0,0,0.12)
+   - blur(28px) saturate(140%) + -webkit- prefix
+   - 1px border rgba(255,255,255,0.18) with brighter top/left edge (0.28)
+   - inset 0 1px 0 rgba(255,255,255,0.22)
+   - shadow 0 8px 32px rgba(0,0,0,0.35)
+   - Cards inside: rgba(255,255,255,0.04), border rgba(255,255,255,0.12)
+   - Close button: rgba(255,255,255,0.08) with border
+   - Fallback for non-backdrop-filter browsers
+   - 4.5:1 text contrast maintained with text-shadow and smoked tint
 ════════════════════════════════════════════════════════════════ */
 
 .offers-glass-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 9990;
+  width: 100vw;
+  height: 100vh;
+  z-index: 99990;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0.75rem;
-  background: rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.25);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
@@ -8592,7 +8658,8 @@
 }
 
 .offers-glass-backdrop-detail {
-  z-index: 10000;
+  z-index: 100000;
+  background: rgba(0, 0, 0, 0.35);
   padding: 0.75rem;
 }
 
@@ -8603,29 +8670,34 @@
 }
 
 .offers-glass-panel {
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%),
+    rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(28px) saturate(140%);
+  -webkit-backdrop-filter: blur(28px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-top-color: rgba(255, 255, 255, 0.28);
+  border-left-color: rgba(255, 255, 255, 0.28);
   border-radius: 1.5rem; /* rounded-3xl */
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.22);
   color: #ffffff;
 }
 
 .offers-glass-card {
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 1.5rem; /* rounded-3xl */
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.35);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px) saturate(130%);
+  -webkit-backdrop-filter: blur(20px) saturate(130%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 1.25rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
 
 .offers-glass-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.5);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 .offers-glass-card:active {
@@ -8642,19 +8714,19 @@
   min-height: 44px;
   padding: 0;
   border-radius: 9999px; /* circle */
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
   color: #ffffff;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2);
   cursor: pointer;
   transition: background 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
 }
 
 .offers-glass-close-btn:hover {
-  background: rgba(255, 255, 255, 0.28);
-  border-color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.38);
   transform: scale(1.05);
 }
 
@@ -8664,27 +8736,30 @@
 
 .offers-glass-title {
   color: #f5c518;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.65), 0 1px 2px rgba(0, 0, 0, 0.85);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85), 0 1px 3px rgba(0, 0, 0, 0.95);
   letter-spacing: -0.01em;
 }
 
 .offers-glass-text-shadow {
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65), 0 1px 1px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85), 0 2px 8px rgba(0, 0, 0, 0.7);
 }
 
 /* Fallback when backdrop-filter is not supported */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .offers-glass-backdrop {
-    background: rgba(18, 18, 18, 0.75);
+    background: rgba(12, 12, 12, 0.78);
   }
-  .offers-glass-panel,
+  .offers-glass-panel {
+    background: rgba(22, 20, 18, 0.95);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
   .offers-glass-card {
-    background: rgba(28, 25, 23, 0.94);
-    border-color: rgba(255, 255, 255, 0.25);
+    background: rgba(32, 29, 26, 0.92);
+    border-color: rgba(255, 255, 255, 0.15);
   }
   .offers-glass-close-btn {
-    background: rgba(45, 40, 35, 0.9);
-    border-color: rgba(255, 255, 255, 0.3);
+    background: rgba(45, 40, 35, 0.88);
+    border-color: rgba(255, 255, 255, 0.25);
   }
 }
 
