@@ -8457,91 +8457,112 @@
 
 
 /* ════════════════════════════════════════════════════════════════
-   HERO OFFERS STRIP  (.hero-offers-*)
-   Dark glass card shown above "Open Door Cafe" text in mobile hero
+   HERO OFFERS BADGE  (.hero-offers-badge)
+   Single gold clay pill badge directly above hero title
 ════════════════════════════════════════════════════════════════ */
 
-.hero-offers-strip {
+.hero-offers-badge-wrapper {
   display: flex;
-  align-items: stretch;
-  width: 100%;
-  max-width: 440px;
-  margin: 0 auto 14px auto;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(212, 160, 23, 0.55);
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-  min-height: 48px;
-}
-
-.hero-offers-half {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
   justify-content: center;
-  gap: 3px;
-  padding: 10px 12px;
-  min-height: 48px;
-  text-decoration: none;
-  transition: background 0.15s;
-  cursor: pointer;
-}
-.hero-offers-half:hover {
-  background: rgba(212, 160, 23, 0.10);
-}
-.hero-offers-half:active {
-  background: rgba(212, 160, 23, 0.18);
+  align-items: center;
+  width: 100%;
+  margin: 0 auto 16px auto;
+  z-index: 5;
 }
 
-.hero-offers-divider {
-  width: 1px;
-  background: rgba(212, 160, 23, 0.5);
-  align-self: stretch;
-  flex-shrink: 0;
-}
-
-.hero-offers-heading {
-  font-size: 0.65rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #d4a017;
-  line-height: 1.2;
-  white-space: nowrap;
-}
-
-.hero-offers-title {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #f1f5f9;
-  line-height: 1.35;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.hero-offers-more {
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: #d4a017;
-  white-space: nowrap;
-}
-
-.hero-offers-none {
-  font-size: 0.72rem;
-  color: rgba(255,255,255,0.4);
-  font-style: italic;
-}
-
-/* On desktop the hero is light — hide the strip (desktop has plenty of space via offers page) */
 @media (min-width: 1024px) {
-  .hero-offers-strip {
-    display: none;
+  .hero-offers-badge-wrapper {
+    justify-content: flex-start;
+    margin: 0 0 18px 0;
+  }
+}
+
+.hero-offers-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 20px;
+  border-radius: 9999px;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1.5px solid rgba(245, 197, 24, 0.75);
+  background: linear-gradient(135deg, #f5c518 0%, #d4a017 100%);
+  color: #1a1a1a;
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 0.88rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow:
+    0 4px 15px rgba(212, 160, 23, 0.4),
+    inset 0 2px 2px rgba(255, 255, 255, 0.7),
+    inset 0 -2px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  animation: goldBadgeGlow 2.8s ease-in-out infinite;
+}
+
+.hero-offers-badge:hover {
+  transform: translateY(-1px) scale(1.02);
+  filter: brightness(1.06);
+  box-shadow:
+    0 6px 20px rgba(212, 160, 23, 0.55),
+    inset 0 2px 2px rgba(255, 255, 255, 0.8),
+    inset 0 -2px 2px rgba(0, 0, 0, 0.2);
+}
+
+.hero-offers-badge:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+.hero-offers-badge-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-offers-badge-label {
+  line-height: 1;
+}
+
+.hero-offers-badge-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  background: #1a1a1a;
+  color: #f5c518;
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+}
+
+/* Subtle pulse / glow animation */
+@keyframes goldBadgeGlow {
+  0%, 100% {
+    box-shadow:
+      0 4px 14px rgba(212, 160, 23, 0.35),
+      inset 0 2px 2px rgba(255, 255, 255, 0.7),
+      inset 0 -2px 2px rgba(0, 0, 0, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 24px rgba(245, 197, 24, 0.7),
+      inset 0 2px 3px rgba(255, 255, 255, 0.85),
+      inset 0 -2px 2px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* Disable pulse animation under prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .hero-offers-badge {
+    animation: none !important;
   }
 }
 
