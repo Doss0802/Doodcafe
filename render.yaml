@@ -25,6 +25,8 @@ services:
         value: 7d
       - key: CLIENT_ORIGIN
         sync: false
+      - key: OFFERS_STORAGE
+        value: db
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY

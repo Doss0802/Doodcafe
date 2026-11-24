@@ -155,8 +155,49 @@ function getUploadDirs() {
 // Ensure local directories exist on module load for development fallback
 getUploadDirs();
 
-// Warn at startup in production if Cloudinary is not fully configured (names only, never values)
-if (process.env.NODE_ENV === 'production') {
+let sharp = null;
+try {
+  sharp = require('sharp');
+} catch {
+  sharp = null;
+}
+
+/**
+ * Resize image if sharp is available (max width 1200px, WEBP at quality ~80),
+ * otherwise return original buffer and detected MIME type.
+ */
+async function processOfferImage(buffer, signature) {
+  if (!sharp) {
+    return {
+      buffer,
+      mimeType: signature.mime,
+      size: buffer.length,
+    };
+  }
+  try {
+    const resized = await sharp(buffer)
+      .resize({ width: 1200, withoutEnlargement: true })
+      .webp({ quality: 80 })
+      .toBuffer();
+    return {
+      buffer: resized,
+      mimeType: 'image/webp',
+      size: resized.length,
+    };
+  } catch (err) {
+    logger.warn('Sharp image processing failed, falling back to original buffer:', { error: err.message });
+    return {
+      buffer,
+      mimeType: signature.mime,
+      size: buffer.length,
+    };
+  }
+}
+
+const isCloudinaryActive = (process.env.OFFERS_STORAGE || 'db').trim().toLowerCase() === 'cloudinary';
+
+// Warn at startup in production ONLY if Cloudinary is explicitly configured as the active storage
+if (isCloudinaryActive && process.env.NODE_ENV === 'production') {
   const _missingAtStartup = getMissingCloudinaryVars();
   if (_missingAtStartup.length > 0) {
     logger.warn(
@@ -307,51 +348,69 @@ const verifyAndSaveOfferImage = ({ required = false } = {}) => {
         });
       }
 
-      const missingVars = getMissingCloudinaryVars();
-      const hasCloudinary = missingVars.length === 0;
-      const isProduction = process.env.NODE_ENV === 'production';
+      // ── Cloudinary storage path (dormant unless OFFERS_STORAGE=cloudinary) ──
+      if (isCloudinaryActive) {
+        const missingVars = getMissingCloudinaryVars();
+        const hasCloudinary = missingVars.length === 0;
+        const isProduction = process.env.NODE_ENV === 'production';
 
-      // If Cloudinary credentials are missing
-      if (!hasCloudinary) {
-        if (isProduction) {
-          logger.error(`Offers image upload failed: missing Cloudinary vars: ${missingVars.join(', ')}.`);
-          return ApiResponse.error(res, {
-            statusCode: 503,
-            message: `Cloudinary is not configured. Missing: ${missingVars.join(', ')}`,
-          });
+        // If Cloudinary credentials are missing
+        if (!hasCloudinary) {
+          if (isProduction) {
+            logger.error(`Offers image upload failed: missing Cloudinary vars: ${missingVars.join(', ')}.`);
+            return ApiResponse.error(res, {
+              statusCode: 503,
+              message: `Cloudinary is not configured. Missing: ${missingVars.join(', ')}`,
+            });
+          }
+
+          // Development fallback: write to local disk
+          logger.warn('Cloudinary not configured. Falling back to local disk storage for offer image (dev mode).');
+          const randomSuffix = crypto.randomBytes(16).toString('hex');
+          const filename = `offer-${Date.now()}-${randomSuffix}.${signature.ext}`;
+
+          const { offersUploadDir } = getUploadDirs();
+          const targetPath = path.join(offersUploadDir, filename);
+
+          await fs.promises.writeFile(targetPath, req.file.buffer);
+
+          const relativeUrl = `/uploads/offers/${filename}`;
+          req.file.filename = filename;
+          req.file.path = targetPath;
+          req.file.imageUrl = relativeUrl;
+          req.file.mimetype = signature.mime;
+          req.body.imageUrl = relativeUrl;
+
+          return next();
         }
 
-        // Development fallback: write to local disk
-        logger.warn('Cloudinary not configured. Falling back to local disk storage for offer image (dev mode).');
-        const randomSuffix = crypto.randomBytes(16).toString('hex');
-        const filename = `offer-${Date.now()}-${randomSuffix}.${signature.ext}`;
+        // Upload buffer directly to Cloudinary (no file written to disk)
+        const cloudinaryResult = await uploadBufferToCloudinary(req.file.buffer);
 
-        const { offersUploadDir } = getUploadDirs();
-        const targetPath = path.join(offersUploadDir, filename);
-
-        await fs.promises.writeFile(targetPath, req.file.buffer);
-
-        const relativeUrl = `/uploads/offers/${filename}`;
-        req.file.filename = filename;
-        req.file.path = targetPath;
-        req.file.imageUrl = relativeUrl;
+        req.file.cloudinary = cloudinaryResult;
+        req.file.imageUrl = cloudinaryResult.secure_url;
+        req.file.secure_url = cloudinaryResult.secure_url;
+        req.file.public_id = cloudinaryResult.public_id;
         req.file.mimetype = signature.mime;
-        req.body.imageUrl = relativeUrl;
+        req.body.imageUrl = cloudinaryResult.secure_url;
 
         return next();
       }
 
-      // Upload buffer directly to Cloudinary (no file written to disk)
-      const cloudinaryResult = await uploadBufferToCloudinary(req.file.buffer);
+      // ── Database storage path (DEFAULT: OFFERS_STORAGE=db) ──
+      const processed = await processOfferImage(req.file.buffer, signature);
+      const targetId = req.params?.id || crypto.randomUUID();
+      const servedPath = `/api/offers/${targetId}/image`;
 
-      req.file.cloudinary = cloudinaryResult;
-      req.file.imageUrl = cloudinaryResult.secure_url;
-      req.file.secure_url = cloudinaryResult.secure_url;
-      req.file.public_id = cloudinaryResult.public_id;
-      req.file.mimetype = signature.mime;
-      req.body.imageUrl = cloudinaryResult.secure_url;
+      req.file.storageType = 'db';
+      req.file.targetId = targetId;
+      req.file.processedBuffer = processed.buffer;
+      req.file.mimeType = processed.mimeType;
+      req.file.size = processed.size;
+      req.file.imageUrl = servedPath;
+      req.body.imageUrl = servedPath;
 
-      next();
+      return next();
     } catch (error) {
       logger.error('Failed to process and store offer image:', { error: error.message });
       return ApiResponse.error(res, {
@@ -419,7 +478,8 @@ async function deleteOfferImageFile(imageUrl) {
 }
 
 /**
- * Safely delete an offer image from Cloudinary or local disk.
+ * Safely delete an offer image from database, Cloudinary, or local disk.
+ * If database: deletes record from offer_images by offerId or id.
  * If Cloudinary: deletes by public_id ONLY for URLs on res.cloudinary.com under doodcafe/offers.
  * If local disk: deletes from /uploads/offers/.
  * Never touches external non-Cloudinary URLs.
@@ -431,7 +491,28 @@ async function deleteOfferImage(imageUrl) {
   if (!imageUrl || typeof imageUrl !== 'string') return;
   const trimmed = imageUrl.trim();
 
-  // 1. Check if it's a Cloudinary URL under doodcafe/offers
+  // 1. Check if it's a database image route (/api/offers/:id/image)
+  const dbMatch = trimmed.match(/\/api\/offers\/([^/?#]+)\/image/i);
+  if (dbMatch) {
+    try {
+      const { Op } = require('sequelize');
+      const OfferImage = require('../models/OfferImage');
+      const targetId = dbMatch[1];
+      await OfferImage.destroy({
+        where: {
+          [Op.or]: [{ offerId: targetId }, { id: targetId }],
+        },
+      });
+      logger.info('Deleted offer image from database offer_images table', { targetId });
+    } catch (err) {
+      logger.warn('Failed to delete image record from offer_images:', {
+        error: err.message,
+      });
+    }
+    return;
+  }
+
+  // 2. Check if it's a Cloudinary URL under doodcafe/offers
   const publicId = extractCloudinaryPublicId(trimmed);
   if (publicId) {
     try {
@@ -450,7 +531,7 @@ async function deleteOfferImage(imageUrl) {
     return;
   }
 
-  // 2. Otherwise, if local file inside /uploads/offers/, clean it up
+  // 3. Otherwise, if local file inside /uploads/offers/, clean it up
   try {
     await deleteOfferImageFile(trimmed);
   } catch (err) {
@@ -461,7 +542,7 @@ async function deleteOfferImage(imageUrl) {
 }
 
 /**
- * Format relative /uploads/... image path to an absolute URL.
+ * Format relative /uploads/... or /api/offers/... image path to an absolute URL.
  * Reads PUBLIC_BACKEND_URL env var first (required on Render / reverse-proxy),
  * falls back to BACKEND_URL, then falls back to request origin (local dev only).
  * External URLs (http:// or https://) or data URIs pass through unchanged.
@@ -478,8 +559,8 @@ function formatOfferImageUrl(imageUrl, req) {
     return imageUrl;
   }
 
-  // If relative path starting with /uploads/
-  if (imageUrl.startsWith('/uploads/')) {
+  // If relative path starting with /uploads/ or /api/offers/
+  if (imageUrl.startsWith('/uploads/') || imageUrl.startsWith('/api/offers/')) {
     const envOrigin =
       process.env.PUBLIC_BACKEND_URL || process.env.BACKEND_URL || '';
 
@@ -489,7 +570,7 @@ function formatOfferImageUrl(imageUrl, req) {
         ? `${req.protocol}://${req.get('host')}`
         : '';
 
-    if (!envOrigin && backendOrigin) {
+    if (!envOrigin && backendOrigin && imageUrl.startsWith('/uploads/')) {
       logger.warn(
         'PUBLIC_BACKEND_URL is not set. Falling back to request origin for image URLs. ' +
           'Set PUBLIC_BACKEND_URL to the public backend URL (e.g. https://doodcafe.onrender.com).'
@@ -504,7 +585,7 @@ function formatOfferImageUrl(imageUrl, req) {
 
 /**
  * Normalize an image URL for database storage.
- * If an absolute URL pointing to /uploads/offers/... was submitted, stores relative path /uploads/offers/...
+ * If an absolute URL pointing to /uploads/offers/... or /api/offers/... was submitted, stores relative path.
  * Cloudinary URLs and other external URLs pass through unchanged.
  *
  * @param {string} imageUrl - Input URL string
@@ -517,7 +598,10 @@ function normalizeOfferImageUrl(imageUrl) {
   if (/^https?:\/\//i.test(trimmed)) {
     try {
       const parsed = new URL(trimmed);
-      if (parsed.pathname.startsWith('/uploads/offers/')) {
+      if (
+        parsed.pathname.startsWith('/uploads/offers/') ||
+        parsed.pathname.startsWith('/api/offers/')
+      ) {
         return parsed.pathname;
       }
     } catch {}

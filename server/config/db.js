@@ -25,12 +25,13 @@ const connectDB = async () => {
     //   alter:false is safe — it never drops columns or data.
     await sequelize.sync({ alter: false });
 
-    // ── Step 3: Ensure indexes exist (idempotent IF NOT EXISTS guards).
+    // ── Step 3: Ensure indexes and tables exist (idempotent IF NOT EXISTS guards).
     try {
       await sequelize.query('CREATE UNIQUE INDEX IF NOT EXISTS "orders_idempotency_key_idx" ON "orders" ("idempotencyKey") WHERE "idempotencyKey" IS NOT NULL;');
       await sequelize.query('CREATE INDEX IF NOT EXISTS "orders_paytm_order_id_idx" ON "orders" ("paytmOrderId");');
       await sequelize.query('CREATE INDEX IF NOT EXISTS "orders_transaction_id_idx" ON "orders" ("transactionId");');
-    } catch (_) {
+      await sequelize.query('CREATE INDEX IF NOT EXISTS "offer_images_offer_id_idx" ON "offer_images" ("offerId");');
+    } catch {
       // Indexes may already exist
     }
 

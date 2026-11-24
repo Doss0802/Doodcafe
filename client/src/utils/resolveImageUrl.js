@@ -27,7 +27,8 @@ export const resolveImageUrl = (rawSrc) => {
   if (
     rawSrc.startsWith('/images/') ||
     rawSrc.startsWith('/src/images/') ||
-    rawSrc.startsWith('/uploads/')
+    rawSrc.startsWith('/uploads/') ||
+    rawSrc.startsWith('/api/')
   ) {
     return `${API_BASE}${rawSrc}`;
   }

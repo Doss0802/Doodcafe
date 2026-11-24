@@ -7,6 +7,7 @@ const {
   updateOffer,
   removeOffer,
   uploadOfferImage,
+  getOfferImage,
 } = require('../controllers/offer.controller');
 const { protect, requireRole } = require('../middleware/auth');
 const validate = require('../middleware/validate');
@@ -71,6 +72,16 @@ router.get(
   ],
   validate,
   getPublicOffers
+);
+
+/**
+ * PUBLIC: GET /api/offers/:id/image — stream offer banner image
+ */
+router.get(
+  '/:id/image',
+  [param('id').notEmpty().withMessage('Offer ID required')],
+  validate,
+  getOfferImage
 );
 
 /**

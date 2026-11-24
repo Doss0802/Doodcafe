@@ -29,6 +29,7 @@ require('./models/Inventory');
 require('./models/SiteSettings');
 require('./models/EventBooking');
 require('./models/Offer');
+require('./models/OfferImage');
 
 const authRoutes = require('./routes/auth.routes');
 const menuRoutes = require('./routes/menu.routes');
