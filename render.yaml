@@ -25,6 +25,12 @@ services:
         value: 7d
       - key: CLIENT_ORIGIN
         sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
 
   # ─── Dood Cafe Frontend (Vite React Static Site) ─────────────
   - type: web
