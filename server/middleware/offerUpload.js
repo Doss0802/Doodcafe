@@ -8,23 +8,37 @@ const logger = require('../utils/logger');
 const sanitizeInputMiddleware = require('./sanitizeInput');
 
 /**
+ * Sanitize a raw env var value: strip surrounding whitespace and quotes (', ", `).
+ * Returns the cleaned string, or '' if falsy.
+ *
+ * @param {string|undefined} raw
+ * @returns {string}
+ */
+function sanitizeEnvVar(raw) {
+  if (!raw || typeof raw !== 'string') return '';
+  return raw.trim().replace(/^['"`]+|['"`]+$/g, '');
+}
+
+const CLOUDINARY_VAR_NAMES = ['CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'];
+
+/**
+ * Returns an array of env var names that are missing or empty after sanitization.
+ * Never logs or returns values.
+ *
+ * @returns {string[]}
+ */
+function getMissingCloudinaryVars() {
+  return CLOUDINARY_VAR_NAMES.filter((name) => !sanitizeEnvVar(process.env[name]));
+}
+
+/**
  * Check if Cloudinary credentials are configured in environment variables.
  * Never logs credentials.
  *
  * @returns {boolean}
  */
 function isCloudinaryConfigured() {
-  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-  const apiKey = process.env.CLOUDINARY_API_KEY;
-  const apiSecret = process.env.CLOUDINARY_API_SECRET;
-  return Boolean(
-    cloudName &&
-    cloudName.trim() &&
-    apiKey &&
-    apiKey.trim() &&
-    apiSecret &&
-    apiSecret.trim()
-  );
+  return getMissingCloudinaryVars().length === 0;
 }
 
 /**
@@ -38,9 +52,9 @@ function getCloudinaryClient() {
     return null;
   }
   cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME.trim(),
-    api_key: process.env.CLOUDINARY_API_KEY.trim(),
-    api_secret: process.env.CLOUDINARY_API_SECRET.trim(),
+    cloud_name: sanitizeEnvVar(process.env.CLOUDINARY_CLOUD_NAME),
+    api_key: sanitizeEnvVar(process.env.CLOUDINARY_API_KEY),
+    api_secret: sanitizeEnvVar(process.env.CLOUDINARY_API_SECRET),
     secure: true,
   });
   return cloudinary;
@@ -140,6 +154,16 @@ function getUploadDirs() {
 
 // Ensure local directories exist on module load for development fallback
 getUploadDirs();
+
+// Warn at startup in production if Cloudinary is not fully configured (names only, never values)
+if (process.env.NODE_ENV === 'production') {
+  const _missingAtStartup = getMissingCloudinaryVars();
+  if (_missingAtStartup.length > 0) {
+    logger.warn(
+      `Cloudinary offer image storage is not fully configured. Missing env vars: ${_missingAtStartup.join(', ')}. Upload routes will return 503.`
+    );
+  }
+}
 
 /**
  * Detect image type from raw file signature / magic bytes.
@@ -283,16 +307,17 @@ const verifyAndSaveOfferImage = ({ required = false } = {}) => {
         });
       }
 
-      const hasCloudinary = isCloudinaryConfigured();
+      const missingVars = getMissingCloudinaryVars();
+      const hasCloudinary = missingVars.length === 0;
       const isProduction = process.env.NODE_ENV === 'production';
 
       // If Cloudinary credentials are missing
       if (!hasCloudinary) {
         if (isProduction) {
-          logger.error('Offers image upload failed: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, or CLOUDINARY_API_SECRET missing in production.');
+          logger.error(`Offers image upload failed: missing Cloudinary vars: ${missingVars.join(', ')}.`);
           return ApiResponse.error(res, {
             statusCode: 503,
-            message: 'Image upload service is currently unavailable. Cloudinary storage is not configured.',
+            message: `Cloudinary is not configured. Missing: ${missingVars.join(', ')}`,
           });
         }
 
