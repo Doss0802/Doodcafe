@@ -96,7 +96,7 @@ export default function OffersPage() {
                   'doodcafe_order_type',
                   isDineIn ? 'dine-in' : 'delivery'
                 );
-              } catch (_e) {}
+              } catch {}
             }}
             className="clay-btn clay-gold min-h-[44px] px-5 py-2.5 font-bold text-sm flex items-center gap-2"
           >
@@ -129,8 +129,9 @@ export default function OffersPage() {
 }
 
 function OfferCard({ offer }) {
+  const [imgError, setImgError] = useState(false);
   const validTill = fmtIST(offer.endAt);
-  const imgSrc = resolveImageUrl(offer.imageUrl);
+  const imgSrc = !imgError && offer.imageUrl ? resolveImageUrl(offer.imageUrl) : null;
 
   return (
     <div className="offer-card">
@@ -142,13 +143,7 @@ function OfferCard({ offer }) {
             className="offer-card-img"
             loading="lazy"
             decoding="async"
-            onError={(e) => {
-              if (e.currentTarget.parentElement) {
-                e.currentTarget.parentElement.style.display = 'none';
-              } else {
-                e.currentTarget.style.display = 'none';
-              }
-            }}
+            onError={() => setImgError(true)}
           />
         </div>
       )}

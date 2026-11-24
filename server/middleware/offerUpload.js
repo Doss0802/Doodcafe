@@ -2,12 +2,125 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const multer = require('multer');
+const cloudinary = require('cloudinary').v2;
 const ApiResponse = require('../utils/ApiResponse');
 const logger = require('../utils/logger');
 const sanitizeInputMiddleware = require('./sanitizeInput');
 
 /**
- * Resolve the base uploads directory and the offers subfolder.
+ * Check if Cloudinary credentials are configured in environment variables.
+ * Never logs credentials.
+ *
+ * @returns {boolean}
+ */
+function isCloudinaryConfigured() {
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+  return Boolean(
+    cloudName &&
+    cloudName.trim() &&
+    apiKey &&
+    apiKey.trim() &&
+    apiSecret &&
+    apiSecret.trim()
+  );
+}
+
+/**
+ * Get configured Cloudinary v2 client or null if unconfigured.
+ * Never crashes the server on startup.
+ *
+ * @returns {object|null}
+ */
+function getCloudinaryClient() {
+  if (!isCloudinaryConfigured()) {
+    return null;
+  }
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME.trim(),
+    api_key: process.env.CLOUDINARY_API_KEY.trim(),
+    api_secret: process.env.CLOUDINARY_API_SECRET.trim(),
+    secure: true,
+  });
+  return cloudinary;
+}
+
+/**
+ * Extract Cloudinary public_id from a stored image URL.
+ * Strictly checks that the URL is on res.cloudinary.com under the doodcafe/offers folder.
+ * Returns null for external URLs, local paths, or images in other folders.
+ *
+ * @param {string} imageUrl - Stored image URL
+ * @returns {string|null} public_id (e.g. "doodcafe/offers/abc123xyz") or null
+ */
+function extractCloudinaryPublicId(imageUrl) {
+  if (!imageUrl || typeof imageUrl !== 'string') return null;
+
+  try {
+    const parsed = new URL(imageUrl.trim());
+    if (parsed.hostname !== 'res.cloudinary.com') {
+      return null;
+    }
+
+    const marker = '/doodcafe/offers/';
+    const markerIndex = parsed.pathname.indexOf(marker);
+    if (markerIndex === -1) {
+      return null;
+    }
+
+    // Subpath starting with "doodcafe/offers/..."
+    const subpath = parsed.pathname.slice(markerIndex + 1);
+    const lastSlash = subpath.lastIndexOf('/');
+    const lastDot = subpath.lastIndexOf('.');
+
+    // Strip extension only if dot occurs in filename segment
+    if (lastDot > lastSlash) {
+      return subpath.slice(0, lastDot);
+    }
+    return subpath;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Upload an image buffer to Cloudinary using upload_stream.
+ * Target folder: "doodcafe/offers"
+ * Transformations: limit width to 1200px, auto quality, auto format.
+ *
+ * @param {Buffer} buffer - Verified image buffer
+ * @param {object} options - Optional upload options
+ * @returns {Promise<object>} Cloudinary upload result
+ */
+function uploadBufferToCloudinary(buffer, options = {}) {
+  const client = getCloudinaryClient();
+  if (!client) {
+    return Promise.reject(new Error('Cloudinary credentials are not configured.'));
+  }
+
+  return new Promise((resolve, reject) => {
+    const stream = client.uploader.upload_stream(
+      {
+        folder: 'doodcafe/offers',
+        resource_type: 'image',
+        allowed_formats: ['jpg', 'png', 'webp'],
+        transformation: [
+          { width: 1200, crop: 'limit', quality: 'auto', fetch_format: 'auto' },
+        ],
+        ...options,
+      },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      }
+    );
+    stream.end(buffer);
+  });
+}
+
+/**
+ * Resolve the base uploads directory and the offers subfolder for dev fallback.
  * Creates the directories recursively if they do not exist.
  */
 function getUploadDirs() {
@@ -25,7 +138,7 @@ function getUploadDirs() {
   return { baseUploadDir, offersUploadDir };
 }
 
-// Ensure directories exist on module load
+// Ensure local directories exist on module load for development fallback
 getUploadDirs();
 
 /**
@@ -70,7 +183,7 @@ function detectImageSignature(buffer) {
   return null;
 }
 
-// Multer memory storage — keep buffer in memory until magic bytes are verified
+// Multer memory storage — keeps buffer in memory, no file written to disk
 const memoryStorage = multer.memoryStorage();
 
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp']);
@@ -143,7 +256,7 @@ const offerUploadSingle = (req, res, next) => {
 };
 
 /**
- * Middleware factory to verify image magic bytes and safely save to disk.
+ * Middleware factory to verify image magic bytes and save to Cloudinary (or local disk in dev).
  *
  * @param {object} options
  * @param {boolean} options.required - If true, rejects request when no image is uploaded
@@ -170,27 +283,52 @@ const verifyAndSaveOfferImage = ({ required = false } = {}) => {
         });
       }
 
-      // Generate random unique filename (never use user-supplied filename)
-      const randomSuffix = crypto.randomBytes(16).toString('hex');
-      const filename = `offer-${Date.now()}-${randomSuffix}.${signature.ext}`;
+      const hasCloudinary = isCloudinaryConfigured();
+      const isProduction = process.env.NODE_ENV === 'production';
 
-      const { offersUploadDir } = getUploadDirs();
-      const targetPath = path.join(offersUploadDir, filename);
+      // If Cloudinary credentials are missing
+      if (!hasCloudinary) {
+        if (isProduction) {
+          logger.error('Offers image upload failed: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, or CLOUDINARY_API_SECRET missing in production.');
+          return ApiResponse.error(res, {
+            statusCode: 503,
+            message: 'Image upload service is currently unavailable. Cloudinary storage is not configured.',
+          });
+        }
 
-      // Write verified buffer to disk
-      await fs.promises.writeFile(targetPath, req.file.buffer);
+        // Development fallback: write to local disk
+        logger.warn('Cloudinary not configured. Falling back to local disk storage for offer image (dev mode).');
+        const randomSuffix = crypto.randomBytes(16).toString('hex');
+        const filename = `offer-${Date.now()}-${randomSuffix}.${signature.ext}`;
 
-      // Populate file details and set relative imageUrl for controllers & validators
-      const relativeUrl = `/uploads/offers/${filename}`;
-      req.file.filename = filename;
-      req.file.path = targetPath;
-      req.file.imageUrl = relativeUrl;
+        const { offersUploadDir } = getUploadDirs();
+        const targetPath = path.join(offersUploadDir, filename);
+
+        await fs.promises.writeFile(targetPath, req.file.buffer);
+
+        const relativeUrl = `/uploads/offers/${filename}`;
+        req.file.filename = filename;
+        req.file.path = targetPath;
+        req.file.imageUrl = relativeUrl;
+        req.file.mimetype = signature.mime;
+        req.body.imageUrl = relativeUrl;
+
+        return next();
+      }
+
+      // Upload buffer directly to Cloudinary (no file written to disk)
+      const cloudinaryResult = await uploadBufferToCloudinary(req.file.buffer);
+
+      req.file.cloudinary = cloudinaryResult;
+      req.file.imageUrl = cloudinaryResult.secure_url;
+      req.file.secure_url = cloudinaryResult.secure_url;
+      req.file.public_id = cloudinaryResult.public_id;
       req.file.mimetype = signature.mime;
-      req.body.imageUrl = relativeUrl;
+      req.body.imageUrl = cloudinaryResult.secure_url;
 
       next();
     } catch (error) {
-      logger.error('Failed to save offer image file:', { error: error.message });
+      logger.error('Failed to process and store offer image:', { error: error.message });
       return ApiResponse.error(res, {
         statusCode: 500,
         message: 'Failed to process and store the image file.',
@@ -216,7 +354,7 @@ async function deleteOfferImageFile(imageUrl) {
     try {
       const parsed = new URL(pathname);
       pathname = parsed.pathname;
-    } catch (_) {
+    } catch {
       return; // Invalid URL, do not delete
     }
   }
@@ -248,8 +386,50 @@ async function deleteOfferImageFile(imageUrl) {
       await fs.promises.unlink(resolvedTarget);
     }
   } catch (err) {
-    logger.warn('Failed to delete old offer image file:', {
+    logger.warn('Failed to delete old local offer image file:', {
       filename: cleanFilename,
+      error: err.message,
+    });
+  }
+}
+
+/**
+ * Safely delete an offer image from Cloudinary or local disk.
+ * If Cloudinary: deletes by public_id ONLY for URLs on res.cloudinary.com under doodcafe/offers.
+ * If local disk: deletes from /uploads/offers/.
+ * Never touches external non-Cloudinary URLs.
+ * Failures in deletion never throw or block the caller.
+ *
+ * @param {string} imageUrl - Stored image URL or relative path
+ */
+async function deleteOfferImage(imageUrl) {
+  if (!imageUrl || typeof imageUrl !== 'string') return;
+  const trimmed = imageUrl.trim();
+
+  // 1. Check if it's a Cloudinary URL under doodcafe/offers
+  const publicId = extractCloudinaryPublicId(trimmed);
+  if (publicId) {
+    try {
+      const client = getCloudinaryClient();
+      if (client) {
+        await client.uploader.destroy(publicId, { resource_type: 'image' });
+        logger.info('Deleted offer image from Cloudinary', { publicId });
+      }
+    } catch (err) {
+      // Failures in deletion must not block caller
+      logger.warn('Failed to delete offer image from Cloudinary:', {
+        publicId,
+        error: err.message,
+      });
+    }
+    return;
+  }
+
+  // 2. Otherwise, if local file inside /uploads/offers/, clean it up
+  try {
+    await deleteOfferImageFile(trimmed);
+  } catch (err) {
+    logger.warn('Failed to delete old local offer image file:', {
       error: err.message,
     });
   }
@@ -275,9 +455,6 @@ function formatOfferImageUrl(imageUrl, req) {
 
   // If relative path starting with /uploads/
   if (imageUrl.startsWith('/uploads/')) {
-    // Check PUBLIC_BACKEND_URL first (required on Render / reverse-proxy deployments),
-    // then fall back to BACKEND_URL for backwards compatibility,
-    // then fall back to request origin (dev/local only — may be wrong behind a proxy).
     const envOrigin =
       process.env.PUBLIC_BACKEND_URL || process.env.BACKEND_URL || '';
 
@@ -303,7 +480,7 @@ function formatOfferImageUrl(imageUrl, req) {
 /**
  * Normalize an image URL for database storage.
  * If an absolute URL pointing to /uploads/offers/... was submitted, stores relative path /uploads/offers/...
- * External URLs pass through unchanged.
+ * Cloudinary URLs and other external URLs pass through unchanged.
  *
  * @param {string} imageUrl - Input URL string
  * @returns {string} Normalized string for DB storage
@@ -318,7 +495,7 @@ function normalizeOfferImageUrl(imageUrl) {
       if (parsed.pathname.startsWith('/uploads/offers/')) {
         return parsed.pathname;
       }
-    } catch (_) {}
+    } catch {}
   }
 
   return trimmed;
@@ -330,6 +507,9 @@ module.exports = {
   offerUploadSingle,
   verifyAndSaveOfferImage,
   deleteOfferImageFile,
+  deleteOfferImage,
   formatOfferImageUrl,
   normalizeOfferImageUrl,
+  extractCloudinaryPublicId,
+  isCloudinaryConfigured,
 };

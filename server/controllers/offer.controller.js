@@ -5,7 +5,7 @@ const ApiResponse = require('../utils/ApiResponse');
 const {
   formatOfferImageUrl,
   normalizeOfferImageUrl,
-  deleteOfferImageFile,
+  deleteOfferImage,
 } = require('../middleware/offerUpload');
 
 /**
@@ -117,8 +117,8 @@ const createOffer = async (req, res, next) => {
     const { title, description, offerType, startAt, endAt } = req.body;
     let imageUrl = req.body.imageUrl;
 
-    if (req.file) {
-      imageUrl = `/uploads/offers/${req.file.filename}`;
+    if (req.file && req.file.imageUrl) {
+      imageUrl = req.file.imageUrl;
     } else if (imageUrl) {
       imageUrl = normalizeOfferImageUrl(imageUrl);
     }
@@ -143,9 +143,13 @@ const createOffer = async (req, res, next) => {
       },
     });
   } catch (error) {
-    // If a new file was saved to disk for this request, clean it up on failure
-    if (req.file && req.file.path) {
-      fs.promises.unlink(req.file.path).catch(() => {});
+    // If a new image was uploaded for this request, clean it up on failure
+    if (req.file) {
+      if (req.file.imageUrl) {
+        deleteOfferImage(req.file.imageUrl).catch(() => {});
+      } else if (req.file.path) {
+        fs.promises.unlink(req.file.path).catch(() => {});
+      }
     }
     next(error);
   }
@@ -161,8 +165,12 @@ const updateOffer = async (req, res, next) => {
     const offer = await Offer.findByPk(id);
 
     if (!offer) {
-      if (req.file && req.file.path) {
-        fs.promises.unlink(req.file.path).catch(() => {});
+      if (req.file) {
+        if (req.file.imageUrl) {
+          deleteOfferImage(req.file.imageUrl).catch(() => {});
+        } else if (req.file.path) {
+          fs.promises.unlink(req.file.path).catch(() => {});
+        }
       }
       return ApiResponse.error(res, {
         statusCode: 404,
@@ -175,8 +183,8 @@ const updateOffer = async (req, res, next) => {
     let newImageUrl = offer.imageUrl;
     const oldImageUrl = offer.imageUrl;
 
-    if (req.file) {
-      newImageUrl = `/uploads/offers/${req.file.filename}`;
+    if (req.file && req.file.imageUrl) {
+      newImageUrl = req.file.imageUrl;
     } else if (req.body.imageUrl !== undefined) {
       newImageUrl = req.body.imageUrl ? normalizeOfferImageUrl(req.body.imageUrl) : null;
     }
@@ -191,9 +199,9 @@ const updateOffer = async (req, res, next) => {
       isActive: isActive !== undefined ? isActive : offer.isActive,
     });
 
-    // If image changed or was removed, clean up old local image file
+    // If image changed or was removed, clean up old image (Cloudinary or local)
     if (oldImageUrl && oldImageUrl !== newImageUrl) {
-      await deleteOfferImageFile(oldImageUrl);
+      await deleteOfferImage(oldImageUrl);
     }
 
     return ApiResponse.success(res, {
@@ -206,8 +214,12 @@ const updateOffer = async (req, res, next) => {
       },
     });
   } catch (error) {
-    if (req.file && req.file.path) {
-      fs.promises.unlink(req.file.path).catch(() => {});
+    if (req.file) {
+      if (req.file.imageUrl) {
+        deleteOfferImage(req.file.imageUrl).catch(() => {});
+      } else if (req.file.path) {
+        fs.promises.unlink(req.file.path).catch(() => {});
+      }
     }
     next(error);
   }
@@ -232,9 +244,9 @@ const removeOffer = async (req, res, next) => {
     const oldImageUrl = offer.imageUrl;
     await offer.destroy();
 
-    // Clean up local uploaded image if it was stored inside /uploads/offers/
+    // Clean up uploaded image if it was stored on Cloudinary or in /uploads/offers/
     if (oldImageUrl) {
-      await deleteOfferImageFile(oldImageUrl);
+      await deleteOfferImage(oldImageUrl);
     }
 
     return ApiResponse.success(res, {
@@ -252,23 +264,25 @@ const removeOffer = async (req, res, next) => {
  * Dedicated standalone endpoint for uploading an offer banner image.
  */
 const uploadOfferImage = async (req, res) => {
-  if (!req.file) {
+  if (!req.file || !req.file.imageUrl) {
     return ApiResponse.error(res, {
       statusCode: 400,
       message: 'No image file uploaded',
     });
   }
 
-  const relativeUrl = req.file.imageUrl;
-  const absoluteUrl = formatOfferImageUrl(relativeUrl, req);
+  const imageUrl = req.file.imageUrl;
+  const absoluteUrl = formatOfferImageUrl(imageUrl, req);
 
   return ApiResponse.success(res, {
     statusCode: 200,
     message: 'Offer image uploaded successfully',
     data: {
       imageUrl: absoluteUrl,
-      relativeUrl,
-      filename: req.file.filename,
+      secure_url: req.file.secure_url || absoluteUrl,
+      relativeUrl: req.file.filename ? `/uploads/offers/${req.file.filename}` : null,
+      filename: req.file.filename || null,
+      public_id: req.file.public_id || null,
     },
   });
 };

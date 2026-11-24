@@ -122,7 +122,7 @@ app.use(
         formAction: ["'self'", paytmOrigin],
         styleSrc: ["'self'", 'https://fonts.googleapis.com'],
         fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-        imgSrc: ["'self'", 'data:', 'https:', 'http:'],
+        imgSrc: ["'self'", 'data:', 'https:', 'http:', 'https://res.cloudinary.com'],
         objectSrc: ["'none'"],
         upgradeInsecureRequests: [],
       },

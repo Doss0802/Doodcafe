@@ -528,7 +528,13 @@ export default function AdminOffers() {
                       <img
                         src={resolveImageUrl(offer.imageUrl)}
                         alt={offer.title}
-                        onError={(e) => { e.currentTarget.parentElement.style.display = 'none'; }}
+                        onError={(e) => {
+                          if (e.currentTarget.parentElement) {
+                            e.currentTarget.parentElement.style.display = 'none';
+                          } else {
+                            e.currentTarget.style.display = 'none';
+                          }
+                        }}
                       />
                     </div>
                   )}

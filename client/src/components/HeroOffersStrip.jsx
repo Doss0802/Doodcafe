@@ -77,12 +77,13 @@ export default function HeroOffersStrip() {
 }
 
 function OfferPreview({ offers }) {
+  const [imgError, setImgError] = useState(false);
   if (!offers || offers.length === 0) {
     return <span className="hero-offers-none">No offers right now</span>;
   }
   const first = offers[0];
   const extra = offers.length - 1;
-  const imgSrc = resolveImageUrl(first.imageUrl);
+  const imgSrc = !imgError && first.imageUrl ? resolveImageUrl(first.imageUrl) : null;
 
   return (
     <div className="flex items-center gap-2 w-full min-w-0">
@@ -92,9 +93,7 @@ function OfferPreview({ offers }) {
           alt=""
           aria-hidden="true"
           className="w-7 h-7 sm:w-8 sm:h-8 rounded-md object-cover flex-shrink-0 border border-amber-500/30"
-          onError={(e) => {
-            e.currentTarget.style.display = 'none';
-          }}
+          onError={() => setImgError(true)}
         />
       )}
       <span className="hero-offers-title flex-1 min-w-0">
