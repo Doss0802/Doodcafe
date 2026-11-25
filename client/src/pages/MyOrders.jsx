@@ -1,14 +1,14 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
-  CheckCircle, Package, ChefHat, Clock, Truck,
-  XCircle, ChevronDown, ChevronUp, ExternalLink,
-  ShoppingBag, Receipt, ArrowRight, UserCircle2, Download
+  ChevronDown, ChevronUp, ExternalLink,
+  ShoppingBag, ArrowRight, UserCircle2, Download, Printer
 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import toast from 'react-hot-toast';
 import axiosInstance from '../api/axiosInstance';
-import cafeLogo from '../images/cafe_logo.png';
+import Bill from '../components/Bill';
+import { printBillOrder } from '../utils/printBill';
 import useOrderBell from '../hooks/useOrderBell';
 
 /* ── Status config ─────────────────────────────────────────── */
@@ -27,19 +27,23 @@ const ORDER_TYPE_ICON = { takeaway: '🛍️', delivery: '🛵' };
 function BillSummary({ order, orderNumber }) {
   const billRef = useRef(null);
   const [downloading, setDownloading] = useState(false);
+  const [printing, setPrinting] = useState(false);
 
-  const subtotal = order.items.reduce((s, i) => s + i.price * i.quantity, 0);
-  const tax      = Math.round(subtotal * 0.05);
-  const total    = order.totalAmount ?? (subtotal + tax);
+  const billOrder = order.orderNumber ? order : { ...order, orderNumber };
+  const orderTicketId =
+    billOrder.orderNumber ||
+    orderNumber ||
+    (billOrder._id ? String(billOrder._id).slice(-6).toUpperCase() : 'REC');
 
-  const orderTicketId = order.orderNumber || orderNumber || (order._id ? String(order._id).slice(-6).toUpperCase() : 'REC');
-  const formattedTicket = order.orderNumber 
-    ? `ORD-${String(order.orderNumber).padStart(4, '0')}` 
-    : (order._id ? String(order._id) : `${orderTicketId}`);
-
-  const formattedDate = order.createdAt 
-    ? new Date(order.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
-    : '';
+  const handlePrintBill = async (e) => {
+    e.stopPropagation();
+    setPrinting(true);
+    try {
+      await printBillOrder(billOrder);
+    } finally {
+      setPrinting(false);
+    }
+  };
 
   const handleDownloadBill = async (e) => {
     e.stopPropagation();
@@ -74,64 +78,21 @@ function BillSummary({ order, orderNumber }) {
 
   return (
     <div className="mo-bill" ref={billRef}>
-      {/* Header with Cafe Branding & Ticket ID */}
-      <div className="mo-bill-header-row">
-        <div className="mo-bill-title">
-          <Receipt size={15} /> Bill Summary
-        </div>
-        <div className="mo-bill-brand-badge">
-          <img 
-            src={cafeLogo} 
-            alt="Dood Cafe" 
-            className="mo-bill-mini-logo" 
-            onError={(e) => { e.target.onerror = null; e.target.src = '/cafe_logo.png'; }} 
-          />
-          <span className="mo-bill-brand-text">DOOD CAFE</span>
-        </div>
-      </div>
+      <Bill order={billOrder} />
 
-      <div className="mo-bill-meta-row">
-        <span className="mo-bill-meta-id">Receipt #{orderTicketId}</span>
-        {formattedDate && <span className="mo-bill-meta-date">{formattedDate}</span>}
-      </div>
-
-      <div className="mo-bill-rows">
-        {order.items.map((item, i) => (
-          <div key={i} className="mo-bill-row">
-            <span className="mo-bill-item-name">
-              {item.name}
-              <span className="mo-bill-qty"> × {item.quantity}</span>
-            </span>
-            <span className="mo-bill-item-price">₹{(item.price * item.quantity).toFixed(2)}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="mo-bill-divider" />
-      <div className="mo-bill-row mo-bill-sub">
-        <span>Subtotal</span><span>₹{subtotal.toFixed(2)}</span>
-      </div>
-      <div className="mo-bill-row mo-bill-tax">
-        <span>GST (5%)</span><span>₹{tax.toFixed(2)}</span>
-      </div>
-      <div className="mo-bill-divider" />
-      <div className="mo-bill-row mo-bill-total">
-        <span>Total Paid</span>
-        <span className="mo-bill-total-amt">₹{total.toFixed(2)}</span>
-      </div>
-      {order.paymentMode && (
-        <div className="mo-bill-payment">
-          {order.paymentMode === 'upi' && order.paymentStatus === 'pending'
-            ? <span style={{ color: '#D97706' }}>⏳ Payment Pending (Online / UPI)</span>
-            : order.paymentMode === 'upi' && order.paymentStatus === 'failed'
-            ? <span style={{ color: '#EF4444' }}>❌ Payment Failed (Online / UPI)</span>
-            : <>Paid via <strong>{order.paymentMode.toUpperCase()}</strong> ({order.orderType || 'takeaway'})</>
-          }
-        </div>
-      )}
-
-      {/* Action Trigger Button */}
+      {/* Action Trigger Buttons */}
       <div className="mo-bill-btn-wrap">
+        <button
+          type="button"
+          className="btn mo-bill-print-btn"
+          onClick={handlePrintBill}
+          disabled={printing}
+          title="Print Bill"
+        >
+          <Printer size={14} />
+          <span>{printing ? 'Preparing...' : 'Print Bill'}</span>
+        </button>
+
         <button
           type="button"
           className="btn mo-bill-download-btn"

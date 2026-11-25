@@ -1,7 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { CheckCircle, Clock, ChefHat, XCircle, ArrowLeft } from 'lucide-react';
+import { CheckCircle, Clock, ChefHat, XCircle, ArrowLeft, Printer } from 'lucide-react';
 import axiosInstance from '../api/axiosInstance';
+import Bill from '../components/Bill';
+import { printBillOrder } from '../utils/printBill';
 import useOrderBell from '../hooks/useOrderBell';
 
 const STATUS_STEPS = [
@@ -151,19 +153,20 @@ export default function OrderTracking() {
             </div>
           </div>
 
-          {/* Items */}
+          {/* Standardized Invoice / Bill */}
           <div className="tracking-items">
-            <h3 className="tracking-items-title">Items Ordered</h3>
-            {order.items.map((item, i) => (
-              <div key={i} className="tracking-item-row">
-                <span>{item.name} × {item.quantity}</span>
-                <span>₹{item.price * item.quantity}</span>
-              </div>
-            ))}
-            <div className="tracking-total-row">
-              <span>Total Paid</span>
-              <span className="tracking-total">₹{order.totalAmount}</span>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <h3 className="tracking-items-title" style={{ margin: 0 }}>Invoice</h3>
+              <button
+                type="button"
+                onClick={() => printBillOrder(order)}
+                className="clay-btn clay-dark px-3.5 py-2 min-h-[40px] text-xs font-bold inline-flex items-center gap-1.5"
+              >
+                <Printer size={14} />
+                <span>Print Bill</span>
+              </button>
             </div>
+            <Bill order={order} />
           </div>
         </div>
       </div>

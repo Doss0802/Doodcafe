@@ -14,12 +14,16 @@ import {
   ShieldCheck,
   AlertTriangle,
   ChefHat,
+  Printer,
+  Receipt,
 } from 'lucide-react';
 import axiosInstance from '../../api/axiosInstance';
 import { useOrderStream } from './components/useStaffOrderStream';
 import { getStatusMeta } from './components/staffOrderStatus';
 import LiveKitchen from './components/StaffLiveKitchen';
 import OrderStream from './components/StaffOrderStream';
+import StaffCustomerModal from './components/StaffCustomerModal';
+import { printBillOrder } from '../../utils/printBill';
 import toast from 'react-hot-toast';
 
 /* ─── Static Tailwind Badge Lookup Maps (Strict Tailwind v4 Compliant) ─── */
@@ -81,6 +85,7 @@ export default function StaffOrders() {
   // Dine-in live search
   const [dineInSearch, setDineInSearch] = useState('');
   const [dineInActionLoadingId, setDineInActionLoadingId] = useState(null);
+  const [billModalOrder, setBillModalOrder] = useState(null);
 
   const searchInputRef = useRef(null);
 
@@ -506,6 +511,7 @@ export default function StaffOrders() {
                           onStartHandover={setConfirmingHandoverOrder}
                           onMarkPaid={handleMarkPaid}
                           actionLoadingPaidId={actionLoadingPaidId}
+                          onViewBill={(ord) => setBillModalOrder({ ...ord, orderType: ord.orderType || 'takeaway' })}
                         />
                       </div>
                     )}
@@ -566,6 +572,7 @@ export default function StaffOrders() {
                           onStartHandover={setConfirmingHandoverOrder}
                           onMarkPaid={handleMarkPaid}
                           actionLoadingPaidId={actionLoadingPaidId}
+                          onViewBill={(o) => setBillModalOrder({ ...o, orderType: o.orderType || 'takeaway' })}
                         />
                       ))}
                     </div>
@@ -661,6 +668,7 @@ export default function StaffOrders() {
                         actionLoadingId={dineInActionLoadingId}
                         onMarkPaid={handleMarkPaid}
                         actionLoadingPaidId={actionLoadingPaidId}
+                        onViewBill={(o) => setBillModalOrder({ ...o, orderType: 'dine-in' })}
                       />
                     ))}
                   </div>
@@ -881,6 +889,13 @@ export default function StaffOrders() {
           </div>
         </div>
       )}
+
+      {billModalOrder && (
+        <StaffCustomerModal
+          order={billModalOrder}
+          onClose={() => setBillModalOrder(null)}
+        />
+      )}
     </main>
   );
 }
@@ -892,7 +907,9 @@ function TakeawayOrderCard({
   onStartHandover,
   onMarkPaid,
   actionLoadingPaidId,
+  onViewBill,
 }) {
+  const printableOrder = { ...order, orderType: order.orderType || 'takeaway' };
   const isHandedOver = order.status === 'handed_over';
   const isPaymentPending = order.paymentStatus === 'pending';
   const canMarkPaid = ['pending', 'cod'].includes(order.paymentStatus);
@@ -1005,8 +1022,29 @@ function TakeawayOrderCard({
         </div>
       </div>
 
-      {/* Footer: Handover Action / Status Alert */}
-      <div className="pt-3 border-t border-stone-100 mt-2">
+      {/* Footer: Bill Actions + Handover Action / Status Alert */}
+      <div className="pt-3 border-t border-stone-100 mt-2 space-y-2">
+        <div className="flex items-center gap-2">
+          {onViewBill && (
+            <button
+              type="button"
+              onClick={() => onViewBill(printableOrder)}
+              className="clay-btn clay-light flex-1 py-2 min-h-[44px] text-xs font-bold flex items-center justify-center gap-1.5 text-stone-700"
+            >
+              <Receipt size={14} />
+              <span>View Bill</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => printBillOrder(printableOrder)}
+            className="clay-btn clay-light flex-1 py-2 min-h-[44px] text-xs font-bold flex items-center justify-center gap-1.5 text-stone-900 border border-stone-300"
+          >
+            <Printer size={14} />
+            <span>Print Bill</span>
+          </button>
+        </div>
+
         {isHandedOver ? (
           <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center gap-2 min-h-[52px]">
             <CheckCircle2 size={18} className="text-emerald-600 flex-shrink-0" />
@@ -1044,7 +1082,8 @@ function TakeawayOrderCard({
 }
 
 /* ─── Dine-In Order Card Component (with Status Management) ─── */
-function DineInOrderCard({ order, onStatusChange, actionLoadingId, onMarkPaid, actionLoadingPaidId }) {
+function DineInOrderCard({ order, onStatusChange, actionLoadingId, onMarkPaid, actionLoadingPaidId, onViewBill }) {
+  const printableOrder = { ...order, orderType: 'dine-in' };
   const paymentClass = PAYMENT_BADGE_CLASSES[order.paymentStatus] || PAYMENT_BADGE_CLASSES.pending;
   const statusMeta = getStatusMeta(order.status);
   const orderId = order.id || order._id;
@@ -1169,13 +1208,34 @@ function DineInOrderCard({ order, onStatusChange, actionLoadingId, onMarkPaid, a
         </div>
       </div>
 
-      {/* Footer: Total + Action Button */}
-      <div className="pt-3 border-t border-stone-100 mt-2">
-        <div className="flex items-center justify-between text-xs mb-3">
+      {/* Footer: Total + Bill & Status Buttons */}
+      <div className="pt-3 border-t border-stone-100 mt-2 space-y-2.5">
+        <div className="flex items-center justify-between text-xs">
           <span className="font-medium text-stone-500">Total:</span>
           <span className="text-sm font-extrabold text-stone-900">
             ₹{Number(order.totalAmount || 0).toLocaleString('en-IN')}
           </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {onViewBill && (
+            <button
+              type="button"
+              onClick={() => onViewBill(printableOrder)}
+              className="clay-btn clay-light flex-1 py-2 min-h-[44px] text-xs font-bold flex items-center justify-center gap-1.5 text-stone-700"
+            >
+              <Receipt size={14} />
+              <span>View Bill</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => printBillOrder(printableOrder)}
+            className="clay-btn clay-light flex-1 py-2 min-h-[44px] text-xs font-bold flex items-center justify-center gap-1.5 text-stone-900 border border-stone-300"
+          >
+            <Printer size={14} />
+            <span>Print Bill</span>
+          </button>
         </div>
 
         {statusMeta.next ? (

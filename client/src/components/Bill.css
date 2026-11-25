@@ -1,0 +1,323 @@
+/* ── Shared Thermal Bill Receipt ─────────────────────────────────────────── */
+.bill-receipt {
+  font-family: 'Courier New', Courier, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  background: #ffffff;
+  color: #111111;
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+  padding: 14px 12px;
+  font-size: 11.5px;
+  line-height: 1.42;
+  box-sizing: border-box;
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+}
+
+.bill-receipt[data-paper='58mm'] {
+  max-width: 240px;
+  padding: 10px 8px;
+  font-size: 9.5px;
+}
+
+.bill-receipt[data-paper='A4'] {
+  max-width: 640px;
+  padding: 24px 28px;
+  font-size: 13px;
+}
+
+/* Header */
+.bill-header {
+  text-align: center;
+}
+
+.bill-logo {
+  display: block;
+  width: 60%;
+  max-width: 190px;
+  height: auto;
+  margin: 0 auto 8px auto;
+  object-fit: contain;
+}
+
+.bill-biz-name {
+  font-size: 1.25em;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  color: #000000;
+}
+
+.bill-biz-addr,
+.bill-biz-contact {
+  font-size: 0.9em;
+  color: #1f2937;
+  word-break: break-word;
+}
+
+.bill-doc-title {
+  margin-top: 6px;
+  font-size: 1.05em;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #000000;
+}
+
+/* Separators */
+.bill-sep {
+  overflow: hidden;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+  color: #1f2937;
+  user-select: none;
+  margin: 6px 0;
+  line-height: 1;
+}
+
+/* Meta / Customer */
+.bill-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bill-meta-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 0.88em;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.bill-meta-sub {
+  font-size: 0.88em;
+  color: #1f2937;
+  word-break: break-word;
+}
+
+.bill-meta-addr {
+  line-height: 1.35;
+}
+
+/* Items Table */
+.bill-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 0.95em;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.bill-items-table th {
+  font-weight: 800;
+  padding: 2px 0 4px 0;
+  border-bottom: 1px dashed #9ca3af;
+  text-align: left;
+}
+
+.bill-items-table td {
+  padding: 3px 0;
+  vertical-align: top;
+}
+
+.bill-items-table tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.bill-col-item {
+  width: auto;
+  text-align: left;
+  padding-right: 4px !important;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  font-weight: 600;
+}
+
+.bill-col-hsn {
+  width: 5.5ch;
+  text-align: left !important;
+  padding-right: 3px !important;
+}
+
+.bill-col-qty {
+  width: 3.5ch;
+  text-align: right !important;
+  padding-right: 4px !important;
+}
+
+.bill-col-rate {
+  width: 7ch;
+  text-align: right !important;
+  padding-right: 4px !important;
+}
+
+.bill-col-total {
+  width: 8ch;
+  text-align: right !important;
+  font-weight: 700;
+}
+
+/* Totals + Stamp */
+.bill-totals-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.bill-paid-stamp {
+  flex: 0 0 70px;
+  width: 70px;
+  height: 70px;
+  color: #dc2626;
+  transform: rotate(-12deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.bill-totals-lines {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bill-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 0.95em;
+}
+
+.bill-summary-grand {
+  font-size: 1.12em;
+  font-weight: 900;
+  color: #000000;
+  margin-top: 2px;
+}
+
+/* Payment Block */
+.bill-payment-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.94em;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.bill-payment-heading {
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  margin-bottom: 1px;
+}
+
+.bill-payment-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bill-footer {
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.95em;
+  padding-top: 2px;
+}
+
+/* Dedicated print-only root (invisible off-screen until print) */
+.bill-print-only {
+  position: fixed;
+  left: -99999px;
+  top: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* ── Print Styles ────────────────────────────────────────────────────────── */
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  body.bill-printing-active {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body.bill-printing-active > *:not(#bill-print-root) {
+    display: none !important;
+  }
+
+  body.bill-printing-active > #bill-print-root {
+    display: block !important;
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    visibility: visible !important;
+    background: #ffffff !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .bill-receipt {
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+  }
+
+  .bill-receipt * {
+    background: transparent !important;
+    color: #000000 !important;
+  }
+
+  .bill-receipt[data-paper='80mm'] {
+    width: 80mm !important;
+    max-width: 80mm !important;
+    padding: 3mm 4mm !important;
+  }
+
+  .bill-receipt[data-paper='58mm'] {
+    width: 58mm !important;
+    max-width: 58mm !important;
+    padding: 2.5mm 3mm !important;
+    font-size: 9px !important;
+  }
+
+  .bill-receipt[data-paper='A4'] {
+    width: 100% !important;
+    max-width: 185mm !important;
+    padding: 10mm !important;
+    margin: 0 auto !important;
+  }
+
+  .bill-paid-stamp,
+  .bill-paid-stamp * {
+    color: #444444 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Passive print fallback if Ctrl+P pressed directly while InvoiceModal is open */
+  body:not(.bill-printing-active) .invoice-modal-header,
+  body:not(.bill-printing-active) .invoice-modal-footer {
+    display: none !important;
+  }
+}

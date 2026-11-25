@@ -3900,6 +3900,29 @@
   border-top: 1px solid var(--border);
   display: flex;
   justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.mo-bill-print-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: #ffffff;
+  color: #1a1a1a;
+  border: 1px solid var(--border-2);
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--clay-radius-sm);
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 36px;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.mo-bill-print-btn:hover:not(:disabled) {
+  background: var(--cream-2);
+  transform: translateY(-1px);
 }
 
 .mo-bill-download-btn {

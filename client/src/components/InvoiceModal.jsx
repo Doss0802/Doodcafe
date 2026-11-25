@@ -1,22 +1,18 @@
 import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Download, 
-  Share2, 
-  CheckCircle2, 
-  X, 
-  Calendar, 
-  MapPin, 
-  User, 
-  Phone, 
-  CreditCard, 
-  Package, 
+import {
+  Download,
+  Share2,
+  CheckCircle2,
+  X,
   ArrowRight,
-  ImageIcon
+  Printer,
 } from 'lucide-react';
 import { toPng, toBlob } from 'html-to-image';
 import toast from 'react-hot-toast';
-import cafeLogo from '../images/cafe_logo.png';
+import Bill from './Bill';
+import { buildWhatsAppBillText } from '../utils/billUtils';
+import { printBillOrder } from '../utils/printBill';
 import './InvoiceModal.css';
 
 export default function InvoiceModal({ isOpen, onClose, invoiceData }) {
@@ -24,28 +20,24 @@ export default function InvoiceModal({ isOpen, onClose, invoiceData }) {
   const navigate = useNavigate();
   const [downloading, setDownloading] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [printing, setPrinting] = useState(false);
 
   if (!isOpen || !invoiceData) return null;
 
-  const {
-    _id,
-    orderNumber,
-    customerName = 'Valued Customer',
-    customerPhone = 'N/A',
-    customerLocation = 'Dood Cafe Counter',
-    formattedDate = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
-    items = [],
-    totalAmount = 0,
-    paymentMode = 'cash',
-    paymentStatus = 'paid',
-    orderType = 'takeaway',
-    tableNumber,
-    specialInstructions = ''
-  } = invoiceData;
+  const { _id, orderNumber, totalAmount = 0 } = invoiceData;
 
-  const formattedOrderId = orderNumber 
-    ? `#ORD-${String(orderNumber).padStart(4, '0')}` 
-    : `#${String(_id || '').slice(-6).toUpperCase() || 'DOOD-001'}`;
+  const formattedOrderId = invoiceData.billNumber
+    || (orderNumber ? `#ORD-${String(orderNumber).padStart(4, '0')}` : `#${String(_id || '').slice(-6).toUpperCase() || 'DOOD-001'}`);
+
+  // ── Print Thermal Bill ────────────────────────────────────────────────────
+  const handlePrint = async () => {
+    setPrinting(true);
+    try {
+      await printBillOrder(invoiceData);
+    } finally {
+      setPrinting(false);
+    }
+  };
 
   // ── Download Invoice as PNG Image ─────────────────────────────────────────
   const handleDownloadImage = async () => {
@@ -55,7 +47,6 @@ export default function InvoiceModal({ isOpen, onClose, invoiceData }) {
     const toastId = toast.loading('🖼️ Capturing crisp bill receipt image...');
 
     try {
-      // Generate crisp 2x high-resolution PNG image
       const dataUrl = await toPng(invoiceRef.current, {
         quality: 0.98,
         pixelRatio: 2,
@@ -77,12 +68,14 @@ export default function InvoiceModal({ isOpen, onClose, invoiceData }) {
     }
   };
 
-  // ── Share Bill via WhatsApp (with File Attachment or Structured Link) ────
+  // ── Share Bill via WhatsApp (with File Attachment or Unified Receipt Text) ──
   const handleShareWhatsApp = async () => {
     setSharing(true);
     const toastId = toast.loading('💬 Preparing receipt for WhatsApp...');
 
     try {
+      const whatsappText = buildWhatsAppBillText(invoiceData);
+
       // 1. Attempt Native Mobile/Desktop OS Share with actual PNG image file
       if (invoiceRef.current && navigator.canShare) {
         try {
@@ -98,8 +91,8 @@ export default function InvoiceModal({ isOpen, onClose, invoiceData }) {
             if (navigator.canShare({ files: [file] })) {
               await navigator.share({
                 files: [file],
-                title: 'Dood Cafe Order Receipt',
-                text: `☕ Dood Cafe Receipt ${formattedOrderId} | Total: ₹${Number(totalAmount).toFixed(2)}`,
+                title: `Dood Cafe Receipt ${formattedOrderId}`,
+                text: whatsappText || `Dood Cafe Receipt ${formattedOrderId} | Total: INR ${Number(totalAmount).toFixed(2)}`,
               });
               toast.success('🎉 Bill shared successfully!', { id: toastId });
               setSharing(false);
@@ -107,40 +100,13 @@ export default function InvoiceModal({ isOpen, onClose, invoiceData }) {
             }
           }
           // Native share dismissed or unsupported — fall through to WhatsApp Web API
-        } catch (shareErr) {
+        } catch {
           // Native share dismissed or unsupported — fall through silently to WhatsApp Web API
         }
       }
 
-      // 2. Structured WhatsApp Direct API Message Stream
-      const trackingUrl = `${window.location.origin}/orders`;
-      const itemsList = items.map(
-        (item, idx) => `${idx + 1}. *${item.name}* × ${item.quantity} = ₹${(item.price * item.quantity).toFixed(2)}`
-      ).join('\n');
-
-      const message = 
-`☕ *DOOD CAFE - OFFICIAL ORDER RECEIPT & INVOICE* ☕
-=================================
-🧾 *Invoice ID:* ${formattedOrderId}
-📅 *Date & Time:* ${formattedDate}
-👤 *Customer Name:* ${customerName}
-📞 *Phone Number:* ${customerPhone}
-📍 *Delivery / Location:* ${customerLocation}
-💳 *Payment Mode:* ${paymentMode.toUpperCase()}
-📦 *Order Type:* ${orderType.toUpperCase()}
-=================================
-📋 *ITEMIZED ORDER SUMMARY:*
-${itemsList}
-=================================
-💵 *GRAND TOTAL:* ₹${Number(totalAmount).toFixed(2)}
-${specialInstructions ? `📝 *Note:* ${specialInstructions}\n=================================\n` : ''}
-🔗 *Live Order Tracking & Bill Portal:*
-${trackingUrl}
-=================================
-✨ _Thank you for dining with Dood Cafe! Enjoy your freshly brewed moments._
-🌐 Visit us again soon!`;
-
-      const encodedMessage = encodeURIComponent(message);
+      // 2. Unified Bill Text via WhatsApp URL
+      const encodedMessage = encodeURIComponent(whatsappText);
       const whatsappUrl = `https://api.whatsapp.com/send?text=${encodedMessage}`;
       window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
       toast.success('💬 WhatsApp sharing opened!', { id: toastId });
@@ -160,16 +126,16 @@ ${trackingUrl}
   return (
     <div className="invoice-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="invoice-modal-title">
       <div className="invoice-modal-container">
-        
+
         {/* Modal Top Floating Header */}
         <div className="invoice-modal-header">
           <div className="invoice-modal-header-badge">
             <CheckCircle2 size={20} className="text-emerald-500" />
             <span id="invoice-modal-title">Order Confirmed & Invoice Generated</span>
           </div>
-          <button 
-            type="button" 
-            className="invoice-close-btn" 
+          <button
+            type="button"
+            className="invoice-close-btn"
             onClick={handleDoneAndNavigate}
             title="Close and go to Orders"
             aria-label="Close invoice modal"
@@ -180,160 +146,25 @@ ${trackingUrl}
 
         {/* Scrollable Printable Invoice Content */}
         <div className="invoice-modal-body">
-          <div className="invoice-paper" id="doodcafe-invoice-content" ref={invoiceRef}>
-            
-            {/* Invoice Cafe Branding Header with Real Brand Logo */}
-            <div className="invoice-brand-header">
-              <div className="invoice-brand-info">
-                <div className="invoice-brand-logo-wrap">
-                  <img 
-                    src={cafeLogo} 
-                    alt="Dood Cafe Logo" 
-                    className="invoice-brand-logo-img"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = '/cafe_logo.png';
-                    }}
-                  />
-                  <div>
-                    <h2 className="invoice-brand-name">DOOD CAFE</h2>
-                    <p className="invoice-brand-tagline">Artisanal Coffee & Gourmet Delights</p>
-                  </div>
-                </div>
-                <div className="invoice-cafe-meta">
-                  <p>100 Feet Road, Indiranagar / Anna Nagar</p>
-                  <p>Contact: +91 98765 43210 | support@doodcafe.com</p>
-                  <p>GSTIN: 33AAAAA0000A1Z5</p>
-                </div>
-              </div>
-
-              <div className="invoice-meta-badge">
-                <div className="invoice-badge-title">TAX INVOICE / RECEIPT</div>
-                <div className="invoice-badge-number">{formattedOrderId}</div>
-                <div className="invoice-badge-date">
-                  <Calendar size={13} /> {formattedDate}
-                </div>
-              </div>
-            </div>
-
-            <div className="invoice-divider" />
-
-            {/* Customer & Location Summary Grid */}
-            <div className="invoice-customer-grid">
-              <div className="invoice-info-block">
-                <span className="invoice-info-label"><User size={13} /> Customer Name</span>
-                <span className="invoice-info-value highlight">{customerName}</span>
-              </div>
-
-              <div className="invoice-info-block">
-                <span className="invoice-info-label"><Phone size={13} /> Phone Number</span>
-                <span className="invoice-info-value">{customerPhone}</span>
-              </div>
-
-              <div className="invoice-info-block">
-                <span className="invoice-info-label"><CreditCard size={13} /> Payment Mode</span>
-                <span className="invoice-info-value uppercase-text">
-                  <span className="payment-pill">
-                    {paymentMode === 'upi'
-                      ? (paymentStatus === 'paid' ? 'UPI (Paid)' : paymentStatus === 'failed' ? 'UPI (Failed)' : 'UPI (Pending)')
-                      : (paymentMode === 'cash' ? 'Cash / Counter' : paymentMode)}
-                  </span>
-                </span>
-              </div>
-
-              <div className="invoice-info-block">
-                <span className="invoice-info-label"><Package size={13} /> Order Fulfillment</span>
-                <span className="invoice-info-value capitalize-text">
-                  {orderType} {tableNumber ? `· Table ${tableNumber}` : ''}
-                </span>
-              </div>
-
-              <div className="invoice-info-block full-col">
-                <span className="invoice-info-label"><MapPin size={13} /> Full Delivery / Location Address</span>
-                <span className="invoice-info-value address-text">{customerLocation}</span>
-              </div>
-
-              {specialInstructions && (
-                <div className="invoice-info-block full-col instructions-block">
-                  <span className="invoice-info-label">Special Cooking Instructions:</span>
-                  <span className="invoice-info-value italic-text">"{specialInstructions}"</span>
-                </div>
-              )}
-            </div>
-
-            {/* Detailed Itemized Cafe Items Table */}
-            <div className="invoice-table-wrap">
-              <table className="invoice-table">
-                <thead>
-                  <tr>
-                    <th className="th-num">#</th>
-                    <th className="th-item">Cafe Item Description</th>
-                    <th className="th-qty">Qty</th>
-                    <th className="th-price">Unit Price</th>
-                    <th className="th-total">Total Price</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item, idx) => {
-                    const lineTotal = (item.price || 0) * (item.quantity || 1);
-                    return (
-                      <tr key={idx} className="invoice-row">
-                        <td className="td-num">{idx + 1}</td>
-                        <td className="td-item">
-                          <span className="item-name-cell">{item.name}</span>
-                        </td>
-                        <td className="td-qty">×{item.quantity}</td>
-                        <td className="td-price">₹{Number(item.price).toFixed(2)}</td>
-                        <td className="td-total">₹{Number(lineTotal).toFixed(2)}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Invoice Total Calculation Breakdown */}
-            <div className="invoice-calc-grid">
-              <div className="invoice-terms">
-                <h4>Customer Notice & Terms:</h4>
-                <p>• All food items are freshly prepared to order.</p>
-                <p>• Keep this receipt for tracking and any customer support queries.</p>
-                <p>• Scan your receipt or share on WhatsApp for easy order reference.</p>
-              </div>
-
-              <div className="invoice-summary-box">
-                <div className="invoice-summary-row">
-                  <span>Items Subtotal:</span>
-                  <span>₹{Number(totalAmount).toFixed(2)}</span>
-                </div>
-                <div className="invoice-summary-row">
-                  <span>Taxes & GST (Included):</span>
-                  <span>₹0.00</span>
-                </div>
-                <div className="invoice-summary-row">
-                  <span>Packaging & Delivery:</span>
-                  <span className="text-emerald-600">FREE</span>
-                </div>
-                <div className="invoice-summary-divider" />
-                <div className="invoice-summary-row grand-total-row">
-                  <span>Grand Total</span>
-                  <span className="grand-total-amount">₹{Number(totalAmount).toFixed(2)}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Receipt Footer */}
-            <div className="invoice-paper-footer">
-              <p className="footer-thanks">✦ Thank you for choosing Dood Cafe! ✦</p>
-              <p className="footer-sub">Handcrafted with passion & fresh ingredients.</p>
-            </div>
-
+          <div className="invoice-paper invoice-paper-thermal" id="doodcafe-invoice-content" ref={invoiceRef}>
+            <Bill order={invoiceData} />
           </div>
         </div>
 
         {/* Modal Action Controls Footer */}
         <div className="invoice-modal-footer">
           <div className="invoice-actions-group">
+            <button
+              type="button"
+              id="print-invoice-btn"
+              className="btn btn-invoice-print"
+              onClick={handlePrint}
+              disabled={printing}
+            >
+              <Printer size={17} />
+              <span>{printing ? 'Preparing...' : 'Print Bill'}</span>
+            </button>
+
             <button
               type="button"
               id="download-invoice-btn"

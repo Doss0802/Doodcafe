@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
-import { X, Phone, MapPin, ExternalLink, ShoppingBag } from 'lucide-react';
+import { X, Phone, MapPin, ExternalLink, Printer } from 'lucide-react';
 import { getStatusMeta, getPaymentBadgeClass } from './staffOrderStatus';
+import Bill from '../../../components/Bill';
+import { printBillOrder } from '../../../utils/printBill';
 
 export default function StaffCustomerModal({ order, onClose }) {
   useEffect(() => {
@@ -41,6 +43,7 @@ export default function StaffCustomerModal({ order, onClose }) {
     : typeof order.items === 'string'
     ? JSON.parse(order.items || '[]')
     : [];
+  const normalizedOrder = { ...order, items };
 
   const handleBackdrop = (e) => {
     if (e.target === e.currentTarget) onClose();
@@ -141,32 +144,6 @@ export default function StaffCustomerModal({ order, onClose }) {
             </div>
           )}
 
-          {/* Ordered Dishes */}
-          <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400 mb-2 flex items-center gap-1.5">
-              <ShoppingBag size={13} />
-              <span>Items Ordered ({items.length})</span>
-            </h4>
-            <div className="space-y-1.5 max-h-48 overflow-y-auto">
-              {items.map((item, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between py-2 px-3 bg-stone-50 rounded-xl border border-stone-100"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-md bg-amber-100 text-amber-800 font-bold text-xs flex items-center justify-center">
-                      {item.quantity}×
-                    </span>
-                    <span className="font-semibold text-stone-900 text-xs">{item.name}</span>
-                  </div>
-                  <span className="font-bold text-stone-800 text-xs">
-                    ₹{Number(item.price || item.unitPrice || 0) * (item.quantity || 1)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Special Instructions */}
           {order.specialInstructions && (
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900">
@@ -175,35 +152,36 @@ export default function StaffCustomerModal({ order, onClose }) {
             </div>
           )}
 
-          {/* Payment & Bill Summary */}
-          <div className="pt-3 border-t border-stone-200 flex items-center justify-between">
-            <div>
-              <span className="text-[10px] text-stone-400 uppercase tracking-widest font-extrabold block">
-                Payment Status
+          {/* Payment Status & Shared Invoice / Bill */}
+          <div className="pt-2 border-t border-stone-200 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-stone-400">
+                Bill / Invoice Preview
               </span>
-              <span className={`inline-block mt-0.5 px-2.5 py-0.5 rounded-full text-xs font-bold border ${paymentClass}`}>
+              <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold border ${paymentClass}`}>
                 {order.paymentStatus === 'paid'
-                  ? 'Paid (Online / UPI)'
+                  ? 'Paid'
                   : `${(order.paymentStatus || 'pending').toUpperCase()} (${(order.paymentMode || 'cash').toUpperCase()})`}
               </span>
             </div>
-            <div className="text-right">
-              <span className="text-[10px] text-stone-400 uppercase tracking-widest font-extrabold block">
-                Total Amount
-              </span>
-              <span className="text-lg font-black text-stone-900">
-                ₹{Number(order.totalAmount || 0).toLocaleString('en-IN')}
-              </span>
-            </div>
+            <Bill order={normalizedOrder} />
           </div>
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 bg-stone-50 border-t border-stone-200 flex items-center justify-end gap-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="p-4 bg-stone-50 border-t border-stone-200 flex items-center justify-end gap-2.5 flex-wrap pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <button
+            type="button"
+            onClick={() => printBillOrder(normalizedOrder)}
+            className="clay-btn clay-dark flex-1 sm:flex-initial px-4 py-3 min-h-[48px] text-sm font-bold inline-flex items-center justify-center gap-2"
+          >
+            <Printer size={16} />
+            <span>Print Bill</span>
+          </button>
           {customerPhone && (
             <a
               href={`tel:${customerPhone}`}
-              className="clay-btn clay-gold flex-1 sm:flex-initial px-5 py-3 min-h-[52px] text-sm font-bold inline-flex items-center justify-center gap-2"
+              className="clay-btn clay-gold flex-1 sm:flex-initial px-4 py-3 min-h-[48px] text-sm font-bold inline-flex items-center justify-center gap-2"
             >
               <Phone size={16} />
               <span>Call Customer</span>
@@ -211,7 +189,7 @@ export default function StaffCustomerModal({ order, onClose }) {
           )}
           <button
             onClick={onClose}
-            className="clay-btn clay-light flex-1 sm:flex-initial px-5 py-3 min-h-[52px] text-stone-700 text-sm font-bold flex items-center justify-center"
+            className="clay-btn clay-light flex-1 sm:flex-initial px-4 py-3 min-h-[48px] text-stone-700 text-sm font-bold flex items-center justify-center"
           >
             Close
           </button>

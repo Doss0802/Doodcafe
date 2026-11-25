@@ -6,9 +6,11 @@ import {
   CheckCircle2,
   Clock,
   ArrowRight,
+  Printer,
 } from 'lucide-react';
 import { STATUS_CONFIG, getStatusMeta } from './staffOrderStatus';
 import StaffCustomerModal from './StaffCustomerModal';
+import { printBillOrder } from '../../../utils/printBill';
 
 export default function StaffOrderStream({
   orders = [],
@@ -211,19 +213,29 @@ export default function StaffOrderStream({
                   </div>
 
                   {/* Customer info */}
-                  <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center justify-between gap-2 text-xs flex-wrap">
                     <div>
                       <span className="font-bold text-stone-900 block">{customerName}</span>
                       <span className="text-stone-500 font-medium">{customerPhone}</span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedOrder(ord)}
-                      className="min-h-[44px] px-3 py-1.5 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-xl text-xs font-bold flex items-center gap-1 transition cursor-pointer"
-                    >
-                      <UserRound size={13} />
-                      <span>Details</span>
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => printBillOrder(ord)}
+                        className="min-h-[44px] px-3 py-1.5 bg-stone-100 text-stone-800 hover:bg-stone-200 rounded-xl text-xs font-bold flex items-center gap-1 transition cursor-pointer border border-stone-200"
+                      >
+                        <Printer size={13} />
+                        <span>Print Bill</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedOrder(ord)}
+                        className="min-h-[44px] px-3 py-1.5 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-xl text-xs font-bold flex items-center gap-1 transition cursor-pointer"
+                      >
+                        <UserRound size={13} />
+                        <span>Details</span>
+                      </button>
+                    </div>
                   </div>
 
                   {/* Dishes */}
@@ -340,14 +352,24 @@ export default function StaffOrderStream({
                       <td className="py-3 px-4">
                         <div className="font-bold text-stone-900">{customerName}</div>
                         <div className="text-[11px] text-stone-500 font-medium">{customerPhone}</div>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedOrder(ord)}
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 hover:text-amber-700 hover:underline mt-0.5 min-h-[32px] cursor-pointer"
-                        >
-                          <UserRound size={11} />
-                          <span>View Details</span>
-                        </button>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedOrder(ord)}
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 hover:text-amber-700 hover:underline min-h-[32px] cursor-pointer"
+                          >
+                            <UserRound size={11} />
+                            <span>View Details</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => printBillOrder(ord)}
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-stone-700 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 px-2 py-0.5 rounded-md min-h-[28px] border border-stone-200 cursor-pointer"
+                          >
+                            <Printer size={11} />
+                            <span>Print Bill</span>
+                          </button>
+                        </div>
                       </td>
 
                       {/* Dishes Col */}

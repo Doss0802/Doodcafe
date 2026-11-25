@@ -420,6 +420,37 @@
   flex-wrap: wrap;
 }
 
+.invoice-paper-thermal {
+  display: flex;
+  justify-content: center;
+  padding: 1.25rem;
+}
+
+.btn-invoice-print {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(145deg, #ffffff 0%, #f1f5f9 100%);
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  padding: 0.65rem 1.25rem;
+  border-radius: 20px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+  box-shadow: 5px 5px 12px rgba(0, 0, 0, 0.10), inset -2px -2px 5px rgba(148, 163, 184, 0.25), inset 2px 2px 5px rgba(255, 255, 255, 0.9);
+}
+
+.btn-invoice-print:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 7px 7px 16px rgba(0, 0, 0, 0.14);
+}
+
+.btn-invoice-print:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
 .btn-invoice-download {
   display: inline-flex;
   align-items: center;
@@ -544,6 +575,7 @@
     width: 100%;
   }
 
+  .btn-invoice-print,
   .btn-invoice-download,
   .btn-invoice-whatsapp,
   .btn-invoice-track {
