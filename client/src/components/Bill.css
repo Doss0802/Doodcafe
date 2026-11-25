@@ -183,6 +183,18 @@
   pointer-events: none;
 }
 
+.bill-paid-stamp svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.bill-receipt[data-paper='58mm'] .bill-paid-stamp {
+  flex: 0 0 58px;
+  width: 58px;
+  height: 58px;
+}
+
 .bill-totals-lines {
   flex: 1;
   min-width: 0;

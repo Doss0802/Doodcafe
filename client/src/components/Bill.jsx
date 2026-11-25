@@ -5,28 +5,46 @@ import billLogo from '../assets/bill-logo.png';
 import './Bill.css';
 
 function PaidStamp() {
-  const pathId = useId();
+  const baseId = useId();
+  const topPathId = `${baseId}-top`;
+  const bottomPathId = `${baseId}-bottom`;
+
   return (
     <div className="bill-paid-stamp" aria-label="Paid stamp">
       <svg viewBox="0 0 100 100" width="70" height="70" role="img" aria-hidden="true">
         <defs>
           <path
-            id={pathId}
-            d="M 50,50 m -31,0 a 31,31 0 1,1 62,0 a 31,31 0 1,1 -62,0"
+            id={topPathId}
+            d="M 50,78 A 28,28 0 1,1 50,22 A 28,28 0 1,1 50,78"
+          />
+          <path
+            id={bottomPathId}
+            d="M 50,14.5 A 35.5,35.5 0 1,0 50,85.5 A 35.5,35.5 0 1,0 50,14.5"
           />
         </defs>
-        <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" strokeWidth="2.5" />
+        <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" strokeWidth="2.4" />
         <circle cx="50" cy="50" r="41" fill="none" stroke="currentColor" strokeWidth="1" />
-        <circle cx="50" cy="50" r="20" fill="none" stroke="currentColor" strokeWidth="1.2" />
+        <circle cx="50" cy="50" r="22" fill="none" stroke="currentColor" strokeWidth="1.2" />
         <text
           fill="currentColor"
-          fontSize="9.8"
+          fontSize="8.8"
           fontWeight="800"
           fontFamily="monospace"
-          letterSpacing="1.15"
+          letterSpacing="1.1"
         >
-          <textPath href={`#${pathId}`} startOffset="50%" textAnchor="middle">
-            DOOD CAFE ★ PAID ★
+          <textPath href={`#${topPathId}`} startOffset="50%" textAnchor="middle">
+            DOOD CAFE
+          </textPath>
+        </text>
+        <text
+          fill="currentColor"
+          fontSize="8.8"
+          fontWeight="800"
+          fontFamily="monospace"
+          letterSpacing="1.2"
+        >
+          <textPath href={`#${bottomPathId}`} startOffset="50%" textAnchor="middle">
+            ★ PAID ★
           </textPath>
         </text>
         <text
