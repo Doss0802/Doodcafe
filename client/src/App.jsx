@@ -24,6 +24,7 @@ import AdminOffers from './pages/admin/AdminOffers';
 import OffersPage from './pages/OffersPage';
 import StaffOrders from './pages/staff/StaffOrders';
 import BookEvents from './pages/BookEvents';
+import Gallery from './pages/Gallery';
 
 function App() {
   const { isAuthenticated, fetchMe } = useAuthStore();
@@ -47,6 +48,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/menu" element={<Menu />} />
             <Route path="/book-events" element={<BookEvents />} />
+            <Route path="/gallery" element={<Gallery />} />
             <Route path="/offers/:type" element={<OffersPage />} />
             {/* Public — unauthenticated access only */}
             <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />

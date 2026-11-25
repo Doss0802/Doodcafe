@@ -141,7 +141,7 @@ export default function Home() {
                     className="hero-btn hero-btn-gold"
                   >
                     <Bike className="hero-btn-icon" size={19} />
-                    <span className="hero-btn-title">Live Delivery</span>
+                    <span className="hero-btn-title">Online Order</span>
                   </Link>
                 </div>
 
