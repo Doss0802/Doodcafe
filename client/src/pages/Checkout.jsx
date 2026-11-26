@@ -6,6 +6,7 @@ import useAuthStore from '../store/authStore';
 import axiosInstance from '../api/axiosInstance';
 import InvoiceModal from '../components/InvoiceModal';
 import toast from 'react-hot-toast';
+import { BILL_CONFIG } from '../config/billConfig';
 
 const ENABLE_ONLINE_PAYMENT = import.meta.env.VITE_ENABLE_ONLINE_PAYMENT === 'true';
 
@@ -852,6 +853,39 @@ export default function Checkout() {
         <aside className="checkout-sidebar">
           <div className="order-summary">
             <h2 className="summary-title">Order Summary</h2>
+
+            {/* ── Compact order details block (preview only, server is source of truth) ── */}
+            {(() => {
+              const now = new Date();
+              const dateStr = now.toLocaleDateString('en-IN', {
+                day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Kolkata',
+              }).split('/').join('-') + ' ' + now.toLocaleTimeString('en-IN', {
+                hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata',
+              });
+              const orderTypeMap = {
+                'dine-in': selectedOrderType === 'dine-in' && tableNumber ? `Dine-in · Table ${tableNumber}` : 'Dine-in',
+                'takeaway': 'Takeaway',
+                'delivery': 'Online Order',
+              };
+              const orderTypeLabel = orderTypeMap[selectedOrderType] || (selectedOrderType || '—');
+              const paymentLabelMap = {
+                'cod': 'Cash on Delivery (COD)',
+                'paid': 'UPI / Online',
+                'pending': 'Pay at Counter',
+              };
+              const paymentLabel = paymentLabelMap[paymentOption] || paymentOption || '—';
+              const customerDisplay = [customerName && customerName.trim(), customerPhone && customerPhone.trim()].filter(Boolean).join(' · ') || '—';
+              return (
+                <dl className="summary-details">
+                  <div className="summary-detail-row"><dt>Date</dt><dd>{dateStr}</dd></div>
+                  <div className="summary-detail-row"><dt>Order No</dt><dd className="summary-detail-muted">Generated after placing</dd></div>
+                  <div className="summary-detail-row"><dt>Type</dt><dd>{orderTypeLabel}</dd></div>
+                  <div className="summary-detail-row"><dt>Customer</dt><dd>{customerDisplay}</dd></div>
+                  <div className="summary-detail-row"><dt>Payment</dt><dd>{paymentLabel}</dd></div>
+                </dl>
+              );
+            })()}
+
             <div className="summary-items">
               {displayItems.map((item) => (
                 <div key={item._id} className="summary-item">
@@ -864,11 +898,21 @@ export default function Checkout() {
               ))}
             </div>
             <div className="summary-divider" />
+            <div className="summary-subtotals">
+              <div className="summary-subtotal-row">
+                <span>Items</span>
+                <span>{displayItems.reduce((s, i) => s + i.quantity, 0)}</span>
+              </div>
+              <div className="summary-subtotal-row">
+                <span>Sub Total</span>
+                <span>₹{(totalAmount / (1 + BILL_CONFIG.taxRatePercent / 100)).toFixed(2)}</span>
+              </div>
+            </div>
             <div className="summary-total">
               <span>Total</span>
               <span className="total-amount">₹{totalAmount}</span>
             </div>
-            <p className="summary-note">✦ Thank you for being a part of our cafe family!</p>
+            <p className="summary-note">{BILL_CONFIG.footerNote}</p>
 
             {/* Desktop Place Order Button inside Order Summary card */}
             <button

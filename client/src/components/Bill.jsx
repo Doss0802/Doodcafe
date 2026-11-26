@@ -91,9 +91,7 @@ export default function Bill({ order, config = BILL_CONFIG, className = '', inne
         <div className="bill-doc-title">INVOICE</div>
       </div>
 
-      <div className="bill-sep bill-sep-eq" aria-hidden="true">
-        ================================================
-      </div>
+      <div className="bill-sep bill-sep-eq" aria-hidden="true" />
 
       {/* Date & Bill Number on One Line + Order Info */}
       <div className="bill-meta">
@@ -116,9 +114,7 @@ export default function Bill({ order, config = BILL_CONFIG, className = '', inne
         )}
       </div>
 
-      <div className="bill-sep bill-sep-dash" aria-hidden="true">
-        ------------------------------------------------
-      </div>
+      <div className="bill-sep bill-sep-dash" aria-hidden="true" />
 
       {/* Items Table */}
       <table className={`bill-items-table ${cfg.showHsn ? 'has-hsn' : ''}`}>
@@ -144,9 +140,7 @@ export default function Bill({ order, config = BILL_CONFIG, className = '', inne
         </tbody>
       </table>
 
-      <div className="bill-sep bill-sep-dash" aria-hidden="true">
-        ------------------------------------------------
-      </div>
+      <div className="bill-sep bill-sep-dash" aria-hidden="true" />
 
       {/* Summary & PAID Stamp */}
       <div className="bill-totals-section">
@@ -179,9 +173,7 @@ export default function Bill({ order, config = BILL_CONFIG, className = '', inne
         </div>
       </div>
 
-      <div className="bill-sep bill-sep-dash" aria-hidden="true">
-        ------------------------------------------------
-      </div>
+      <div className="bill-sep bill-sep-dash" aria-hidden="true" />
 
       {/* PAYMENT Block */}
       <div className="bill-payment-block">
@@ -212,9 +204,7 @@ export default function Bill({ order, config = BILL_CONFIG, className = '', inne
         )}
       </div>
 
-      <div className="bill-sep bill-sep-dash" aria-hidden="true">
-        ------------------------------------------------
-      </div>
+      <div className="bill-sep bill-sep-dash" aria-hidden="true" />
 
       <div className="bill-footer">{cfg.footerNote}</div>
     </div>

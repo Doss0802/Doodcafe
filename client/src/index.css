@@ -3042,6 +3042,62 @@
   text-align: center;
 }
 
+/* Order Summary compact details block */
+.summary-details {
+  margin: 0 0 0.9rem 0;
+  padding: 0.65rem 0.75rem;
+  background: var(--bg-muted, #f8f7f4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 6px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.summary-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.summary-detail-row dt {
+  color: var(--text-sec);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.summary-detail-row dd {
+  color: var(--charcoal);
+  font-weight: 600;
+  text-align: right;
+  margin: 0;
+  word-break: break-word;
+}
+
+.summary-detail-muted {
+  color: var(--text-sec) !important;
+  font-weight: 400 !important;
+  font-style: italic;
+}
+
+/* Sub Total rows above grand total */
+.summary-subtotals {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.summary-subtotal-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: var(--text-sec);
+}
+
 .checkout-summary-btn {
   margin-top: 1.25rem;
 }
