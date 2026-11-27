@@ -89,7 +89,9 @@ export default function StaffOrders() {
 
   // Filters
   const [takeawayFilter, setTakeawayFilter] = useState('pending'); // 'pending' | 'handed_over' | 'all'
-  // dineInFilter / dineInSearch / dineInActionLoadingId removed — OrderMonitor handles filtering
+  const [dineInFilter, setDineInFilter] = useState('all'); // 'all' | 'paid' | 'pending' | 'cod'
+  const [dineInSearch, setDineInSearch] = useState('');
+  const [dineInActionLoadingId, setDineInActionLoadingId] = useState(null);
   const [billModalOrder, setBillModalOrder] = useState(null);
 
   const searchInputRef = useRef(null);
@@ -138,6 +140,7 @@ export default function StaffOrders() {
     loading: liveLoading,
     updateOrderStatus: handleKitchenStatusChange,
     isSocketConnected: isSocketLive,
+    refetch: refetchLiveOrders,
   } = useOrderStream({
     role: 'staff',
     orderFilter: 'all',
@@ -240,6 +243,7 @@ export default function StaffOrders() {
       await axiosInstance.patch(`/staff/orders/${orderId}/pay`);
       toast.success('✅ Order marked as Paid!');
       fetchOrders(true);
+      refetchLiveOrders(true);
       if (searchedOrder && (searchedOrder.id === orderId || searchedOrder._id === orderId)) {
         setSearchedOrder({
           ...searchedOrder,
@@ -293,21 +297,43 @@ export default function StaffOrders() {
     return true;
   });
 
-  // ─── Derive Dine-in Orders from liveOrders ───
-  const isDineInOrder = (ord) => {
-    if (!ord) return false;
-    const type = (ord.orderType || ord.type || '').toLowerCase();
-    return (
-      type === 'dine-in' ||
-      type === 'dinein' ||
-      Boolean(ord.tableNumber) ||
-      Boolean(ord.tableNo) ||
-      Boolean(ord.deliveryAddress?.toLowerCase().includes('dine-in')) ||
-      Boolean(ord.customer_location?.toLowerCase().includes('dine-in'))
-    );
-  };
+  // ─── Derive Dine-in Orders from liveOrders (strictly dine-in, today IST, excluding unpaid UPI) ───
+  const rawDineInOrders = liveOrders
+    .filter(
+      (ord) =>
+        resolveOrderType(ord) === 'dine-in' &&
+        isVisibleStaffOrder(ord) &&
+        isOrderTodayIST(ord)
+    )
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
-  const rawDineInOrders = liveOrders.filter(isDineInOrder);
+  const displayedDineInOrders = rawDineInOrders.filter((ord) => {
+    if (dineInFilter !== 'all' && ord.paymentStatus !== dineInFilter) return false;
+    if (!dineInSearch.trim()) return true;
+    const q = dineInSearch.trim().toLowerCase();
+    const billNum = (ord.billNumber || `ORD-${ord.orderNumber}` || '').toLowerCase();
+    const name = (ord.customerName || ord.user?.name || '').toLowerCase();
+    const phone = (ord.customerPhone || ord.user?.phone || '').toLowerCase();
+    const tableNum = String(ord.tableNumber || ord.tableNo || '').toLowerCase();
+    return (
+      billNum.includes(q) ||
+      name.includes(q) ||
+      phone.includes(q) ||
+      tableNum.includes(q)
+    );
+  });
+
+  // Handle Dine-in Order status transitions
+  const handleDineInStatusChange = async (orderId, newStatus) => {
+    setDineInActionLoadingId(orderId);
+    try {
+      await handleKitchenStatusChange(orderId, newStatus);
+    } catch {
+      // Error toast already handled by useOrderStream
+    } finally {
+      setDineInActionLoadingId(null);
+    }
+  };
 
   // Delivery orders passed to LiveKitchen for status buttons
   const deliveryOrders = liveOrders.filter(
@@ -575,24 +601,96 @@ export default function StaffOrders() {
             )}
 
             {/* ═══════════════════════════════════════════════════════════════
-                TAB 2: DINE-IN (Order Monitor — view-only with payment filter)
+                TAB 2: DINE-IN (Live Customer Orders & Payment Status)
             ═══════════════════════════════════════════════════════════════ */}
             {activeTab === 'dine-in' && (
               <div className="space-y-6">
-                <div>
-                  <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-stone-900">
-                    Today's Dine-in Orders
-                  </h2>
-                  <p className="text-stone-500 text-xs mt-0.5">
-                    Live dine-in orders with status and payment monitoring.
-                  </p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-stone-900">
+                      Today's Dine-in Food Orders
+                    </h2>
+                    <p className="text-stone-500 text-xs mt-0.5">
+                      Manage live dine-in orders, payment status, and bill printing.
+                    </p>
+                  </div>
+
+                  {/* Payment Filter Chips: horizontal scrollable with snap */}
+                  <div className="flex overflow-x-auto gap-2 pb-1 snap-x no-scrollbar">
+                    {[
+                      { key: 'all', label: 'All Orders' },
+                      { key: 'paid', label: 'Paid' },
+                      { key: 'pending', label: 'Pending' },
+                      { key: 'cod', label: 'COD / Counter' },
+                    ].map((f) => (
+                      <button
+                        key={f.key}
+                        onClick={() => setDineInFilter(f.key)}
+                        className={`snap-start flex-shrink-0 min-h-[44px] flex items-center px-4 py-2 rounded-full text-sm font-semibold transition clay-btn ${
+                          dineInFilter === f.key
+                            ? 'clay-dark clay-active'
+                            : 'clay-light'
+                        }`}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <OrderMonitor
-                  orderType="dine-in"
-                  title="Dine-in Order Monitoring"
-                  orders={liveOrders}
-                  loading={liveLoading}
-                />
+
+                {/* ── Dine-in Search Box ── */}
+                <div className="relative">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" size={17} />
+                  <input
+                    type="text"
+                    value={dineInSearch}
+                    onChange={(e) => setDineInSearch(e.target.value)}
+                    placeholder="Search by bill no, name, phone, or table…"
+                    className="w-full pl-10 pr-9 py-3 rounded-xl border-2 border-stone-200 bg-white text-stone-900 text-sm font-medium placeholder-stone-400 focus:outline-none focus:ring-3 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                  />
+                  {dineInSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setDineInSearch('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-stone-400 hover:text-stone-700 transition"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
+
+                {liveLoading ? (
+                  <div className="py-20 text-center">
+                    <span className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin inline-block mb-3" />
+                    <p className="text-stone-500 text-sm font-medium">Loading dine-in orders…</p>
+                  </div>
+                ) : displayedDineInOrders.length === 0 ? (
+                  <Card className="p-10 text-center text-stone-500">
+                    <UtensilsCrossed size={36} className="mx-auto mb-3 text-stone-400 stroke-1" />
+                    <h4 className="font-bold text-base text-stone-700">
+                      {dineInSearch ? 'No orders match your search' : 'No Dine-in Orders Today'}
+                    </h4>
+                    <p className="text-xs text-stone-400 mt-1 max-w-sm mx-auto">
+                      {dineInSearch
+                        ? `No dine-in orders found for "${dineInSearch}".`
+                        : 'No dine-in orders have been placed for this filter today.'}
+                    </p>
+                  </Card>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {displayedDineInOrders.map((ord) => (
+                      <DineInOrderCard
+                        key={ord.id || ord._id}
+                        order={ord}
+                        onStatusChange={handleDineInStatusChange}
+                        actionLoadingId={dineInActionLoadingId}
+                        onMarkPaid={handleMarkPaid}
+                        actionLoadingPaidId={actionLoadingPaidId}
+                        onViewBill={(o) => setBillModalOrder({ ...o, orderType: 'dine-in' })}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -1001,6 +1099,190 @@ function TakeawayOrderCard({
               <CheckCircle2 size={16} />
               <span>Mark as Handed Over</span>
             </button>
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+/* ─── Dine-In Order Card Component (with Status Management) ─── */
+function DineInOrderCard({ order, onStatusChange, actionLoadingId, onMarkPaid, actionLoadingPaidId, onViewBill }) {
+  const printableOrder = { ...order, orderType: 'dine-in' };
+  const paymentClass = PAYMENT_BADGE_CLASSES[order.paymentStatus] || PAYMENT_BADGE_CLASSES.pending;
+  const statusMeta = getStatusMeta(order.status);
+  const orderId = order.id || order._id;
+  const isActionLoading = actionLoadingId === orderId;
+  const canMarkPaid = ['pending', 'cod'].includes(order.paymentStatus);
+  const isMarkingPaid = actionLoadingPaidId === orderId;
+
+  const tableNum =
+    order.tableNumber ||
+    order.tableNo ||
+    order.deliveryAddress?.match(/Table\s+(\w+)/i)?.[1] ||
+    order.customer_location?.match(/Table\s+(\w+)/i)?.[1];
+
+  const items = Array.isArray(order.items)
+    ? order.items
+    : typeof order.items === 'string'
+      ? JSON.parse(order.items || '[]')
+      : [];
+
+  const customerName = order.customerName || order.user?.name || 'Customer';
+  const customerPhone = order.customerPhone || order.user?.phone;
+
+  return (
+    <Card className="p-4 sm:p-5 flex flex-col justify-between">
+      <div>
+        {/* Header: Table Badge, Order Type, Bill No, Time, Status & Payment Badges */}
+        <div className="flex items-start justify-between gap-2 pb-3 border-b border-stone-100">
+          <div>
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span className="px-2.5 py-0.5 rounded-md text-xs font-black bg-blue-600 text-white shadow-xs">
+                {tableNum ? `Table ${tableNum}` : 'Table not set'}
+              </span>
+              <span className="text-[10px] font-extrabold text-stone-400 uppercase tracking-widest">
+                Dine-in
+              </span>
+            </div>
+            <div className="text-base sm:text-lg font-extrabold text-stone-900 tracking-tight font-mono">
+              {order.billNumber || (order.orderNumber ? `#ORD-${order.orderNumber}` : `#${String(orderId).slice(-5)}`)}
+            </div>
+            <span className="text-[11px] text-stone-400 flex items-center gap-1 mt-0.5">
+              <Clock size={11} />
+              {order.createdAt ? new Date(order.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
+            </span>
+          </div>
+
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
+            <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${paymentClass}`}>
+              {getStaffPaymentBadgeLabel(order)}
+            </span>
+            {canMarkPaid && onMarkPaid && (
+              <button
+                type="button"
+                onClick={() => onMarkPaid(orderId)}
+                disabled={isMarkingPaid}
+                className="clay-btn clay-gold text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-xs disabled:opacity-50"
+                title="Mark order as paid"
+              >
+                {isMarkingPaid ? (
+                  <span className="w-3 h-3 border-2 border-stone-900 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <CheckCircle2 size={11} />
+                )}
+                <span>Mark as Paid</span>
+              </button>
+            )}
+            <span
+              className="px-2.5 py-0.5 rounded-full text-xs font-bold border inline-flex items-center gap-1"
+              style={{ color: statusMeta.color, background: statusMeta.bg, borderColor: statusMeta.color + '40' }}
+            >
+              {statusMeta.label}
+            </span>
+          </div>
+        </div>
+
+        {/* Customer Details: Name & Phone */}
+        <div className="py-2.5 border-b border-stone-100 flex items-center justify-between text-xs text-stone-700">
+          <div className="min-w-0 flex-1">
+            <span className="text-[10px] text-stone-400 uppercase tracking-widest font-extrabold block">
+              Customer
+            </span>
+            <span className="font-bold text-stone-900 truncate block">
+              {customerName}
+            </span>
+          </div>
+          <div className="text-right shrink-0 ml-3">
+            <span className="text-[10px] text-stone-400 uppercase tracking-widest font-extrabold block">
+              Phone
+            </span>
+            {customerPhone ? (
+              <a
+                href={`tel:${customerPhone}`}
+                className="font-bold text-amber-600 hover:text-amber-700 inline-flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-md"
+                title="Tap to call customer"
+              >
+                <Phone size={11} />
+                <span>{customerPhone}</span>
+              </a>
+            ) : (
+              <span className="text-stone-400 italic">No phone</span>
+            )}
+          </div>
+        </div>
+
+        {/* Food Items Ordered (name x qty) */}
+        <div className="py-3">
+          <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block mb-2">
+            Dishes Ordered
+          </span>
+          <div className="space-y-1.5 max-h-48 overflow-y-auto">
+            {items.map((it, idx) => (
+              <div
+                key={idx}
+                className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-stone-50 text-xs font-medium"
+              >
+                <span className="text-stone-800 font-semibold">{it.name}</span>
+                <span className="font-extrabold text-amber-700 bg-amber-100/70 px-2 py-0.5 rounded-md">
+                  × {it.quantity}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Footer: Total + Bill & Status Buttons */}
+      <div className="pt-3 border-t border-stone-100 mt-2 space-y-2.5">
+        <div className="flex items-center justify-between text-xs">
+          <span className="font-medium text-stone-500">Total:</span>
+          <span className="text-sm font-extrabold text-stone-900">
+            ₹{Number(order.totalAmount || 0).toLocaleString('en-IN')}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {onViewBill && (
+            <button
+              type="button"
+              onClick={() => onViewBill(printableOrder)}
+              className="clay-btn clay-light flex-1 py-2 min-h-[44px] text-xs font-bold flex items-center justify-center gap-1.5 text-stone-700"
+            >
+              <Receipt size={14} />
+              <span>View Bill</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => printBillOrder(printableOrder)}
+            className="clay-btn clay-light flex-1 py-2 min-h-[44px] text-xs font-bold flex items-center justify-center gap-1.5 text-stone-900 border border-stone-300"
+          >
+            <Printer size={14} />
+            <span>Print Bill</span>
+          </button>
+        </div>
+
+        {statusMeta.next ? (
+          <button
+            type="button"
+            disabled={isActionLoading}
+            onClick={() => onStatusChange?.(orderId, statusMeta.next)}
+            className="clay-btn clay-dark w-full py-3 min-h-[52px] text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+          >
+            {isActionLoading ? (
+              <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <>
+                <CheckCircle2 size={16} />
+                <span>{statusMeta.nextLabel}</span>
+              </>
+            )}
+          </button>
+        ) : (
+          <div className={`w-full py-3 min-h-[52px] rounded-xl border text-sm font-bold flex items-center justify-center gap-2 ${statusMeta.badge}`}>
+            <CheckCircle2 size={16} />
+            <span>{statusMeta.label}</span>
           </div>
         )}
       </div>
