@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { X, Phone, MapPin, ExternalLink, Printer } from 'lucide-react';
-import { getStatusMeta, getPaymentBadgeClass } from './staffOrderStatus';
+import { getStatusMeta, getPaymentBadgeClass, resolveOrderType } from './staffOrderStatus';
 import Bill from '../../../components/Bill';
 import { printBillOrder } from '../../../utils/printBill';
 
@@ -26,16 +26,21 @@ export default function StaffCustomerModal({ order, onClose }) {
   const statusMeta = getStatusMeta(order.status);
   const paymentClass = getPaymentBadgeClass(order.paymentStatus);
 
-  const rawLocation = order.customer_location || order.deliveryAddress || order.locationDetails || '';
+  const isTakeaway = resolveOrderType(order) === 'takeaway';
+  const rawLocation = isTakeaway
+    ? ''
+    : order.customer_location || order.deliveryAddress || order.locationDetails || '';
   let textAddress = rawLocation;
   let mapsLink = null;
 
-  if (rawLocation.includes('Maps:')) {
-    const parts = rawLocation.split('Maps:');
-    textAddress = parts[0].replace(/\|$/, '').trim();
-    mapsLink = parts[1]?.trim();
-  } else if (order.coordinates?.lat && order.coordinates?.lng) {
-    mapsLink = `https://www.google.com/maps?q=${order.coordinates.lat},${order.coordinates.lng}`;
+  if (!isTakeaway) {
+    if (rawLocation.includes('Maps:')) {
+      const parts = rawLocation.split('Maps:');
+      textAddress = parts[0].replace(/\|$/, '').trim();
+      mapsLink = parts[1]?.trim();
+    } else if (order.coordinates?.lat && order.coordinates?.lng) {
+      mapsLink = `https://www.google.com/maps?q=${order.coordinates.lat},${order.coordinates.lng}`;
+    }
   }
 
   const items = Array.isArray(order.items)

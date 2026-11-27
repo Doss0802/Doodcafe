@@ -1005,13 +1005,6 @@ function TakeawayOrderCard({
               <span className="text-stone-400 text-xs">Not Provided</span>
             )}
           </div>
-
-          <div className="flex items-start justify-between gap-2">
-            <span className="text-stone-500 font-medium text-xs flex-shrink-0">Location:</span>
-            <span className="text-stone-700 text-xs font-medium text-right line-clamp-2">
-              {order.locationDetails || 'Dood Cafe Counter'}
-            </span>
-          </div>
         </div>
 
         {/* Food Items Ordered (name x qty) */}

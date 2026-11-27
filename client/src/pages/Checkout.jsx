@@ -252,6 +252,7 @@ export default function Checkout() {
 
   // ── Geolocation & Reverse Geocoding Auto-Fill ──────────────────────────────
   const handleFetchLiveLocation = () => {
+    if (selectedOrderType !== 'delivery') return;
     if (!navigator.geolocation) {
       toast.error('Geolocation is not supported by your browser.');
       return;
@@ -383,16 +384,10 @@ export default function Checkout() {
         quantity: i.quantity,
       }));
 
-      // Construct rich customer location string
-      const addressParts = [street, city, stateName, zipCode].filter(Boolean);
-      const textAddress = addressParts.length > 0 ? addressParts.join(', ') : 'Dood Cafe Counter — Coimbatore, Tamil Nadu';
-      const mapsUrl = `https://www.google.com/maps?q=${coordinates.lat},${coordinates.lng}`;
-      const customerLocationString = `${textAddress} | Maps: ${mapsUrl}`;
-
       const resolvedMode = paymentOption === 'paid' ? 'upi' : 'cash';
       const resolvedTable = selectedOrderType === 'dine-in' ? String(tableNumber).trim() : null;
-      const dineInLocationText = `Dood Cafe Counter — Dine-in (Table ${resolvedTable})`;
 
+      let textAddress = '';
       const payload = {
         items: orderItems,
         orderType: selectedOrderType,
@@ -400,12 +395,24 @@ export default function Checkout() {
         customerName: customerName.trim(),
         customerPhone: cleanPhone,
         paymentMode: resolvedMode,
-        customer_location: selectedOrderType === 'dine-in' ? dineInLocationText : customerLocationString,
-        deliveryAddress: selectedOrderType === 'dine-in' ? `Dood Cafe — Dine-in (Table ${resolvedTable})` : textAddress,
-        coordinates: { lat: coordinates.lat, lng: coordinates.lng },
         specialInstructions,
         idempotencyKey,
       };
+
+      if (selectedOrderType === 'dine-in') {
+        const dineInLocationText = `Dood Cafe Counter — Dine-in (Table ${resolvedTable})`;
+        textAddress = `Dood Cafe — Dine-in (Table ${resolvedTable})`;
+        payload.customer_location = dineInLocationText;
+        payload.deliveryAddress = textAddress;
+        payload.coordinates = { lat: coordinates.lat, lng: coordinates.lng };
+      } else if (selectedOrderType === 'delivery') {
+        const addressParts = [street, city, stateName, zipCode].filter(Boolean);
+        textAddress = addressParts.length > 0 ? addressParts.join(', ') : 'Dood Cafe Counter — Coimbatore, Tamil Nadu';
+        const mapsUrl = `https://www.google.com/maps?q=${coordinates.lat},${coordinates.lng}`;
+        payload.customer_location = `${textAddress} | Maps: ${mapsUrl}`;
+        payload.deliveryAddress = textAddress;
+        payload.coordinates = { lat: coordinates.lat, lng: coordinates.lng };
+      }
 
       // If Online Payment (Paytm) is selected, initiate online transaction and invoke JS Checkout
       if (paymentOption === 'paid') {
@@ -473,7 +480,11 @@ export default function Checkout() {
         customerName: createdOrder.customerName || customerName.trim(),
         customerPhone: createdOrder.customerPhone || cleanPhone,
         customerEmail: user?.email || '',
-        customerLocation: selectedOrderType === 'dine-in' ? `Dood Cafe — Dine-in (Table ${resolvedTable})` : textAddress,
+        customerLocation: selectedOrderType === 'dine-in'
+          ? `Dood Cafe — Dine-in (Table ${resolvedTable})`
+          : selectedOrderType === 'delivery'
+          ? textAddress
+          : '',
         orderTimestamp: createdOrder.createdAt ? new Date(createdOrder.createdAt) : new Date(),
         formattedDate: new Date().toLocaleString('en-IN', {
           dateStyle: 'medium',
