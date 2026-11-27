@@ -106,6 +106,7 @@ export default function OrderMonitor({
   loading = false,
 }) {
   const [statusFilter, setStatusFilter] = useState('all');
+  const [paymentFilter, setPaymentFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Strictly filter by orderType, online (UPI) payment visibility rule, and today (IST), newest first
@@ -147,6 +148,10 @@ export default function OrderMonitor({
     const q = searchQuery.trim().toLowerCase();
     return baseOrders.filter((ord) => {
       if (!matchesStatusTab(ord.status, statusFilter)) return false;
+      // Payment filter — only active for dine-in
+      if (orderType === 'dine-in' && paymentFilter !== 'all') {
+        if (ord.paymentStatus !== paymentFilter) return false;
+      }
       if (!q) return true;
 
       const orderId = ord.id || ord._id || '';
@@ -168,7 +173,7 @@ export default function OrderMonitor({
         (tableNum && `table ${tableNum}`.includes(q))
       );
     });
-  }, [baseOrders, statusFilter, searchQuery]);
+  }, [baseOrders, statusFilter, paymentFilter, searchQuery, orderType]);
 
   const handlePrint = (ord) => {
     printBillOrder({ ...ord, orderType });
@@ -209,6 +214,29 @@ export default function OrderMonitor({
             </button>
           ))}
         </div>
+
+        {/* Payment Filter Pills — dine-in only */}
+        {orderType === 'dine-in' && (
+          <div className="flex overflow-x-auto sm:overflow-visible sm:flex-wrap gap-2 no-scrollbar text-xs font-semibold">
+            {[
+              { id: 'all', label: 'All Payments' },
+              { id: 'paid', label: 'Paid' },
+              { id: 'pending', label: 'Pending' },
+              { id: 'cod', label: 'COD' },
+            ].map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setPaymentFilter(f.id)}
+                className={`snap-start flex-shrink-0 min-h-[36px] px-3 py-1.5 rounded-xl transition flex items-center gap-1 cursor-pointer clay-btn ${
+                  paymentFilter === f.id ? 'clay-dark clay-active' : 'clay-light'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Search Box */}

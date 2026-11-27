@@ -56,7 +56,7 @@ export default function StaffLiveKitchen({
             <ChefHat size={22} />
           </div>
           <div>
-            <h3 className="font-extrabold text-stone-900 text-lg tracking-tight">Live Kitchen Display</h3>
+            <h3 className="font-extrabold text-stone-900 text-lg tracking-tight">Online Order Status</h3>
             <p className="text-xs text-stone-500 font-medium">Real-time dish preparation & ticket flow</p>
           </div>
         </div>
