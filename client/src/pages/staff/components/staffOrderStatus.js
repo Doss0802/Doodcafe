@@ -101,3 +101,48 @@ export const getStatusMeta = (status) => STATUS_CONFIG[status] || STATUS_CONFIG.
 export const getStatusBadgeClass = (status) => STATUS_BADGE_CLASSES[status] || STATUS_BADGE_CLASSES.pending;
 export const getPaymentBadgeClass = (paymentStatus) => PAYMENT_BADGE_CLASSES[paymentStatus] || PAYMENT_BADGE_CLASSES.pending;
 
+const istDateFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Kolkata',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+export const ACTIVE_ORDER_STATUSES = ['pending', 'confirmed', 'preparing', 'ready'];
+
+export const isActiveOrderStatus = (status) => ACTIVE_ORDER_STATUSES.includes(status);
+
+export const resolveOrderType = (ord) => {
+  const raw = (ord?.orderType || ord?.type || '').toLowerCase().trim();
+  if (raw === 'dine-in' || raw === 'dinein') return 'dine-in';
+  if (raw === 'delivery') return 'delivery';
+  if (raw === 'takeaway') return 'takeaway';
+  if (
+    ord?.tableNumber ||
+    ord?.tableNo ||
+    ord?.deliveryAddress?.toLowerCase().includes('dine-in') ||
+    ord?.customer_location?.toLowerCase().includes('dine-in')
+  ) {
+    return 'dine-in';
+  }
+  if (ord?.deliveryAddress) return 'delivery';
+  return 'takeaway';
+};
+
+export const isVisibleStaffOrder = (ord) => {
+  if (!ord) return false;
+  const mode = (ord.paymentMode || '').toLowerCase();
+  const payStatus = (ord.paymentStatus || '').toLowerCase();
+  // Online (upi) orders with pending/failed payment must never appear
+  if (mode === 'upi' && payStatus !== 'paid') return false;
+  return true;
+};
+
+export const isOrderTodayIST = (ord) => {
+  if (!ord?.createdAt) return false;
+  const d = new Date(ord.createdAt);
+  if (Number.isNaN(d.getTime())) return false;
+  return istDateFormatter.format(d) === istDateFormatter.format(new Date());
+};
+
+

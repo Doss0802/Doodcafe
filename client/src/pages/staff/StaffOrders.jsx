@@ -16,9 +16,18 @@ import {
   ChefHat,
   Printer,
   Receipt,
+  ArrowRight,
 } from 'lucide-react';
 import axiosInstance from '../../api/axiosInstance';
 import { useOrderStream } from './components/useStaffOrderStream';
+import {
+  STATUS_CONFIG,
+  getStatusMeta,
+  resolveOrderType,
+  isVisibleStaffOrder,
+  isOrderTodayIST,
+  isActiveOrderStatus,
+} from './components/staffOrderStatus';
 import LiveKitchen from './components/StaffLiveKitchen';
 import OrderMonitor from './components/OrderMonitor';
 import StaffCustomerModal from './components/StaffCustomerModal';
@@ -76,6 +85,7 @@ export default function StaffOrders() {
   const [searchError, setSearchError] = useState(null);
   const [confirmingHandoverOrder, setConfirmingHandoverOrder] = useState(null);
   const [actionLoadingId, setActionLoadingId] = useState(null);
+  const [takeawayStatusLoadingId, setTakeawayStatusLoadingId] = useState(null);
 
   // Filters
   const [takeawayFilter, setTakeawayFilter] = useState('pending'); // 'pending' | 'handed_over' | 'all'
@@ -164,10 +174,10 @@ export default function StaffOrders() {
 
     try {
       const res = await axiosInstance.get(`/staff/orders/lookup/${encodeURIComponent(query)}`);
-      if (res?.data?.data) {
+      if (res?.data?.data && resolveOrderType(res.data.data) === 'takeaway' && isVisibleStaffOrder(res.data.data)) {
         setSearchedOrder(res.data.data);
       } else {
-        setSearchError('No order found for this bill number');
+        setSearchError('No takeaway order found for this bill number');
       }
     } catch (err) {
       const msg = err.response?.data?.message || 'No order found for this bill number';
@@ -249,8 +259,35 @@ export default function StaffOrders() {
     }
   };
 
-  // ─── Filtered Lists ───
-  const displayedTakeawayOrders = takeawayOrders.filter((ord) => {
+  // ─── Takeaway Status Progression Handler (reuses kitchen status handler/endpoint) ───
+  const handleTakeawayStatusChange = async (orderId, newStatus) => {
+    setTakeawayStatusLoadingId(orderId);
+    try {
+      await handleKitchenStatusChange(orderId, newStatus);
+      setTakeawayOrders((prev) =>
+        prev.map((o) => ((o.id || o._id) === orderId ? { ...o, status: newStatus } : o))
+      );
+      if (searchedOrder && (searchedOrder.id || searchedOrder._id) === orderId) {
+        setSearchedOrder((prev) => (prev ? { ...prev, status: newStatus } : prev));
+      }
+    } catch {
+      // Error toast already handled by useStaffOrderStream
+    } finally {
+      setTakeawayStatusLoadingId(null);
+    }
+  };
+
+  // ─── Filtered Lists (strictly takeaway, today IST, excluding unpaid UPI) ───
+  const strictTakeawayOrders = takeawayOrders
+    .filter(
+      (ord) =>
+        resolveOrderType(ord) === 'takeaway' &&
+        isVisibleStaffOrder(ord) &&
+        isOrderTodayIST(ord)
+    )
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+  const displayedTakeawayOrders = strictTakeawayOrders.filter((ord) => {
     if (takeawayFilter === 'pending') return ord.status !== 'handed_over';
     if (takeawayFilter === 'handed_over') return ord.status === 'handed_over';
     return true;
@@ -277,8 +314,8 @@ export default function StaffOrders() {
     (o) => (o.orderType || o.type || '').toLowerCase() === 'delivery'
   );
 
-  // Count Badges for Tabs
-  const pendingTakeawayCount = takeawayOrders.filter((o) => o.status !== 'handed_over').length;
+  // Count Badges for Tabs (active orders today IST per type)
+  const pendingTakeawayCount = strictTakeawayOrders.filter((o) => isActiveOrderStatus(o.status)).length;
   const pendingDineInCount = rawDineInOrders.length;
 
   return (
@@ -463,6 +500,8 @@ export default function StaffOrders() {
                           onStartHandover={setConfirmingHandoverOrder}
                           onMarkPaid={handleMarkPaid}
                           actionLoadingPaidId={actionLoadingPaidId}
+                          onStatusChange={handleTakeawayStatusChange}
+                          statusLoadingId={takeawayStatusLoadingId}
                           onViewBill={(ord) => setBillModalOrder({ ...ord, orderType: ord.orderType || 'takeaway' })}
                         />
                       </div>
@@ -502,14 +541,7 @@ export default function StaffOrders() {
                     </div>
                   </div>
 
-                  {takeawayFilter === 'all' ? (
-                    <OrderMonitor
-                      orderType="takeaway"
-                      title="Takeaway Order Monitoring"
-                      orders={liveOrders}
-                      loading={liveLoading}
-                    />
-                  ) : loading ? (
+                  {loading ? (
                     <div className="py-20 text-center">
                       <span className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin inline-block mb-3" />
                       <p className="text-stone-500 text-sm font-medium">Loading takeaway orders…</p>
@@ -526,11 +558,13 @@ export default function StaffOrders() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                       {displayedTakeawayOrders.map((ord) => (
                         <TakeawayOrderCard
-                          key={ord.id}
+                          key={ord.id || ord._id}
                           order={ord}
                           onStartHandover={setConfirmingHandoverOrder}
                           onMarkPaid={handleMarkPaid}
                           actionLoadingPaidId={actionLoadingPaidId}
+                          onStatusChange={handleTakeawayStatusChange}
+                          statusLoadingId={takeawayStatusLoadingId}
                           onViewBill={(o) => setBillModalOrder({ ...o, orderType: o.orderType || 'takeaway' })}
                         />
                       ))}
@@ -769,13 +803,20 @@ function TakeawayOrderCard({
   onStartHandover,
   onMarkPaid,
   actionLoadingPaidId,
+  onStatusChange,
+  statusLoadingId,
   onViewBill,
 }) {
+  const orderId = order.id || order._id;
   const printableOrder = { ...order, orderType: order.orderType || 'takeaway' };
   const isHandedOver = order.status === 'handed_over';
   const isPaymentPending = order.paymentStatus === 'pending';
   const canMarkPaid = ['pending', 'cod'].includes(order.paymentStatus);
-  const isMarkingPaid = actionLoadingPaidId === (order.id || order._id);
+  const isMarkingPaid = actionLoadingPaidId === orderId;
+  const isStatusLoading = statusLoadingId === orderId;
+  const statusMeta = getStatusMeta(order.status);
+  const isPendingStatus = ['pending', 'confirmed'].includes(order.status);
+  const isCookingStatus = order.status === 'preparing';
 
   const paymentClass = PAYMENT_BADGE_CLASSES[order.paymentStatus] || PAYMENT_BADGE_CLASSES.pending;
   const statusClass = STATUS_BADGE_CLASSES[order.status] || STATUS_BADGE_CLASSES.pending;
@@ -827,7 +868,7 @@ function TakeawayOrderCard({
               </button>
             )}
             <span className={`px-2 py-0.5 rounded-md text-[11px] font-semibold border ${statusClass}`}>
-              {order.status === 'handed_over' ? '✓ Handed Over' : order.status}
+              {order.status === 'handed_over' ? '✓ Handed Over' : statusMeta.label}
             </span>
           </div>
         </div>
@@ -926,6 +967,30 @@ function TakeawayOrderCard({
                 <AlertTriangle size={13} className="text-amber-600 flex-shrink-0" />
                 <span>Collect payment of ₹{order.totalAmount} if not already received!</span>
               </div>
+            )}
+
+            {!isHandedOver && statusMeta.next && onStatusChange && (
+              <button
+                type="button"
+                disabled={isStatusLoading}
+                onClick={() => onStatusChange(orderId, statusMeta.next)}
+                className={`clay-btn w-full py-2.5 min-h-[44px] text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 disabled:opacity-50 ${
+                  isPendingStatus
+                    ? 'clay-gold'
+                    : isCookingStatus
+                    ? 'clay-gold'
+                    : 'clay-success'
+                }`}
+              >
+                {isStatusLoading ? (
+                  <span className="w-4 h-4 border-2 border-stone-900 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <span>{statusMeta.nextLabel || `Mark ${STATUS_CONFIG[statusMeta.next]?.label}`}</span>
+                    <ArrowRight size={14} />
+                  </>
+                )}
+              </button>
             )}
 
             <button
