@@ -21,6 +21,7 @@ import axiosInstance from '../../api/axiosInstance';
 import { useOrderStream } from './components/useStaffOrderStream';
 import { getStatusMeta } from './components/staffOrderStatus';
 import LiveKitchen from './components/StaffLiveKitchen';
+import OrderMonitor from './components/OrderMonitor';
 import StaffCustomerModal from './components/StaffCustomerModal';
 import { printBillOrder } from '../../utils/printBill';
 import toast from 'react-hot-toast';
@@ -529,7 +530,14 @@ export default function StaffOrders() {
                     </div>
                   </div>
 
-                  {loading ? (
+                  {takeawayFilter === 'all' ? (
+                    <OrderMonitor
+                      orderType="takeaway"
+                      title="Takeaway Order Monitoring"
+                      orders={liveOrders}
+                      loading={liveLoading}
+                    />
+                  ) : loading ? (
                     <div className="py-20 text-center">
                       <span className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin inline-block mb-3" />
                       <p className="text-stone-500 text-sm font-medium">Loading takeaway orders…</p>
