@@ -347,7 +347,8 @@ export default function StaffOrders() {
 
   // Count Badges for Tabs (active orders today IST per type)
   const pendingTakeawayCount = strictTakeawayOrders.filter((o) => isActiveOrderStatus(o.status)).length;
-  const pendingDineInCount = rawDineInOrders.length;
+  const pendingDineInCount = rawDineInOrders.filter((o) => isActiveOrderStatus(o.status)).length;
+  const pendingDeliveryCount = deliveryOrders.filter((o) => isActiveOrderStatus(o.status)).length;
 
   return (
     <main className="min-h-screen bg-stone-50 text-stone-900 pb-24 xl:pb-0 pt-4 sm:pt-6 font-sans">
@@ -391,21 +392,21 @@ export default function StaffOrders() {
         </div>
 
         {/* ── Desktop Tab Switcher (xl screens only) ── */}
-        <div className="hidden xl:flex bg-stone-200/70 p-1.5 rounded-2xl gap-2 mb-6 max-w-md">
+        <div className="hidden xl:flex bg-stone-200/70 p-1.5 rounded-2xl gap-2 mb-6 max-w-2xl">
           <button
             type="button"
             onClick={() => setActiveTab('takeaway')}
             className={`flex-1 py-2.5 px-3 min-h-[44px] rounded-xl font-bold text-sm flex items-center justify-center gap-2 clay-btn ${
-              activeTab === 'takeaway' || activeTab === 'kitchen'
+              activeTab === 'takeaway'
                 ? 'clay-gold clay-active text-stone-900'
                 : 'clay-light text-stone-600'
             }`}
           >
             <Package size={17} />
-            <span>Takeaway Counter</span>
+            <span>Takeaway</span>
             <span
               className={`text-xs px-2 py-0.5 rounded-full font-extrabold ${
-                activeTab === 'takeaway' || activeTab === 'kitchen' ? 'bg-amber-600 text-amber-100' : 'bg-stone-300 text-stone-700'
+                activeTab === 'takeaway' ? 'bg-amber-600 text-amber-100' : 'bg-stone-300 text-stone-700'
               }`}
             >
               {pendingTakeawayCount}
@@ -422,7 +423,7 @@ export default function StaffOrders() {
             }`}
           >
             <UtensilsCrossed size={17} />
-            <span>Dine-in Tickets</span>
+            <span>Dine-in</span>
             <span
               className={`text-xs px-2 py-0.5 rounded-full font-extrabold ${
                 activeTab === 'dine-in' ? 'bg-amber-600 text-amber-100' : 'bg-stone-300 text-stone-700'
@@ -431,19 +432,35 @@ export default function StaffOrders() {
               {pendingDineInCount}
             </span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('kitchen')}
+            className={`flex-1 py-2.5 px-3 min-h-[44px] rounded-xl font-bold text-sm flex items-center justify-center gap-2 clay-btn ${
+              activeTab === 'kitchen'
+                ? 'clay-gold clay-active text-stone-900'
+                : 'clay-light text-stone-600'
+            }`}
+          >
+            <ChefHat size={17} />
+            <span>Online Order</span>
+            <span
+              className={`text-xs px-2 py-0.5 rounded-full font-extrabold ${
+                activeTab === 'kitchen' ? 'bg-amber-600 text-amber-100' : 'bg-stone-300 text-stone-700'
+              }`}
+            >
+              {pendingDeliveryCount}
+            </span>
+          </button>
         </div>
 
-        {/* ── 2-Column Grid on xl ── */}
-        <div className="xl:grid xl:grid-cols-[1fr_440px] xl:gap-6 xl:items-start">
-
-          {/* ── LEFT / MAIN: Orders tabs (Takeaway / Dine-in) ── */}
-          <div>
-
-            {/* ═══════════════════════════════════════════════════════════════
-                TAB 1: TAKEAWAY (Bill Lookup & Handover Flow)
-            ═══════════════════════════════════════════════════════════════ */}
-            {(activeTab === 'takeaway' || activeTab === 'kitchen') && (
-              <div className={activeTab === 'kitchen' ? 'hidden xl:block space-y-6' : 'space-y-6'}>
+        {/* ── Single-Column Tabs (Takeaway / Dine-in) & 2-Column Online Order Tab ── */}
+        <div>
+          {/* ═══════════════════════════════════════════════════════════════
+              TAB 1: TAKEAWAY (Bill Lookup & Handover Flow — single column)
+          ═══════════════════════════════════════════════════════════════ */}
+          {activeTab === 'takeaway' && (
+            <div className="space-y-6">
                 {/* 1. Sticky Bill Number Lookup Card */}
                 <div className="sticky top-0 z-10 bg-stone-50 pt-2 pb-3 -mx-4 px-4">
                   <Card className="p-4 sm:p-6 border-amber-200 bg-gradient-to-b from-amber-50/40 via-white to-white shadow-sm">
@@ -699,11 +716,11 @@ export default function StaffOrders() {
               </div>
             )}
 
-          </div>{/* end main column */}
-
-          {/* ── Mobile Online Order Tab (below xl only) ── */}
+          {/* ═══════════════════════════════════════════════════════════════
+              TAB 3: ONLINE ORDER (Delivery Monitor + Kitchen Display)
+          ═══════════════════════════════════════════════════════════════ */}
           {activeTab === 'kitchen' && (
-            <div className="xl:hidden space-y-6">
+            <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_1fr] gap-6 items-start">
               <OrderMonitor
                 orderType="delivery"
                 title="Online Order Monitoring"
@@ -718,24 +735,7 @@ export default function StaffOrders() {
               />
             </div>
           )}
-
-          {/* ── RIGHT: Online Order Monitoring (xl only) ── */}
-          <div className="hidden xl:block space-y-6">
-            <OrderMonitor
-              orderType="delivery"
-              title="Online Order Monitoring"
-              orders={deliveryOrders}
-              loading={liveLoading}
-            />
-            <LiveKitchen
-              orders={deliveryOrders}
-              loading={liveLoading}
-              onStatusChange={handleKitchenStatusChange}
-              role="staff"
-            />
-          </div>
-
-        </div>{/* end xl:grid */}
+        </div>
       </div>
 
       {/* ── Fixed Bottom Tab Bar for below-xl screens ── */}
@@ -783,7 +783,14 @@ export default function StaffOrders() {
             activeTab === 'kitchen' ? 'clay-btn clay-gold clay-active text-stone-900' : 'text-stone-500 hover:text-stone-800'
           }`}
         >
-          <ChefHat size={20} />
+          <div className="relative">
+            <ChefHat size={20} />
+            {pendingDeliveryCount > 0 && (
+              <span className="absolute -top-1.5 -right-2 bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full leading-tight">
+                {pendingDeliveryCount}
+              </span>
+            )}
+          </div>
           <span>Online Order</span>
         </button>
       </nav>
