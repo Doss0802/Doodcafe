@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { ChefHat, Clock, CheckCircle2, Flame, ArrowRight } from 'lucide-react';
+import { ChefHat, Clock, CheckCircle2, Flame, ArrowRight, Printer } from 'lucide-react';
 import { STATUS_CONFIG, getStatusMeta } from './staffOrderStatus';
+import { printBillOrder } from '../../../utils/printBill';
 
 export default function StaffLiveKitchen({
   orders = [],
@@ -173,7 +174,15 @@ export default function StaffLiveKitchen({
                 </div>
 
                 {/* Footer Action */}
-                <div className="pt-2 border-t border-stone-100">
+                <div className="pt-2 border-t border-stone-100 space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => printBillOrder(ord)}
+                    className="clay-btn clay-light w-full py-2 min-h-[44px] text-xs font-bold flex items-center justify-center gap-1.5 text-stone-900 border border-stone-300"
+                  >
+                    <Printer size={14} />
+                    <span>Print Bill</span>
+                  </button>
                   {statusMeta.next ? (
                     <button
                       type="button"

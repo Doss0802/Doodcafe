@@ -21,7 +21,6 @@ import axiosInstance from '../../api/axiosInstance';
 import { useOrderStream } from './components/useStaffOrderStream';
 import { getStatusMeta } from './components/staffOrderStatus';
 import LiveKitchen from './components/StaffLiveKitchen';
-import OrderStream from './components/StaffOrderStream';
 import StaffCustomerModal from './components/StaffCustomerModal';
 import { printBillOrder } from '../../utils/printBill';
 import toast from 'react-hot-toast';
@@ -64,7 +63,7 @@ const Card = ({ children, className = '' }) => (
 );
 
 export default function StaffOrders() {
-  const [activeTab, setActiveTab] = useState('takeaway'); // 'takeaway' | 'dine-in' | 'kitchen' | 'stream'
+  const [activeTab, setActiveTab] = useState('takeaway'); // 'takeaway' | 'dine-in' | 'kitchen'
   const [takeawayOrders, setTakeawayOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -127,7 +126,7 @@ export default function StaffOrders() {
     };
   }, [fetchOrders]);
 
-  // --- useOrderStream for Live Kitchen + Order Stream (owns socket singleton) ---
+  // --- useOrderStream for Live Kitchen Display (owns socket singleton) ---
   const {
     orders: liveOrders,
     loading: liveLoading,
@@ -261,7 +260,7 @@ export default function StaffOrders() {
     return true;
   });
 
-  // ─── Derive Dine-in Orders from liveOrders (Same source as All Orders) ───
+  // ─── Derive Dine-in Orders from liveOrders ───
   const isDineInOrder = (ord) => {
     if (!ord) return false;
     const type = (ord.orderType || ord.type || '').toLowerCase();
@@ -351,12 +350,12 @@ export default function StaffOrders() {
         </div>
 
         {/* ── Desktop Tab Switcher (xl screens only) ── */}
-        <div className="hidden xl:flex bg-stone-200/70 p-1.5 rounded-2xl gap-2 mb-6 max-w-lg">
+        <div className="hidden xl:flex bg-stone-200/70 p-1.5 rounded-2xl gap-2 mb-6 max-w-md">
           <button
             type="button"
             onClick={() => setActiveTab('takeaway')}
             className={`flex-1 py-2.5 px-3 min-h-[44px] rounded-xl font-bold text-sm flex items-center justify-center gap-2 clay-btn ${
-              activeTab === 'takeaway'
+              activeTab === 'takeaway' || activeTab === 'kitchen'
                 ? 'clay-gold clay-active text-stone-900'
                 : 'clay-light text-stone-600'
             }`}
@@ -365,7 +364,7 @@ export default function StaffOrders() {
             <span>Takeaway Counter</span>
             <span
               className={`text-xs px-2 py-0.5 rounded-full font-extrabold ${
-                activeTab === 'takeaway' ? 'bg-amber-600 text-amber-100' : 'bg-stone-300 text-stone-700'
+                activeTab === 'takeaway' || activeTab === 'kitchen' ? 'bg-amber-600 text-amber-100' : 'bg-stone-300 text-stone-700'
               }`}
             >
               {pendingTakeawayCount}
@@ -391,39 +390,19 @@ export default function StaffOrders() {
               {pendingDineInCount}
             </span>
           </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('stream')}
-            className={`flex-1 py-2.5 px-3 min-h-[44px] rounded-xl font-bold text-sm flex items-center justify-center gap-2 clay-btn ${
-              activeTab === 'stream'
-                ? 'clay-gold clay-active text-stone-900'
-                : 'clay-light text-stone-600'
-            }`}
-          >
-            <Radio size={17} />
-            <span>All Orders</span>
-            <span
-              className={`text-xs px-2 py-0.5 rounded-full font-extrabold ${
-                activeTab === 'stream' ? 'bg-amber-600 text-amber-100' : 'bg-stone-300 text-stone-700'
-              }`}
-            >
-              {liveOrders.length}
-            </span>
-          </button>
         </div>
 
-        {/* ── 2-Column Grid on xl (or full width when All Orders is active) ── */}
-        <div className={`xl:grid ${activeTab === 'stream' ? 'xl:grid-cols-1' : 'xl:grid-cols-[1fr_440px]'} xl:gap-6 xl:items-start`}>
+        {/* ── 2-Column Grid on xl ── */}
+        <div className="xl:grid xl:grid-cols-[1fr_440px] xl:gap-6 xl:items-start">
 
-          {/* ── LEFT / MAIN: Orders tabs (Takeaway / Dine-in / All Orders) ── */}
+          {/* ── LEFT / MAIN: Orders tabs (Takeaway / Dine-in) ── */}
           <div>
 
             {/* ═══════════════════════════════════════════════════════════════
                 TAB 1: TAKEAWAY (Bill Lookup & Handover Flow)
             ═══════════════════════════════════════════════════════════════ */}
-            {activeTab === 'takeaway' && (
-              <div className="space-y-6">
+            {(activeTab === 'takeaway' || activeTab === 'kitchen') && (
+              <div className={activeTab === 'kitchen' ? 'hidden xl:block space-y-6' : 'space-y-6'}>
                 {/* 1. Sticky Bill Number Lookup Card */}
                 <div className="sticky top-0 z-10 bg-stone-50 pt-2 pb-3 -mx-4 px-4">
                   <Card className="p-4 sm:p-6 border-amber-200 bg-gradient-to-b from-amber-50/40 via-white to-white shadow-sm">
@@ -582,7 +561,7 @@ export default function StaffOrders() {
             )}
 
             {/* ═══════════════════════════════════════════════════════════════
-                TAB 2: DINE-IN (Read-Only Customer Orders & Payment Status)
+                TAB 2: DINE-IN (Live Customer Orders & Payment Status)
             ═══════════════════════════════════════════════════════════════ */}
             {activeTab === 'dine-in' && (
               <div className="space-y-6">
@@ -592,7 +571,7 @@ export default function StaffOrders() {
                       Today's Dine-in Food Orders
                     </h2>
                     <p className="text-stone-500 text-xs mt-0.5">
-                      View-only. Tap a card to manage status in All Orders tab.
+                      Manage live dine-in orders, payment status, and bill printing.
                     </p>
                   </div>
 
@@ -676,22 +655,9 @@ export default function StaffOrders() {
               </div>
             )}
 
-            {/* ═══════════════════════════════════════════════════════════════
-                TAB 3: ALL ORDERS STREAM (Full-view on Mobile & Desktop)
-            ═══════════════════════════════════════════════════════════════ */}
-            {activeTab === 'stream' && (
-              <div className="space-y-6">
-                <OrderStream
-                  orders={liveOrders}
-                  loading={liveLoading}
-                  onStatusChange={handleKitchenStatusChange}
-                  role="staff"
-                />
-              </div>
-            )}
           </div>{/* end main column */}
 
-          {/* ── Mobile Kitchen Tab (below xl only) ── */}
+          {/* ── Mobile Kitchen Tab / Live Delivery (below xl only) ── */}
           {activeTab === 'kitchen' && (
             <div className="xl:hidden">
               <LiveKitchen
@@ -703,27 +669,15 @@ export default function StaffOrders() {
             </div>
           )}
 
-          {/* ── RIGHT: Live Kitchen + Order Stream (xl only, visible when takeaway or dine-in active) ── */}
-          {activeTab !== 'stream' && (
-            <div className="hidden xl:flex xl:flex-col gap-4">
-              <div className="max-h-[480px] overflow-y-auto rounded-2xl">
-                <LiveKitchen
-                  orders={liveOrders}
-                  loading={liveLoading}
-                  onStatusChange={handleKitchenStatusChange}
-                  role="staff"
-                />
-              </div>
-              <div className="max-h-[420px] overflow-y-auto rounded-2xl">
-                <OrderStream
-                  orders={liveOrders}
-                  loading={liveLoading}
-                  onStatusChange={handleKitchenStatusChange}
-                  role="staff"
-                />
-              </div>
-            </div>
-          )}
+          {/* ── RIGHT: Live Kitchen Display (xl only) ── */}
+          <div className="hidden xl:block">
+            <LiveKitchen
+              orders={liveOrders}
+              loading={liveLoading}
+              onStatusChange={handleKitchenStatusChange}
+              role="staff"
+            />
+          </div>
 
         </div>{/* end xl:grid */}
       </div>
@@ -775,17 +729,6 @@ export default function StaffOrders() {
         >
           <ChefHat size={20} />
           <span>Live Delivery</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('stream')}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 min-h-[52px] rounded-xl text-[11px] font-bold transition-all ${
-            activeTab === 'stream' ? 'clay-btn clay-gold clay-active text-stone-900' : 'text-stone-500 hover:text-stone-800'
-          }`}
-        >
-          <Radio size={20} />
-          <span>All Orders</span>
         </button>
       </nav>
 
