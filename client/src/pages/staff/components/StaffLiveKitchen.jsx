@@ -1,6 +1,13 @@
 import { useState } from 'react';
 import { ChefHat, Clock, CheckCircle2, Flame, ArrowRight, Printer } from 'lucide-react';
-import { STATUS_CONFIG, getStatusMeta } from './staffOrderStatus';
+import {
+  STATUS_CONFIG,
+  getStatusMeta,
+  resolveOrderType,
+  isVisibleStaffOrder,
+  isOrderTodayIST,
+  isActiveOrderStatus,
+} from './staffOrderStatus';
 import { printBillOrder } from '../../../utils/printBill';
 
 export default function StaffLiveKitchen({
@@ -12,12 +19,19 @@ export default function StaffLiveKitchen({
   const [kitchenFilter, setKitchenFilter] = useState('active'); // 'active' | 'pending' | 'preparing' | 'ready'
   const [actionLoadingId, setActionLoadingId] = useState(null);
 
-  // Filter orders relevant to kitchen
-  const kitchenOrders = orders.filter((ord) => {
-    if (!ord) return false;
+  // Filter kitchen feed strictly to delivery orders, today IST, excluding unpaid UPI
+  const deliveryBaseOrders = (Array.isArray(orders) ? orders : []).filter(
+    (ord) =>
+      resolveOrderType(ord) === 'delivery' &&
+      isVisibleStaffOrder(ord) &&
+      isOrderTodayIST(ord)
+  );
+
+  // Filter orders relevant to kitchen status pill
+  const kitchenOrders = deliveryBaseOrders.filter((ord) => {
     const s = ord.status;
     if (kitchenFilter === 'active') {
-      return ['pending', 'confirmed', 'preparing', 'ready'].includes(s);
+      return isActiveOrderStatus(s);
     }
     if (kitchenFilter === 'pending') {
       return ['pending', 'confirmed'].includes(s);
@@ -93,8 +107,8 @@ export default function StaffLiveKitchen({
       ) : kitchenOrders.length === 0 ? (
         <div className="py-12 flex flex-col items-center justify-center text-stone-400 gap-2 text-center">
           <ChefHat size={36} className="text-stone-300 stroke-[1.5]" />
-          <p className="text-sm font-semibold text-stone-600">No active kitchen orders</p>
-          <span className="text-xs text-stone-400">Incoming kitchen orders will appear here automatically.</span>
+          <p className="text-sm font-semibold text-stone-600">No active online orders</p>
+          <span className="text-xs text-stone-400">Incoming online delivery orders will appear here automatically.</span>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

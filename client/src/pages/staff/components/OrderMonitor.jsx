@@ -12,6 +12,9 @@ import {
   getStatusMeta,
   getPaymentBadgeClass,
   getPaymentLabel,
+  resolveOrderType,
+  isVisibleStaffOrder,
+  isOrderTodayIST,
 } from './staffOrderStatus';
 import { printBillOrder } from '../../../utils/printBill';
 
@@ -22,30 +25,6 @@ const STATUS_TABS = [
   { id: 'ready', label: 'Ready' },
   { id: 'completed', label: 'Completed' },
 ];
-
-const istDateFormatter = new Intl.DateTimeFormat('en-CA', {
-  timeZone: 'Asia/Kolkata',
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-});
-
-function resolveOrderType(ord) {
-  const raw = (ord?.orderType || ord?.type || '').toLowerCase().trim();
-  if (raw === 'dine-in' || raw === 'dinein') return 'dine-in';
-  if (raw === 'delivery') return 'delivery';
-  if (raw === 'takeaway') return 'takeaway';
-  if (
-    ord?.tableNumber ||
-    ord?.tableNo ||
-    ord?.deliveryAddress?.toLowerCase().includes('dine-in') ||
-    ord?.customer_location?.toLowerCase().includes('dine-in')
-  ) {
-    return 'dine-in';
-  }
-  if (ord?.deliveryAddress) return 'delivery';
-  return 'takeaway';
-}
 
 function parseOrderItems(rawItems) {
   if (Array.isArray(rawItems)) return rawItems;
@@ -111,22 +90,13 @@ export default function OrderMonitor({
 
   // Strictly filter by orderType, online (UPI) payment visibility rule, and today (IST), newest first
   const baseOrders = useMemo(() => {
-    const todayIst = istDateFormatter.format(new Date());
     return (Array.isArray(orders) ? orders : [])
-      .filter((ord) => {
-        if (!ord) return false;
-        if (resolveOrderType(ord) !== orderType) return false;
-
-        // Exclude online (upi) orders with pending or failed payment
-        const mode = (ord.paymentMode || '').toLowerCase();
-        const payStatus = (ord.paymentStatus || '').toLowerCase();
-        if (mode === 'upi' && payStatus !== 'paid') return false;
-
-        if (!ord.createdAt) return false;
-        const d = new Date(ord.createdAt);
-        if (Number.isNaN(d.getTime())) return false;
-        return istDateFormatter.format(d) === todayIst;
-      })
+      .filter(
+        (ord) =>
+          resolveOrderType(ord) === orderType &&
+          isVisibleStaffOrder(ord) &&
+          isOrderTodayIST(ord)
+      )
       .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
   }, [orders, orderType]);
 

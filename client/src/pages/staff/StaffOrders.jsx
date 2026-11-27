@@ -335,10 +335,15 @@ export default function StaffOrders() {
     }
   };
 
-  // Delivery orders passed to LiveKitchen for status buttons
-  const deliveryOrders = liveOrders.filter(
-    (o) => (o.orderType || o.type || '').toLowerCase() === 'delivery'
-  );
+  // Strict delivery feed (only delivery, today IST, excluding unpaid UPI, newest first)
+  const deliveryOrders = liveOrders
+    .filter(
+      (ord) =>
+        resolveOrderType(ord) === 'delivery' &&
+        isVisibleStaffOrder(ord) &&
+        isOrderTodayIST(ord)
+    )
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
   // Count Badges for Tabs (active orders today IST per type)
   const pendingTakeawayCount = strictTakeawayOrders.filter((o) => isActiveOrderStatus(o.status)).length;
@@ -702,7 +707,7 @@ export default function StaffOrders() {
               <OrderMonitor
                 orderType="delivery"
                 title="Online Order Monitoring"
-                orders={liveOrders}
+                orders={deliveryOrders}
                 loading={liveLoading}
               />
               <LiveKitchen
@@ -719,7 +724,7 @@ export default function StaffOrders() {
             <OrderMonitor
               orderType="delivery"
               title="Online Order Monitoring"
-              orders={liveOrders}
+              orders={deliveryOrders}
               loading={liveLoading}
             />
             <LiveKitchen
